@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Complaint, Worker, Department, ComplaintStatus } from '../types';
 import { ComplaintDetailModal } from '../components/ComplaintDetailModal';
+import { UserAccountManager } from '../components/UserAccountManager';
 
 interface DepartmentDashboardViewProps {
   complaints: Complaint[];
@@ -196,6 +197,9 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
           </table>
         </div>
       </div>
+
+      {/* Field Worker Accounts & Credentials Management Section */}
+      <UserAccountManager currentRole="officer" workers={workers} />
 
       {/* Worker Assignment Modal */}
       {assigningComplaint && (

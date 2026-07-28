@@ -13,14 +13,19 @@ import {
   Info,
   Radio,
   Layers,
+  LogOut,
+  Lock,
 } from 'lucide-react';
-import { UserRole } from '../types';
+import { UserRole, UserAccount } from '../types';
 
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   userRole: UserRole;
   setUserRole: (role: UserRole) => void;
+  currentUser: UserAccount | null;
+  onRequestLogin: (role: UserRole) => void;
+  onLogout: () => void;
   emergencyCount: number;
 }
 
@@ -29,8 +34,29 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   userRole,
   setUserRole,
+  currentUser,
+  onRequestLogin,
+  onLogout,
   emergencyCount,
 }) => {
+  const handleRoleClick = (targetRole: UserRole) => {
+    if (targetRole === 'citizen') {
+      setUserRole('citizen');
+      setActiveTab('landing');
+      return;
+    }
+
+    // Check if user is already logged in as targetRole or admin
+    if (currentUser && (currentUser.role === targetRole || currentUser.role === 'admin')) {
+      setUserRole(targetRole);
+      if (targetRole === 'officer') setActiveTab('department');
+      if (targetRole === 'worker') setActiveTab('worker');
+      if (targetRole === 'admin') setActiveTab('admin');
+    } else {
+      onRequestLogin(targetRole);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-indigo-900/50 text-white shadow-xl">
       {/* Top Banner Bar for Emergency Alerts & Role Switcher */}
@@ -43,7 +69,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {emergencyCount > 0 ? (
             <button
-              onClick={() => setActiveTab('department')}
+              onClick={() => {
+                if (userRole === 'citizen') {
+                  onRequestLogin('officer');
+                } else {
+                  setActiveTab('department');
+                }
+              }}
               className="flex items-center text-rose-300 font-bold hover:underline bg-rose-950/70 border border-rose-500/50 px-2.5 py-0.5 rounded-full shadow-sm"
             >
               <Flame className="w-3.5 h-3.5 mr-1 text-rose-500 animate-bounce" />
@@ -56,15 +88,29 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </div>
 
-        {/* Demo Role Switcher */}
-        <div className="flex items-center space-x-2">
-          <span className="text-slate-400 hidden sm:inline font-medium text-[11px]">Switch View Role:</span>
+        {/* Account Status / Role Switcher */}
+        <div className="flex items-center space-x-3">
+          {currentUser && (
+            <div className="flex items-center space-x-2 bg-indigo-950/80 border border-indigo-700/60 px-3 py-1 rounded-xl text-[11px]">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="font-extrabold text-white">{currentUser.name}</span>
+              <span className="px-1.5 py-0.2 bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 rounded font-mono uppercase text-[9px]">
+                {currentUser.role}
+              </span>
+              <button
+                onClick={onLogout}
+                title="Sign Out Account"
+                className="ml-1 text-slate-400 hover:text-rose-400 flex items-center space-x-1 font-bold transition-colors"
+              >
+                <LogOut className="w-3 h-3" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            </div>
+          )}
+
           <div className="inline-flex p-0.5 bg-slate-900/90 rounded-xl border border-indigo-800/50 shadow-inner">
             <button
-              onClick={() => {
-                setUserRole('citizen');
-                setActiveTab('landing');
-              }}
+              onClick={() => handleRoleClick('citizen')}
               className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 font-bold text-[11px] ${
                 userRole === 'citizen'
                   ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
@@ -75,10 +121,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Citizen</span>
             </button>
             <button
-              onClick={() => {
-                setUserRole('officer');
-                setActiveTab('department');
-              }}
+              onClick={() => handleRoleClick('officer')}
               className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 font-bold text-[11px] ${
                 userRole === 'officer'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md'
@@ -87,12 +130,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Building2 className="w-3 h-3" />
               <span>Officer</span>
+              {(!currentUser || currentUser.role !== 'officer') && userRole !== 'officer' && (
+                <Lock className="w-2.5 h-2.5 ml-0.5 text-amber-300" />
+              )}
             </button>
             <button
-              onClick={() => {
-                setUserRole('worker');
-                setActiveTab('worker');
-              }}
+              onClick={() => handleRoleClick('worker')}
               className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 font-bold text-[11px] ${
                 userRole === 'worker'
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md'
@@ -101,12 +144,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <HardHat className="w-3 h-3" />
               <span>Field Worker</span>
+              {(!currentUser || currentUser.role !== 'worker') && userRole !== 'worker' && (
+                <Lock className="w-2.5 h-2.5 ml-0.5 text-emerald-300" />
+              )}
             </button>
             <button
-              onClick={() => {
-                setUserRole('admin');
-                setActiveTab('admin');
-              }}
+              onClick={() => handleRoleClick('admin')}
               className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 font-bold text-[11px] ${
                 userRole === 'admin'
                   ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
@@ -115,6 +158,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Settings className="w-3 h-3" />
               <span>Admin</span>
+              {(!currentUser || currentUser.role !== 'admin') && userRole !== 'admin' && (
+                <Lock className="w-2.5 h-2.5 ml-0.5 text-purple-300" />
+              )}
             </button>
           </div>
         </div>

@@ -26,6 +26,20 @@ export type Department =
 
 export type UserRole = 'citizen' | 'officer' | 'worker' | 'admin';
 
+export interface UserAccount {
+  id: string;
+  name: string;
+  username: string;
+  password: string;
+  role: 'admin' | 'officer' | 'worker';
+  department?: Department;
+  phone?: string;
+  email?: string;
+  avatarUrl?: string;
+  workerId?: string;
+  createdAt?: string;
+}
+
 export interface TimelineEvent {
   id: string;
   status: ComplaintStatus;
@@ -76,6 +90,8 @@ export interface Worker {
   department: Department;
   phone: string;
   email: string;
+  username?: string;
+  password?: string;
   avatarUrl: string;
   activeTasksCount: number;
   completedTasksCount: number;

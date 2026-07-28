@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Complaint, Worker, DepartmentMetric, UserRole } from './types';
+import { Complaint, Worker, DepartmentMetric, UserRole, UserAccount } from './types';
 import { Navbar } from './components/Navbar';
+import { LoginModal } from './components/LoginModal';
 import { LandingView } from './views/LandingView';
 import { ReportHazardView } from './views/ReportHazardView';
 import { LiveMapView } from './views/LiveMapView';
@@ -16,6 +17,8 @@ import { ComplaintDetailModal } from './components/ComplaintDetailModal';
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('landing');
   const [userRole, setUserRole] = useState<UserRole>('citizen');
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [loginModalTargetRole, setLoginModalTargetRole] = useState<UserRole | null>(null);
 
   // State loaded from API
   const [complaints, setComplaints] = useState<Complaint[]>([]);
@@ -127,6 +130,23 @@ export default function App() {
     (c) => c.isEmergency && c.status !== 'Resolved'
   ).length;
 
+  const handleLoginSuccess = (user: UserAccount) => {
+    setCurrentUser(user);
+    setUserRole(user.role);
+    setLoginModalTargetRole(null);
+
+    // Switch view to relevant role dashboard
+    if (user.role === 'officer') setActiveTab('department');
+    else if (user.role === 'worker') setActiveTab('worker');
+    else if (user.role === 'admin') setActiveTab('admin');
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setUserRole('citizen');
+    setActiveTab('landing');
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col justify-between">
       <div>
@@ -136,6 +156,9 @@ export default function App() {
           setActiveTab={setActiveTab}
           userRole={userRole}
           setUserRole={setUserRole}
+          currentUser={currentUser}
+          onRequestLogin={(role) => setLoginModalTargetRole(role)}
+          onLogout={handleLogout}
           emergencyCount={emergencyCount}
         />
 
@@ -218,6 +241,15 @@ export default function App() {
           complaint={selectedComplaint}
           onClose={() => setSelectedComplaint(null)}
           onUpvote={handleUpvoteComplaint}
+        />
+      )}
+
+      {/* Login Modal */}
+      {loginModalTargetRole && (
+        <LoginModal
+          targetRole={loginModalTargetRole}
+          onClose={() => setLoginModalTargetRole(null)}
+          onLoginSuccess={handleLoginSuccess}
         />
       )}
 

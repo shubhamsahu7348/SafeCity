@@ -2,8 +2,8 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
-import { INITIAL_COMPLAINTS, INITIAL_WORKERS, INITIAL_DEPARTMENT_METRICS } from "./src/server/mockData";
-import { Complaint, AIAnalysisRequest, AIVerificationRequest, Department, HazardCategory, SeverityLevel } from "./src/types";
+import { INITIAL_COMPLAINTS, INITIAL_WORKERS, INITIAL_DEPARTMENT_METRICS, INITIAL_USERS } from "./src/server/mockData";
+import { Complaint, AIAnalysisRequest, AIVerificationRequest, Department, HazardCategory, SeverityLevel, UserAccount } from "./src/types";
 
 const app = express();
 const PORT = 3000;
@@ -14,6 +14,7 @@ app.use(express.json({ limit: "50mb" }));
 let complaintsStore: Complaint[] = [...INITIAL_COMPLAINTS];
 let workersStore = [...INITIAL_WORKERS];
 let departmentMetricsStore = [...INITIAL_DEPARTMENT_METRICS];
+let usersStore: UserAccount[] = [...INITIAL_USERS];
 
 // Initialize Gemini Client safely
 let ai: GoogleGenAI | null = null;
@@ -492,6 +493,146 @@ Return JSON:
   });
 });
 
+// API ROUTE: User Authentication / Login
+app.post("/api/users/login", (req, res) => {
+  const { username, password, targetRole } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: "Username and password are required." });
+  }
+
+  // Find matching user in store (case-insensitive username)
+  const user = usersStore.find(
+    (u) => u.username.toLowerCase() === username.trim().toLowerCase() && u.password === password
+  );
+
+  if (!user) {
+    return res.status(401).json({ error: "Invalid username or password. Please check your credentials." });
+  }
+
+  // Check role authorization if targetRole requested
+  if (targetRole && user.role !== 'admin' && user.role !== targetRole) {
+    return res.status(403).json({ error: `Account "${user.username}" is authorized for ${user.role} role, not ${targetRole}.` });
+  }
+
+  res.json({ success: true, user });
+});
+
+// API ROUTE: Get all user accounts (for Officers & Admin Management)
+app.get("/api/users", (_req, res) => {
+  res.json(usersStore);
+});
+
+// API ROUTE: Add new user account (Officer or Worker)
+app.post("/api/users", (req, res) => {
+  const { name, username, password, role, department, phone, email, avatarUrl } = req.body;
+
+  if (!name || !username || !password || !role) {
+    return res.status(400).json({ error: "Name, username, password, and role are required." });
+  }
+
+  // Check duplicate username
+  if (usersStore.some((u) => u.username.toLowerCase() === username.trim().toLowerCase())) {
+    return res.status(400).json({ error: `Username "${username}" already exists. Please choose a different username.` });
+  }
+
+  const newUserId = `U-${Math.floor(1000 + Math.random() * 9000)}`;
+  let workerId: string | undefined;
+
+  // If role is worker, also create matching worker in workersStore
+  if (role === 'worker') {
+    workerId = `W-${Math.floor(100 + Math.random() * 900)}`;
+    const newWorker = {
+      id: workerId,
+      name,
+      department: department || 'Road Department',
+      phone: phone || '+1 (555) 000-1122',
+      email: email || `${username}@safecity.gov`,
+      username: username.trim(),
+      password,
+      avatarUrl: avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+      activeTasksCount: 0,
+      completedTasksCount: 0,
+      rating: 5.0,
+      status: 'Available' as const,
+    };
+    workersStore.push(newWorker);
+  }
+
+  const newUser: UserAccount = {
+    id: newUserId,
+    name,
+    username: username.trim(),
+    password,
+    role,
+    department: department || 'Road Department',
+    phone: phone || '+1 (555) 000-1122',
+    email: email || `${username}@safecity.gov`,
+    avatarUrl: avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    workerId,
+    createdAt: new Date().toISOString(),
+  };
+
+  usersStore.push(newUser);
+  res.status(201).json(newUser);
+});
+
+// API ROUTE: Update user credentials / details
+app.patch("/api/users/:id", (req, res) => {
+  const { id } = req.params;
+  const userIdx = usersStore.findIndex((u) => u.id === id || u.workerId === id);
+
+  if (userIdx === -1) {
+    return res.status(404).json({ error: "User account not found." });
+  }
+
+  const existing = usersStore[userIdx];
+  const updates = req.body;
+
+  // Sync workerStore if applicable
+  if (existing.workerId) {
+    const workerIdx = workersStore.findIndex((w) => w.id === existing.workerId);
+    if (workerIdx !== -1) {
+      workersStore[workerIdx] = {
+        ...workersStore[workerIdx],
+        ...(updates.name && { name: updates.name }),
+        ...(updates.username && { username: updates.username }),
+        ...(updates.password && { password: updates.password }),
+        ...(updates.phone && { phone: updates.phone }),
+        ...(updates.email && { email: updates.email }),
+        ...(updates.department && { department: updates.department }),
+      };
+    }
+  }
+
+  usersStore[userIdx] = {
+    ...existing,
+    ...updates,
+  };
+
+  res.json(usersStore[userIdx]);
+});
+
+// API ROUTE: Delete user account
+app.delete("/api/users/:id", (req, res) => {
+  const { id } = req.params;
+  const targetUser = usersStore.find((u) => u.id === id || u.workerId === id);
+
+  if (!targetUser) {
+    return res.status(404).json({ error: "User account not found." });
+  }
+
+  // Remove from usersStore
+  usersStore = usersStore.filter((u) => u.id !== targetUser.id);
+
+  // If worker, also remove from workersStore
+  if (targetUser.workerId) {
+    workersStore = workersStore.filter((w) => w.id !== targetUser.workerId);
+  }
+
+  res.json({ success: true, deletedId: targetUser.id });
+});
+
 // API ROUTE: Workers list
 app.get("/api/workers", (_req, res) => {
   res.json(workersStore);
@@ -500,20 +641,52 @@ app.get("/api/workers", (_req, res) => {
 // API ROUTE: Add worker
 app.post("/api/workers", (req, res) => {
   const workerData = req.body;
+  const workerId = `W-${Math.floor(100 + Math.random() * 900)}`;
+  const username = workerData.username || workerData.name.toLowerCase().replace(/\s+/g, '.');
+  const password = workerData.password || 'worker123';
+
   const newWorker = {
-    id: `W-${Math.floor(100 + Math.random() * 900)}`,
-    name: workerData.name || 'New Officer',
+    id: workerId,
+    name: workerData.name || 'New Field Worker',
     department: workerData.department || 'Road Department',
     phone: workerData.phone || '+1 (555) 000-0000',
-    email: workerData.email || 'worker@safecity.gov',
+    email: workerData.email || `${username}@safecity.gov`,
+    username,
+    password,
     avatarUrl: workerData.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
     activeTasksCount: 0,
     completedTasksCount: 0,
     rating: 5.0,
     status: 'Available' as const,
   };
+
   workersStore.push(newWorker);
+
+  // Also create linked UserAccount so login works!
+  const newUser: UserAccount = {
+    id: `U-${Math.floor(1000 + Math.random() * 9000)}`,
+    name: newWorker.name,
+    username,
+    password,
+    role: 'worker',
+    department: newWorker.department,
+    phone: newWorker.phone,
+    email: newWorker.email,
+    avatarUrl: newWorker.avatarUrl,
+    workerId: newWorker.id,
+    createdAt: new Date().toISOString(),
+  };
+  usersStore.push(newUser);
+
   res.status(201).json(newWorker);
+});
+
+// API ROUTE: Delete worker
+app.delete("/api/workers/:id", (req, res) => {
+  const { id } = req.params;
+  workersStore = workersStore.filter((w) => w.id !== id);
+  usersStore = usersStore.filter((u) => u.workerId !== id && u.id !== id);
+  res.json({ success: true, deletedId: id });
 });
 
 // API ROUTE: Department Metrics & Analytics Summary
