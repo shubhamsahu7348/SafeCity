@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
+import { LocateFixed, RefreshCw, Navigation } from 'lucide-react';
 import { Complaint, SeverityLevel } from '../types';
 
 interface HazardMapProps {
@@ -8,6 +9,9 @@ interface HazardMapProps {
   onSelectComplaint?: (complaint: Complaint) => void;
   radiusKm?: number; // 1, 5, or 10 km
   userCoords?: { lat: number; lng: number };
+  userAddress?: string;
+  isLocating?: boolean;
+  onLocateMe?: () => void;
   height?: string;
 }
 
@@ -17,12 +21,17 @@ export const HazardMap: React.FC<HazardMapProps> = ({
   onSelectComplaint,
   radiusKm = 5,
   userCoords = { lat: 37.774929, lng: -122.419416 },
+  userAddress,
+  isLocating = false,
+  onLocateMe,
   height = '500px',
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersGroupRef = useRef<L.LayerGroup | null>(null);
+  const userMarkerRef = useRef<L.Marker | null>(null);
   const circleRef = useRef<L.Circle | null>(null);
+  const markersMapRef = useRef<Map<string, L.Marker>>(new Map());
 
   // Helper for severity color
   const getSeverityColor = (severity: SeverityLevel, isEmergency?: boolean): string => {
@@ -49,7 +58,7 @@ export const HazardMap: React.FC<HazardMapProps> = ({
         }
         <div class="relative flex items-center justify-center w-7 h-7 rounded-full text-white shadow-lg border-2 border-white ${borderClass}" style="background-color: ${color};">
           <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z"/>
           </svg>
         </div>
       </div>
@@ -64,6 +73,24 @@ export const HazardMap: React.FC<HazardMapProps> = ({
     });
   };
 
+  // Create User Pin Leaflet Icon
+  const createUserMarkerIcon = () => {
+    const userIconHtml = `
+      <div class="relative flex items-center justify-center">
+        <div class="absolute w-8 h-8 rounded-full bg-blue-500 animate-ping opacity-60"></div>
+        <div class="w-5 h-5 rounded-full bg-blue-600 border-2 border-white shadow-lg flex items-center justify-center text-white">
+          <div class="w-2 h-2 bg-white rounded-full"></div>
+        </div>
+      </div>
+    `;
+    return L.divIcon({
+      html: userIconHtml,
+      className: 'user-pin',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
+  };
+
   // Initialize map instance once
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -71,7 +98,7 @@ export const HazardMap: React.FC<HazardMapProps> = ({
     if (!mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
         center: [userCoords.lat, userCoords.lng],
-        zoom: 13,
+        zoom: 14,
         zoomControl: true,
       });
 
@@ -85,30 +112,28 @@ export const HazardMap: React.FC<HazardMapProps> = ({
         }
       ).addTo(map);
 
-      // User Location Marker (Pulse Blue)
-      const userIconHtml = `
-        <div class="relative flex items-center justify-center">
-          <div class="absolute w-6 h-6 rounded-full bg-blue-500 animate-ping opacity-60"></div>
-          <div class="w-4 h-4 rounded-full bg-blue-600 border-2 border-white shadow-md"></div>
+      // User Location Marker
+      const userMarker = L.marker([userCoords.lat, userCoords.lng], {
+        icon: createUserMarkerIcon(),
+        zIndexOffset: 1000,
+      }).addTo(map);
+
+      userMarker.bindPopup(`
+        <div class="p-1.5 font-sans">
+          <div class="font-extrabold text-blue-700 text-xs flex items-center space-x-1 mb-0.5">
+            <span>📍 MY LIVE LOCATION</span>
+          </div>
+          <div class="text-[11px] text-slate-700 font-medium">${userAddress || 'GPS Position Detected'}</div>
+          <div class="text-[10px] text-slate-400 font-mono mt-1">${userCoords.lat.toFixed(5)}, ${userCoords.lng.toFixed(5)}</div>
         </div>
-      `;
-      const userMarkerIcon = L.divIcon({
-        html: userIconHtml,
-        className: 'user-pin',
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
-      });
+      `);
 
-      L.marker([userCoords.lat, userCoords.lng], { icon: userMarkerIcon })
-        .addTo(map)
-        .bindPopup('<b>Your Current Location</b><br/>SafeCity Radius Center');
-
+      userMarkerRef.current = userMarker;
       markersGroupRef.current = L.layerGroup().addTo(map);
       mapInstanceRef.current = map;
     }
 
     return () => {
-      // Clean up map on unmount
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -116,7 +141,32 @@ export const HazardMap: React.FC<HazardMapProps> = ({
     };
   }, []);
 
-  // Update radius circle and markers whenever complaints, radius, or selected ID changes
+  // Update user marker position, circle radius, and pan map when userCoords or userAddress updates
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setLatLng([userCoords.lat, userCoords.lng]);
+      userMarkerRef.current.setPopupContent(`
+        <div class="p-1.5 font-sans">
+          <div class="font-extrabold text-blue-700 text-xs flex items-center space-x-1 mb-0.5">
+            <span>📍 MY LIVE LOCATION</span>
+          </div>
+          <div class="text-[11px] text-slate-700 font-medium">${userAddress || 'GPS Position Detected'}</div>
+          <div class="text-[10px] text-slate-400 font-mono mt-1">${userCoords.lat.toFixed(5)}, ${userCoords.lng.toFixed(5)}</div>
+        </div>
+      `);
+    }
+
+    // Pan smoothly to user coordinates
+    map.flyTo([userCoords.lat, userCoords.lng], map.getZoom() < 13 ? 14 : map.getZoom(), {
+      animate: true,
+      duration: 1,
+    });
+  }, [userCoords, userAddress]);
+
+  // Update radius circle and hazard markers
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !markersGroupRef.current) return;
@@ -138,6 +188,8 @@ export const HazardMap: React.FC<HazardMapProps> = ({
     }).addTo(map);
 
     // Add complaint markers
+    const markersMap = new Map<string, L.Marker>();
+
     complaints.forEach((c) => {
       const isSelected = c.id === selectedComplaintId;
       const marker = L.marker([c.latitude, c.longitude], {
@@ -177,7 +229,6 @@ export const HazardMap: React.FC<HazardMapProps> = ({
         if (onSelectComplaint) onSelectComplaint(c);
       });
 
-      // Attach click handler to popup button
       marker.on('popupopen', () => {
         const btn = document.getElementById(`view-detail-${c.id}`);
         if (btn && onSelectComplaint) {
@@ -186,12 +237,69 @@ export const HazardMap: React.FC<HazardMapProps> = ({
       });
 
       markersGroupRef.current?.addLayer(marker);
+      markersMap.set(c.id, marker);
     });
+
+    markersMapRef.current = markersMap;
   }, [complaints, radiusKm, selectedComplaintId, userCoords]);
 
+  // Fly to selected complaint when user selects one (e.g. from Nearby Hazards sidebar or Belapur East)
+  useEffect(() => {
+    if (!selectedComplaintId || !mapInstanceRef.current) return;
+    const target = complaints.find((c) => c.id === selectedComplaintId);
+    if (target) {
+      mapInstanceRef.current.flyTo([target.latitude, target.longitude], 16, {
+        animate: true,
+        duration: 0.8,
+      });
+      const marker = markersMapRef.current.get(selectedComplaintId);
+      if (marker) {
+        setTimeout(() => {
+          marker.openPopup();
+        }, 300);
+      }
+    }
+  }, [selectedComplaintId, complaints]);
+
+  const handleCenterOnUser = () => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo([userCoords.lat, userCoords.lng], 15, { animate: true, duration: 1 });
+      if (userMarkerRef.current) {
+        userMarkerRef.current.openPopup();
+      }
+    }
+    if (onLocateMe) {
+      onLocateMe();
+    }
+  };
+
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-md">
+    <div className="relative rounded-3xl overflow-hidden border border-slate-200 shadow-md">
       <div ref={mapContainerRef} style={{ height, width: '100%' }} />
+
+      {/* Floating GPS Control Overlay */}
+      <div className="absolute top-4 right-4 z-[400] flex flex-col items-end space-y-2">
+        <button
+          onClick={handleCenterOnUser}
+          disabled={isLocating}
+          className="px-3.5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-2xl shadow-xl border border-slate-700 flex items-center space-x-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
+          title="Center map on my live GPS location"
+        >
+          {isLocating ? (
+            <RefreshCw className="w-4 h-4 text-blue-400 animate-spin" />
+          ) : (
+            <Navigation className="w-4 h-4 text-blue-400 animate-pulse" />
+          )}
+          <span>{isLocating ? 'Locating GPS...' : 'My Live Location'}</span>
+        </button>
+
+        {userAddress && (
+          <div className="px-3 py-1.5 bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-slate-200 text-[11px] text-slate-700 font-semibold max-w-xs truncate flex items-center space-x-1.5">
+            <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping flex-shrink-0"></span>
+            <span className="truncate">{userAddress}</span>
+          </div>
+        )}
+      </div>
 
       {/* Map Legend Overlay */}
       <div className="absolute bottom-4 left-4 z-[400] bg-white/95 backdrop-blur-md p-3 rounded-xl shadow-lg border border-slate-200/80 text-xs flex flex-wrap items-center gap-3">

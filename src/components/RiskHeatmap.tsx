@@ -1,28 +1,56 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
+import { Navigation, RefreshCw, MapPin } from 'lucide-react';
 import { Complaint } from '../types';
 
 interface RiskHeatmapProps {
   complaints: Complaint[];
   height?: string;
   center?: { lat: number; lng: number };
+  userCoords?: { lat: number; lng: number };
+  userAddress?: string;
+  isLocating?: boolean;
+  onLocateMe?: () => void;
 }
 
 export const RiskHeatmap: React.FC<RiskHeatmapProps> = ({
   complaints,
   height = '500px',
   center = { lat: 37.774929, lng: -122.419416 },
+  userCoords = { lat: 37.774929, lng: -122.419416 },
+  userAddress,
+  isLocating = false,
+  onLocateMe,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const heatmapLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const userMarkerRef = useRef<L.Marker | null>(null);
+
+  // User pin icon
+  const createUserMarkerIcon = () => {
+    const userIconHtml = `
+      <div class="relative flex items-center justify-center">
+        <div class="absolute w-8 h-8 rounded-full bg-blue-500 animate-ping opacity-70"></div>
+        <div class="w-5 h-5 rounded-full bg-blue-500 border-2 border-white shadow-xl flex items-center justify-center text-white">
+          <div class="w-2 h-2 bg-white rounded-full"></div>
+        </div>
+      </div>
+    `;
+    return L.divIcon({
+      html: userIconHtml,
+      className: 'user-pin-heatmap',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
+  };
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
     if (!mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
-        center: [center.lat, center.lng],
+        center: [userCoords.lat, userCoords.lng],
         zoom: 13,
         zoomControl: true,
       });
@@ -37,6 +65,23 @@ export const RiskHeatmap: React.FC<RiskHeatmapProps> = ({
         }
       ).addTo(map);
 
+      // Add user location marker
+      const userMarker = L.marker([userCoords.lat, userCoords.lng], {
+        icon: createUserMarkerIcon(),
+        zIndexOffset: 1000,
+      }).addTo(map);
+
+      userMarker.bindPopup(`
+        <div class="p-1.5 font-sans">
+          <div class="font-extrabold text-blue-400 text-xs flex items-center space-x-1 mb-0.5">
+            <span>📍 MY LIVE LOCATION</span>
+          </div>
+          <div class="text-[11px] text-slate-200 font-medium">${userAddress || 'GPS Position Detected'}</div>
+          <div class="text-[10px] text-slate-400 font-mono mt-1">${userCoords.lat.toFixed(5)}, ${userCoords.lng.toFixed(5)}</div>
+        </div>
+      `);
+
+      userMarkerRef.current = userMarker;
       heatmapLayerGroupRef.current = L.layerGroup().addTo(map);
       mapInstanceRef.current = map;
     }
@@ -48,6 +93,30 @@ export const RiskHeatmap: React.FC<RiskHeatmapProps> = ({
       }
     };
   }, []);
+
+  // Update user marker position & pan map smoothly
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setLatLng([userCoords.lat, userCoords.lng]);
+      userMarkerRef.current.setPopupContent(`
+        <div class="p-1.5 font-sans">
+          <div class="font-extrabold text-blue-400 text-xs flex items-center space-x-1 mb-0.5">
+            <span>📍 MY LIVE LOCATION</span>
+          </div>
+          <div class="text-[11px] text-slate-200 font-medium">${userAddress || 'GPS Position Detected'}</div>
+          <div class="text-[10px] text-slate-400 font-mono mt-1">${userCoords.lat.toFixed(5)}, ${userCoords.lng.toFixed(5)}</div>
+        </div>
+      `);
+    }
+
+    map.flyTo([userCoords.lat, userCoords.lng], map.getZoom() < 12 ? 14 : map.getZoom(), {
+      animate: true,
+      duration: 1,
+    });
+  }, [userCoords, userAddress]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -109,9 +178,45 @@ export const RiskHeatmap: React.FC<RiskHeatmapProps> = ({
     });
   }, [complaints]);
 
+  const handleCenterOnUser = () => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo([userCoords.lat, userCoords.lng], 15, { animate: true, duration: 1 });
+      if (userMarkerRef.current) {
+        userMarkerRef.current.openPopup();
+      }
+    }
+    if (onLocateMe) {
+      onLocateMe();
+    }
+  };
+
   return (
     <div className="relative rounded-2xl overflow-hidden border border-slate-800 shadow-xl">
       <div ref={mapContainerRef} style={{ height, width: '100%' }} />
+
+      {/* Floating GPS Location Button */}
+      <div className="absolute top-4 left-4 z-[400] flex flex-col items-start space-y-2">
+        <button
+          onClick={handleCenterOnUser}
+          disabled={isLocating}
+          className="px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-2xl shadow-2xl border border-blue-400 flex items-center space-x-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
+          title="Center map on my live GPS location"
+        >
+          {isLocating ? (
+            <RefreshCw className="w-4 h-4 text-white animate-spin" />
+          ) : (
+            <Navigation className="w-4 h-4 text-white animate-bounce" />
+          )}
+          <span>{isLocating ? 'Locating GPS...' : 'Center My Live Location'}</span>
+        </button>
+
+        {userAddress && (
+          <div className="px-3 py-1.5 bg-slate-900/90 backdrop-blur-md rounded-xl shadow-lg border border-slate-700 text-[11px] text-blue-200 font-bold max-w-xs truncate flex items-center space-x-1.5">
+            <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping flex-shrink-0"></span>
+            <span className="truncate">{userAddress}</span>
+          </div>
+        )}
+      </div>
 
       {/* Heatmap Legend */}
       <div className="absolute top-4 right-4 z-[400] bg-slate-900/90 backdrop-blur-md p-3.5 rounded-xl border border-slate-800 text-white text-xs space-y-2 shadow-xl max-w-xs">

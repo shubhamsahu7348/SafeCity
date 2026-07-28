@@ -375,7 +375,7 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
 
       {/* Add / Edit Account Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fadeIn">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fadeIn">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-lg font-black text-slate-900 flex items-center space-x-2">

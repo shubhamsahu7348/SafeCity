@@ -16,7 +16,7 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react';
-import { Complaint, Worker, AIVerificationResponse } from '../types';
+import { Complaint, Worker, AIVerificationResponse, ComplaintStatus } from '../types';
 
 interface WorkerDashboardViewProps {
   complaints: Complaint[];
@@ -44,17 +44,98 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
 
   const [selectedTask, setSelectedTask] = useState<Complaint | null>(assignedTasks[0] || null);
 
-  // Completion Evidence Form State
+  // Before Maintenance State
+  const [beforePhotos, setBeforePhotos] = useState<string[]>([]);
+  const [beforeVideos, setBeforeVideos] = useState<string[]>([]);
+  const [beforeVideoInput, setBeforeVideoInput] = useState<string>('');
+
+  // Completion / After Maintenance State
   const [afterPhotoUrl, setAfterPhotoUrl] = useState<string>('');
   const [afterPhotos, setAfterPhotos] = useState<string[]>([]);
   const [completionVideos, setCompletionVideos] = useState<string[]>([]);
-  const [videoInput, setVideoInput] = useState<string>('');
+  const [afterVideoInput, setAfterVideoInput] = useState<string>('');
   const [workRemarks, setWorkRemarks] = useState<string>('');
   const [isVerifyingAI, setIsVerifyingAI] = useState<boolean>(false);
   const [aiVerification, setAiVerification] = useState<AIVerificationResponse | null>(null);
 
-  // Handle worker after photos upload
-  const handleMultiplePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Sync state when selectedTask changes
+  const handleSelectTask = (task: Complaint) => {
+    setSelectedTask(task);
+    setBeforePhotos(
+      task.beforePhotos && task.beforePhotos.length > 0
+        ? task.beforePhotos
+        : task.beforePhotoUrl
+        ? [task.beforePhotoUrl]
+        : task.photos && task.photos.length > 0
+        ? [task.photos[0]]
+        : [task.photoUrl]
+    );
+    setBeforeVideos(
+      task.beforeVideos && task.beforeVideos.length > 0
+        ? task.beforeVideos
+        : task.beforeVideoUrl
+        ? [task.beforeVideoUrl]
+        : task.videos || (task.videoUrl ? [task.videoUrl] : [])
+    );
+    setAfterPhotos(
+      task.afterPhotos && task.afterPhotos.length > 0
+        ? task.afterPhotos
+        : task.afterPhotoUrl
+        ? [task.afterPhotoUrl]
+        : []
+    );
+    setCompletionVideos(
+      task.completionVideos && task.completionVideos.length > 0
+        ? task.completionVideos
+        : task.completionVideoUrl
+        ? [task.completionVideoUrl]
+        : []
+    );
+    setWorkRemarks(task.workRemarks || '');
+    setAiVerification(null);
+  };
+
+  // Upload Handlers for BEFORE Maintenance
+  const handleBeforePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setBeforePhotos((prev) => [...prev, reader.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBeforeVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setBeforeVideos((prev) => [...prev, reader.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddBeforeVideoLink = () => {
+    if (!beforeVideoInput.trim()) return;
+    setBeforeVideos((prev) => [...prev, beforeVideoInput.trim()]);
+    setBeforeVideoInput('');
+  };
+
+  // Upload Handlers for AFTER Maintenance
+  const handleAfterPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -72,8 +153,7 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
     }
   };
 
-  // Handle worker completion video upload
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAfterVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -89,10 +169,39 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
     }
   };
 
-  const handleAddVideoInput = () => {
-    if (!videoInput.trim()) return;
-    setCompletionVideos((prev) => [...prev, videoInput.trim()]);
-    setVideoInput('');
+  const handleAddAfterVideoLink = () => {
+    if (!afterVideoInput.trim()) return;
+    setCompletionVideos((prev) => [...prev, afterVideoInput.trim()]);
+    setAfterVideoInput('');
+  };
+
+  // Action: Save Onsite Arrival BEFORE Evidence
+  const handleSaveBeforeEvidence = () => {
+    if (!selectedTask) return;
+
+    const primaryBefore = beforePhotos[0] || selectedTask.photoUrl;
+
+    onUpdateComplaint(selectedTask.id, {
+      status: 'In Progress',
+      beforePhotos: beforePhotos,
+      beforeVideos: beforeVideos,
+      beforePhotoUrl: primaryBefore,
+      beforeVideoUrl: beforeVideos[0],
+      updatedAt: new Date().toISOString(),
+      timeline: [
+        ...selectedTask.timeline,
+        {
+          id: `tl-${Date.now()}`,
+          status: 'In Progress',
+          timestamp: new Date().toISOString(),
+          actor: currentWorker.name,
+          actorRole: 'Field Technician',
+          note: `Onsite arrival logged with ${beforePhotos.length} BEFORE maintenance photo(s) and ${beforeVideos.length} video(s).`,
+        },
+      ],
+    });
+
+    alert(`Saved Before-Maintenance evidence for Task #${selectedTask.id}. Status set to In Progress.`);
   };
 
   // Action: Trigger AI Verification Assistant
@@ -127,25 +236,47 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
     }
   };
 
-  // Action: Submit Resolved Work
+  // Action: Submit Work for Officer Re-Verification
   const handleSubmitWork = () => {
     if (!selectedTask) return;
 
     const primaryAfter = afterPhotos[0] || afterPhotoUrl || selectedTask.photoUrl;
+    const primaryBefore = beforePhotos[0] || selectedTask.beforePhotoUrl || selectedTask.photoUrl;
+
+    const newTimeline = [
+      ...selectedTask.timeline,
+      {
+        id: `tl-${Date.now()}`,
+        status: 'Work Submitted' as ComplaintStatus,
+        timestamp: new Date().toISOString(),
+        actor: currentWorker.name,
+        actorRole: 'Field Technician',
+        note: `Maintenance repair completed with Before & After proof attached. Submitted to Department Officer for re-verification.`,
+      },
+    ];
 
     onUpdateComplaint(selectedTask.id, {
-      status: 'Resolved',
+      status: 'Work Submitted',
+      beforePhotos: beforePhotos,
+      beforeVideos: beforeVideos,
+      beforePhotoUrl: primaryBefore,
+      beforeVideoUrl: beforeVideos[0] || selectedTask.beforeVideoUrl,
       afterPhotoUrl: primaryAfter,
       afterPhotos: afterPhotos.length > 0 ? afterPhotos : [primaryAfter],
       completionVideos: completionVideos,
+      completionVideoUrl: completionVideos[0],
       workRemarks: workRemarks || 'Maintenance repair completed according to city infrastructure standards.',
       aiConfidenceScore: aiVerification?.confidenceScore || 95,
       aiVerificationResult: aiVerification?.verdict || 'Resolved',
       aiVerificationReason: aiVerification?.analysisNotes || 'Image analysis confirms restoration of physical hazard site.',
+      updatedAt: new Date().toISOString(),
+      timeline: newTimeline,
     });
 
-    alert(`Task ${selectedTask.id} marked RESOLVED with multiple evidence files attached!`);
+    alert(`Task #${selectedTask.id} submitted for Officer Re-Verification! The Department Officer will review your proof and confirm resolution or request rework.`);
     setSelectedTask(null);
+    setBeforePhotos([]);
+    setBeforeVideos([]);
     setAfterPhotoUrl('');
     setAfterPhotos([]);
     setCompletionVideos([]);
@@ -209,11 +340,7 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
             {assignedTasks.map((task) => (
               <div
                 key={task.id}
-                onClick={() => {
-                  setSelectedTask(task);
-                  setAfterPhotoUrl('');
-                  setAiVerification(null);
-                }}
+                onClick={() => handleSelectTask(task)}
                 className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-2 ${
                   selectedTask?.id === task.id
                     ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-500/20'
@@ -271,169 +398,350 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
                 </div>
               </div>
 
-              {/* Evidence Upload Section */}
-              <div className="space-y-4 pt-2 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-extrabold text-slate-900 text-base flex items-center space-x-2">
-                    <Camera className="w-5 h-5 text-emerald-600" />
-                    <span>Upload Completed Repair Proof (Photos & Videos)</span>
-                  </h3>
-                  <div className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                    {afterPhotos.length} Photo(s) • {completionVideos.length} Video(s)
-                  </div>
-                </div>
+              {/* Evidence Upload Section: BEFORE & AFTER MAINTENANCE */}
+              <div className="space-y-6 pt-4 border-t border-slate-100">
 
-                {/* Multi Photos & Video Pickers */}
-                <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="file"
-                        id="worker-photos-upload"
-                        accept="image/*"
-                        multiple
-                        onChange={handleMultiplePhotoUpload}
-                        className="hidden"
-                      />
-                      <label
-                        htmlFor="worker-photos-upload"
-                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer flex items-center space-x-1.5 transition-colors"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Add After Photos</span>
-                      </label>
-
-                      <input
-                        type="file"
-                        id="worker-videos-upload"
-                        accept="video/*"
-                        multiple
-                        onChange={handleVideoUpload}
-                        className="hidden"
-                      />
-                      <label
-                        htmlFor="worker-videos-upload"
-                        className="px-3 py-2 bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer flex items-center space-x-1.5 transition-colors"
-                      >
-                        <Video className="w-3.5 h-3.5" />
-                        <span>Add Repair Video</span>
-                      </label>
+                {/* ---------------- SECTION 1: BEFORE MAINTENANCE MEDIA ---------------- */}
+                <div className="bg-amber-50/60 p-5 rounded-3xl border border-amber-200/80 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/60 pb-3">
+                    <div className="flex items-center space-x-2.5 text-amber-900">
+                      <div className="p-2 bg-amber-200/80 rounded-xl text-amber-800">
+                        <Camera className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-base text-amber-950">
+                          1. BEFORE Maintenance Media (Onsite Arrival)
+                        </h3>
+                        <p className="text-xs text-amber-800">
+                          Capture photos/videos of the hazard site immediately upon worker arrival.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-xs font-mono font-bold text-amber-900 bg-white/80 px-3 py-1 rounded-xl border border-amber-200">
+                      {beforePhotos.length} Photo(s) • {beforeVideos.length} Video(s)
                     </div>
                   </div>
 
-                  {/* After Photos Grid */}
-                  {afterPhotos.length > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
-                      {afterPhotos.map((img, idx) => (
-                        <div key={idx} className="relative rounded-xl overflow-hidden h-24 border border-emerald-300 bg-slate-900 group">
-                          <img src={img} alt={`After ${idx + 1}`} className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => setAfterPhotos((prev) => prev.filter((_, i) => i !== idx))}
-                            className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-md text-[10px]"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                          <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/70 text-white font-mono text-[9px] rounded">
-                            Photo #{idx + 1}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {/* Upload Controls for BEFORE Media */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="file"
+                      id="worker-before-photos-upload"
+                      accept="image/*"
+                      multiple
+                      onChange={handleBeforePhotoUpload}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="worker-before-photos-upload"
+                      className="px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer flex items-center space-x-1.5 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Upload BEFORE Photo(s)</span>
+                    </label>
 
-                  {/* Completion Videos Grid */}
-                  {completionVideos.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                      {completionVideos.map((vid, idx) => (
-                        <div key={idx} className="relative bg-slate-950 p-2 rounded-xl border border-slate-800">
-                          <div className="flex items-center justify-between pb-1 text-[10px] font-mono text-cyan-400 font-bold">
-                            <span>Video Proof #{idx + 1}</span>
+                    <input
+                      type="file"
+                      id="worker-before-videos-upload"
+                      accept="video/*"
+                      multiple
+                      onChange={handleBeforeVideoUpload}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="worker-before-videos-upload"
+                      className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer flex items-center space-x-1.5 transition-colors"
+                    >
+                      <Video className="w-4 h-4 text-cyan-400" />
+                      <span>Upload BEFORE Video(s)</span>
+                    </label>
+
+                    <div className="flex items-center space-x-1.5 flex-1 min-w-[200px]">
+                      <input
+                        type="text"
+                        value={beforeVideoInput}
+                        onChange={(e) => setBeforeVideoInput(e.target.value)}
+                        placeholder="Paste video link (optional)..."
+                        className="w-full px-3 py-1.5 border border-amber-300 rounded-xl text-xs bg-white text-slate-800"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddBeforeVideoLink}
+                        className="px-3 py-1.5 bg-amber-700 hover:bg-amber-600 text-white font-bold text-xs rounded-xl whitespace-nowrap"
+                      >
+                        Add Link
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* BEFORE Photos Grid */}
+                  {beforePhotos.length > 0 && (
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">
+                        Before Maintenance Photos ({beforePhotos.length})
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {beforePhotos.map((img, idx) => (
+                          <div key={idx} className="relative rounded-xl overflow-hidden h-24 border border-amber-300 bg-slate-900 group">
+                            <img src={img} alt={`Before ${idx + 1}`} className="w-full h-full object-cover" />
                             <button
                               type="button"
-                              onClick={() => setCompletionVideos((prev) => prev.filter((_, i) => i !== idx))}
-                              className="text-rose-400 hover:text-rose-300"
+                              onClick={() => setBeforePhotos((prev) => prev.filter((_, i) => i !== idx))}
+                              className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-md text-[10px]"
                             >
                               <Trash2 className="w-3 h-3" />
                             </button>
+                            <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/70 text-white font-mono text-[9px] rounded">
+                              Before #{idx + 1}
+                            </span>
                           </div>
-                          {vid.startsWith('data:video') || vid.endsWith('.mp4') || vid.endsWith('.webm') ? (
-                            <video src={vid} controls className="w-full h-24 rounded-lg object-cover bg-black" />
-                          ) : (
-                            <div className="text-[10px] font-mono text-slate-300 truncate p-2 bg-slate-900 rounded-lg">
-                              🔗 {vid}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   )}
-                </div>
 
-                {/* Worker Remarks Field */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Work Remarks / Notes
-                  </label>
-                  <input
-                    type="text"
-                    value={workRemarks}
-                    onChange={(e) => setWorkRemarks(e.target.value)}
-                    placeholder="E.g., Replaced broken section with heavy duty reinforced material..."
-                    className="w-full p-3 border border-slate-300 rounded-xl text-sm font-medium"
-                  />
-                </div>
+                  {/* BEFORE Videos Grid */}
+                  {beforeVideos.length > 0 && (
+                    <div className="space-y-1 pt-1">
+                      <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">
+                        Before Maintenance Videos ({beforeVideos.length})
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {beforeVideos.map((vid, idx) => (
+                          <div key={idx} className="relative bg-slate-950 p-2 rounded-xl border border-amber-900/40">
+                            <div className="flex items-center justify-between pb-1 text-[10px] font-mono text-amber-400 font-bold">
+                              <span>Before Video #{idx + 1}</span>
+                              <button
+                                type="button"
+                                onClick={() => setBeforeVideos((prev) => prev.filter((_, i) => i !== idx))}
+                                className="text-rose-400 hover:text-rose-300"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                            {vid.startsWith('data:video') || vid.endsWith('.mp4') || vid.endsWith('.webm') ? (
+                              <video src={vid} controls className="w-full h-24 rounded-lg object-cover bg-black" />
+                            ) : (
+                              <div className="text-[10px] font-mono text-slate-300 truncate p-2 bg-slate-900 rounded-lg">
+                                🔗 {vid}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                {/* AI Verification Assistant Trigger */}
-                <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center">
-                      <Sparkles className="w-4 h-4 mr-1 text-amber-300" />
-                      AI Completion Verification Assistant
-                    </span>
-
+                  <div className="pt-2 flex justify-end">
                     <button
                       type="button"
-                      onClick={handleRunAIVerification}
-                      disabled={isVerifyingAI || !afterPhotoUrl}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md disabled:opacity-50 flex items-center space-x-1.5"
+                      onClick={handleSaveBeforeEvidence}
+                      className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center space-x-1.5 transition-all"
                     >
-                      {isVerifyingAI ? (
-                        <>
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          <span>Verifying...</span>
-                        </>
-                      ) : (
-                        <>
-                          <ShieldCheck className="w-4 h-4" />
-                          <span>Run AI Inspection Audit</span>
-                        </>
-                      )}
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Save Onsite Arrival Evidence (Set In-Progress)</span>
                     </button>
                   </div>
+                </div>
 
-                  {aiVerification && (
-                    <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 text-xs">
-                      <div className="flex items-center justify-between font-bold">
-                        <span className="text-emerald-400">Verdict: {aiVerification.verdict}</span>
-                        <span className="text-amber-300">Confidence: {aiVerification.confidenceScore}%</span>
+
+                {/* ---------------- SECTION 2: AFTER MAINTENANCE MEDIA ---------------- */}
+                <div className="bg-emerald-50/60 p-5 rounded-3xl border border-emerald-200/80 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/60 pb-3">
+                    <div className="flex items-center space-x-2.5 text-emerald-900">
+                      <div className="p-2 bg-emerald-200/80 rounded-xl text-emerald-800">
+                        <CheckCircle2 className="w-5 h-5" />
                       </div>
-                      <p className="text-slate-300">{aiVerification.analysisNotes}</p>
+                      <div>
+                        <h3 className="font-extrabold text-base text-emerald-950">
+                          2. AFTER Maintenance Media (Completed Work)
+                        </h3>
+                        <p className="text-xs text-emerald-800">
+                          Upload photos/videos of the repaired hazard to prove work completion.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-xs font-mono font-bold text-emerald-900 bg-white/80 px-3 py-1 rounded-xl border border-emerald-200">
+                      {afterPhotos.length} Photo(s) • {completionVideos.length} Video(s)
+                    </div>
+                  </div>
+
+                  {/* Upload Controls for AFTER Media */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="file"
+                      id="worker-after-photos-upload"
+                      accept="image/*"
+                      multiple
+                      onChange={handleAfterPhotoUpload}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="worker-after-photos-upload"
+                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer flex items-center space-x-1.5 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Upload AFTER Photo(s)</span>
+                    </label>
+
+                    <input
+                      type="file"
+                      id="worker-after-videos-upload"
+                      accept="video/*"
+                      multiple
+                      onChange={handleAfterVideoUpload}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="worker-after-videos-upload"
+                      className="px-3.5 py-2 bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer flex items-center space-x-1.5 transition-colors"
+                    >
+                      <Video className="w-4 h-4" />
+                      <span>Upload AFTER Video(s)</span>
+                    </label>
+
+                    <div className="flex items-center space-x-1.5 flex-1 min-w-[200px]">
+                      <input
+                        type="text"
+                        value={afterVideoInput}
+                        onChange={(e) => setAfterVideoInput(e.target.value)}
+                        placeholder="Paste completion video link..."
+                        className="w-full px-3 py-1.5 border border-emerald-300 rounded-xl text-xs bg-white text-slate-800"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddAfterVideoLink}
+                        className="px-3 py-1.5 bg-cyan-800 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl whitespace-nowrap"
+                      >
+                        Add Link
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* AFTER Photos Grid */}
+                  {afterPhotos.length > 0 && (
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">
+                        After Repair Photos ({afterPhotos.length})
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {afterPhotos.map((img, idx) => (
+                          <div key={idx} className="relative rounded-xl overflow-hidden h-24 border border-emerald-300 bg-slate-900 group">
+                            <img src={img} alt={`After ${idx + 1}`} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setAfterPhotos((prev) => prev.filter((_, i) => i !== idx))}
+                              className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-md text-[10px]"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                            <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/70 text-white font-mono text-[9px] rounded">
+                              After #{idx + 1}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
+
+                  {/* AFTER Videos Grid */}
+                  {completionVideos.length > 0 && (
+                    <div className="space-y-1 pt-1">
+                      <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">
+                        After Repair Videos ({completionVideos.length})
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {completionVideos.map((vid, idx) => (
+                          <div key={idx} className="relative bg-slate-950 p-2 rounded-xl border border-emerald-900/40">
+                            <div className="flex items-center justify-between pb-1 text-[10px] font-mono text-cyan-400 font-bold">
+                              <span>After Video #{idx + 1}</span>
+                              <button
+                                type="button"
+                                onClick={() => setCompletionVideos((prev) => prev.filter((_, i) => i !== idx))}
+                                className="text-rose-400 hover:text-rose-300"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                            {vid.startsWith('data:video') || vid.endsWith('.mp4') || vid.endsWith('.webm') ? (
+                              <video src={vid} controls className="w-full h-24 rounded-lg object-cover bg-black" />
+                            ) : (
+                              <div className="text-[10px] font-mono text-slate-300 truncate p-2 bg-slate-900 rounded-lg">
+                                🔗 {vid}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Worker Remarks Field */}
+                  <div className="space-y-1.5 pt-2">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Maintenance Worker Completion Remarks
+                    </label>
+                    <textarea
+                      value={workRemarks}
+                      onChange={(e) => setWorkRemarks(e.target.value)}
+                      rows={2}
+                      placeholder="E.g., Cleared blockage, resurfaced asphalt layer, and verified drainage flow..."
+                      className="w-full p-3 border border-slate-300 rounded-xl text-xs bg-white text-slate-800"
+                    />
+                  </div>
+
+                  {/* AI Verification Assistant Trigger */}
+                  <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center">
+                        <Sparkles className="w-4 h-4 mr-1 text-amber-300" />
+                        AI Completion Verification Audit
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={handleRunAIVerification}
+                        disabled={isVerifyingAI || (afterPhotos.length === 0 && !afterPhotoUrl)}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md disabled:opacity-50 flex items-center space-x-1.5"
+                      >
+                        {isVerifyingAI ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Verifying...</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShieldCheck className="w-4 h-4" />
+                            <span>Run AI Inspection Audit</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {aiVerification && (
+                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 text-xs">
+                        <div className="flex items-center justify-between font-bold">
+                          <span className="text-emerald-400">Verdict: {aiVerification.verdict}</span>
+                          <span className="text-amber-300">Confidence: {aiVerification.confidenceScore}%</span>
+                        </div>
+                        <p className="text-slate-300">{aiVerification.analysisNotes}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Submit Work Button */}
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      onClick={handleSubmitWork}
+                      disabled={afterPhotos.length === 0 && !afterPhotoUrl}
+                      className="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-600/30 flex items-center space-x-2 transition-all hover:scale-105 disabled:opacity-50"
+                    >
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span>Submit Work for Officer Re-Verification</span>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Submit Work Button */}
-                <div className="pt-2 flex justify-end">
-                  <button
-                    onClick={handleSubmitWork}
-                    disabled={!afterPhotoUrl}
-                    className="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-600/30 flex items-center space-x-2 transition-all hover:scale-105 disabled:opacity-50"
-                  >
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span>Submit & Mark Hazard Resolved</span>
-                  </button>
-                </div>
               </div>
             </div>
           ) : (

@@ -17,6 +17,8 @@ import {
   Video,
   Camera,
   Film,
+  XCircle,
+  Ban,
 } from 'lucide-react';
 import { Complaint, ComplaintStatus } from '../types';
 
@@ -49,7 +51,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
   const currentStepIdx = getCurrentStepIndex();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm overflow-y-auto animate-fadeIn">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm overflow-y-auto animate-fadeIn">
       <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8 max-h-[90vh] flex flex-col">
         {/* Modal Header */}
         <div className="p-5 bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-950 text-white flex items-center justify-between border-b border-indigo-900/50 shadow-md">
@@ -75,6 +77,76 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
 
         {/* Modal Scrollable Body */}
         <div className="p-6 overflow-y-auto space-y-6 text-slate-800">
+          {/* Rejection Notice Banner if Rejected */}
+          {complaint.status === 'Rejected' && (
+            <div className="bg-rose-50 border-2 border-rose-300 p-5 rounded-3xl space-y-3 shadow-sm">
+              <div className="flex items-center space-x-3 text-rose-800">
+                <div className="p-2.5 bg-rose-200 text-rose-800 rounded-2xl flex-shrink-0">
+                  <Ban className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-rose-950">
+                    Hazard Complaint Rejected (Marked Fake / Invalid)
+                  </h3>
+                  <p className="text-xs text-rose-800 font-medium mt-0.5">
+                    Official Notice for Complaint ID <code className="font-mono font-bold">{complaint.id}</code>
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-white/90 rounded-2xl border border-rose-200 text-xs text-slate-800 space-y-1">
+                <div className="font-bold text-rose-900 flex items-center space-x-1">
+                  <XCircle className="w-4 h-4 text-rose-600" />
+                  <span>Officer Verification Verdict:</span>
+                </div>
+                <p className="text-slate-700 font-medium pl-5 leading-relaxed">
+                  {complaint.verificationNotes || 'This complaint was reviewed by municipal officers and determined to be fake, unverified, or out of municipal jurisdiction.'}
+                </p>
+                {complaint.verifiedByOfficer && (
+                  <p className="text-[11px] text-slate-500 pl-5 pt-1">
+                    Reviewed by: <strong>{complaint.verifiedByOfficer}</strong>
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Officer Re-Verification Verdict Banner (Satisfactory) */}
+          {complaint.officerSatisfaction === 'Satisfactory' && (
+            <div className="bg-emerald-50 border-2 border-emerald-300 p-4 rounded-3xl space-y-1.5 shadow-sm">
+              <div className="flex items-center space-x-2 text-emerald-900 font-extrabold text-sm">
+                <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                <span>Officer Re-Verification Verdict: SATISFACTORY (APPROVED)</span>
+              </div>
+              <p className="text-xs text-emerald-950 font-medium">
+                {complaint.officerReviewNotes || 'Officer inspected maintenance repair work and confirmed resolution meets city standards.'}
+              </p>
+              {complaint.verifiedByOfficer && (
+                <p className="text-[11px] text-emerald-800 font-semibold pt-0.5">
+                  Verified By: <strong>{complaint.verifiedByOfficer}</strong>
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Officer Re-Verification Verdict Banner (Unsatisfactory / Rework) */}
+          {complaint.officerSatisfaction === 'Unsatisfactory' && (
+            <div className="bg-rose-50 border-2 border-rose-300 p-4 rounded-3xl space-y-1.5 shadow-sm">
+              <div className="flex items-center space-x-2 text-rose-900 font-extrabold text-sm">
+                <AlertTriangle className="w-5 h-5 text-rose-600" />
+                <span>Officer Re-Verification Verdict: UNSATISFACTORY (REWORK REQUIRED)</span>
+              </div>
+              <p className="text-xs text-rose-950 font-medium">
+                {complaint.reworkReason || complaint.officerReviewNotes || 'Officer found maintenance repair incomplete or defective. Work has been reassigned to technician for rework.'}
+              </p>
+              {complaint.assignedWorkerName && (
+                <p className="text-[11px] text-rose-800 font-semibold pt-0.5">
+                  Reassigned Technician for Rework: <strong>{complaint.assignedWorkerName}</strong>
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Title & Metadata Header */}
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -257,49 +329,156 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Before & After Completion Evidence (if resolved or in progress) */}
-          {(complaint.afterPhotoUrl || complaint.workRemarks) && (
-            <div className="bg-emerald-50/80 p-5 rounded-2xl border border-emerald-200 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2 text-emerald-900 font-extrabold text-sm">
-                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                  <span>Worker Repair Evidence & AI Verification</span>
+          {/* Before & After Completion Evidence (if in progress or resolved) */}
+          {(complaint.afterPhotoUrl ||
+            complaint.beforePhotoUrl ||
+            (complaint.beforePhotos && complaint.beforePhotos.length > 0) ||
+            (complaint.afterPhotos && complaint.afterPhotos.length > 0) ||
+            complaint.workRemarks ||
+            complaint.status === 'In Progress' ||
+            complaint.status === 'Resolved') && (
+            <div className="bg-slate-900 text-white p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-5 shadow-lg">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                <div className="flex items-center space-x-2 text-emerald-400 font-extrabold text-sm">
+                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                  <span>Field Technician Onsite Maintenance Evidence</span>
                 </div>
                 {complaint.aiConfidenceScore && (
-                  <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center space-x-1">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>AI Score: {complaint.aiConfidenceScore}% Match</span>
+                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center space-x-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                    <span>AI Audit: {complaint.aiConfidenceScore}% Match</span>
                   </span>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <span className="block text-[11px] font-bold text-slate-500 mb-1">
-                    BEFORE REPAIR
-                  </span>
-                  <img
-                    src={complaint.beforePhotoUrl || complaint.photoUrl}
-                    alt="Before"
-                    className="w-full h-32 object-cover rounded-xl border border-slate-300"
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* BEFORE MAINTENANCE BOX */}
+                <div className="bg-slate-950 p-4 rounded-2xl border border-amber-500/30 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-amber-400 uppercase tracking-wider">
+                    <span>1. BEFORE Maintenance (Onsite Arrival)</span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {(complaint.beforePhotos?.length || 1)} Photo(s) • {(complaint.beforeVideos?.length || (complaint.beforeVideoUrl ? 1 : 0))} Video(s)
+                    </span>
+                  </div>
+
+                  {/* Before Photos */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {(complaint.beforePhotos && complaint.beforePhotos.length > 0
+                      ? complaint.beforePhotos
+                      : [complaint.beforePhotoUrl || complaint.photoUrl]
+                    ).map((url, idx) => (
+                      <div key={idx} className="relative rounded-xl overflow-hidden border border-amber-500/20 h-28 bg-black">
+                        <img src={url} alt={`Before ${idx + 1}`} className="w-full h-full object-cover" />
+                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/80 text-amber-300 font-mono text-[9px] rounded font-bold">
+                          Before #{idx + 1}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Before Videos */}
+                  {((complaint.beforeVideos && complaint.beforeVideos.length > 0) || complaint.beforeVideoUrl) && (
+                    <div className="space-y-1.5 pt-2 border-t border-slate-800">
+                      <span className="text-[10px] font-bold text-amber-300 font-mono uppercase">
+                        Before Video Recordings:
+                      </span>
+                      <div className="grid grid-cols-1 gap-1.5">
+                        {(complaint.beforeVideos && complaint.beforeVideos.length > 0
+                          ? complaint.beforeVideos
+                          : complaint.beforeVideoUrl
+                          ? [complaint.beforeVideoUrl]
+                          : []
+                        ).map((vUrl, idx) => (
+                          <div key={idx} className="p-1.5 bg-black rounded-xl border border-amber-900/40">
+                            {vUrl.startsWith('data:video') || vUrl.endsWith('.mp4') || vUrl.endsWith('.webm') ? (
+                              <video src={vUrl} controls className="w-full h-28 rounded-lg object-cover" />
+                            ) : (
+                              <a
+                                href={vUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 bg-slate-900 hover:bg-slate-800 text-amber-300 font-mono text-xs rounded-lg flex items-center justify-between"
+                              >
+                                <span>▶ Before Video #{idx + 1}</span>
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <span className="block text-[11px] font-bold text-emerald-700 mb-1">
-                    AFTER REPAIR
-                  </span>
-                  <img
-                    src={complaint.afterPhotoUrl || complaint.photoUrl}
-                    alt="After"
-                    className="w-full h-32 object-cover rounded-xl border border-emerald-400"
-                  />
+
+                {/* AFTER MAINTENANCE BOX */}
+                <div className="bg-slate-950 p-4 rounded-2xl border border-emerald-500/30 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                    <span>2. AFTER Maintenance (Completed)</span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {(complaint.afterPhotos?.length || (complaint.afterPhotoUrl ? 1 : 0))} Photo(s) • {(complaint.completionVideos?.length || (complaint.completionVideoUrl ? 1 : 0))} Video(s)
+                    </span>
+                  </div>
+
+                  {/* After Photos */}
+                  {(complaint.afterPhotos && complaint.afterPhotos.length > 0) || complaint.afterPhotoUrl ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {(complaint.afterPhotos && complaint.afterPhotos.length > 0
+                        ? complaint.afterPhotos
+                        : [complaint.afterPhotoUrl!]
+                      ).map((url, idx) => (
+                        <div key={idx} className="relative rounded-xl overflow-hidden border border-emerald-500/20 h-28 bg-black">
+                          <img src={url} alt={`After ${idx + 1}`} className="w-full h-full object-cover" />
+                          <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/80 text-emerald-300 font-mono text-[9px] rounded font-bold">
+                            After #{idx + 1}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-slate-900/60 rounded-xl border border-slate-800 text-center text-xs text-slate-400 font-medium">
+                      Maintenance repair in progress. Completion photos will be uploaded upon work resolution.
+                    </div>
+                  )}
+
+                  {/* After Videos */}
+                  {((complaint.completionVideos && complaint.completionVideos.length > 0) || complaint.completionVideoUrl) && (
+                    <div className="space-y-1.5 pt-2 border-t border-slate-800">
+                      <span className="text-[10px] font-bold text-emerald-300 font-mono uppercase">
+                        Completion Repair Videos:
+                      </span>
+                      <div className="grid grid-cols-1 gap-1.5">
+                        {(complaint.completionVideos && complaint.completionVideos.length > 0
+                          ? complaint.completionVideos
+                          : complaint.completionVideoUrl
+                          ? [complaint.completionVideoUrl]
+                          : []
+                        ).map((vUrl, idx) => (
+                          <div key={idx} className="p-1.5 bg-black rounded-xl border border-emerald-900/40">
+                            {vUrl.startsWith('data:video') || vUrl.endsWith('.mp4') || vUrl.endsWith('.webm') ? (
+                              <video src={vUrl} controls className="w-full h-28 rounded-lg object-cover" />
+                            ) : (
+                              <a
+                                href={vUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 bg-slate-900 hover:bg-slate-800 text-emerald-300 font-mono text-xs rounded-lg flex items-center justify-between"
+                              >
+                                <span>▶ Completion Video #{idx + 1}</span>
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {complaint.workRemarks && (
-                <p className="text-xs text-emerald-950 font-medium bg-white/80 p-3 rounded-xl border border-emerald-200">
-                  <strong className="text-emerald-800">Worker Remarks:</strong> {complaint.workRemarks}
-                </p>
+                <div className="text-xs text-slate-200 font-medium bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                  <strong className="text-emerald-400">Worker Field Remarks:</strong> {complaint.workRemarks}
+                </div>
               )}
             </div>
           )}

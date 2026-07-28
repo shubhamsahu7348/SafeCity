@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Lock } from 'lucide-react';
 import { Complaint, Worker, DepartmentMetric, UserRole, UserAccount } from './types';
 import { Navbar } from './components/Navbar';
 import { LoginModal } from './components/LoginModal';
@@ -210,22 +211,78 @@ export default function App() {
           )}
 
           {activeTab === 'department' && (
-            <DepartmentDashboardView
-              complaints={complaints}
-              workers={workers}
-              onUpdateComplaint={handleUpdateComplaint}
-              onUpvoteComplaint={handleUpvoteComplaint}
-              onGoHome={() => setActiveTab('landing')}
-            />
+            (currentUser?.role === 'officer' || currentUser?.role === 'admin' || userRole === 'officer') ? (
+              <DepartmentDashboardView
+                complaints={complaints}
+                workers={workers}
+                onUpdateComplaint={handleUpdateComplaint}
+                onUpvoteComplaint={handleUpvoteComplaint}
+                onGoHome={() => setActiveTab('landing')}
+              />
+            ) : (
+              <div className="max-w-xl mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200 shadow-xl text-center space-y-6">
+                <div className="w-16 h-16 mx-auto bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center">
+                  <Lock className="w-8 h-8" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900">Department Portal Restricted</h2>
+                  <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                    The Department Dashboard is strictly restricted to authorized municipal officers and department administrators. Citizens cannot view internal department dispatch operations.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center space-x-3 pt-2">
+                  <button
+                    onClick={() => setLoginModalTargetRole('officer')}
+                    className="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all"
+                  >
+                    Login as Department Officer
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('landing')}
+                    className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all"
+                  >
+                    Return to Citizen Home
+                  </button>
+                </div>
+              </div>
+            )
           )}
 
           {activeTab === 'worker' && (
-            <WorkerDashboardView
-              complaints={complaints}
-              workers={workers}
-              onUpdateComplaint={handleUpdateComplaint}
-              onGoHome={() => setActiveTab('landing')}
-            />
+            (currentUser?.role === 'worker' || currentUser?.role === 'admin' || userRole === 'worker') ? (
+              <WorkerDashboardView
+                complaints={complaints}
+                workers={workers}
+                onUpdateComplaint={handleUpdateComplaint}
+                onGoHome={() => setActiveTab('landing')}
+              />
+            ) : (
+              <div className="max-w-xl mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200 shadow-xl text-center space-y-6">
+                <div className="w-16 h-16 mx-auto bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center">
+                  <Lock className="w-8 h-8" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900">Worker Tasks Restricted</h2>
+                  <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                    The Field Worker Task Panel is strictly restricted to dispatched maintenance technicians. Citizens cannot view worker task logs.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center space-x-3 pt-2">
+                  <button
+                    onClick={() => setLoginModalTargetRole('worker')}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all"
+                  >
+                    Login as Field Worker
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('landing')}
+                    className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all"
+                  >
+                    Return to Citizen Home
+                  </button>
+                </div>
+              </div>
+            )
           )}
 
           {activeTab === 'analytics' && (
@@ -233,11 +290,39 @@ export default function App() {
           )}
 
           {activeTab === 'admin' && (
-            <AdminView
-              workers={workers}
-              onAddWorker={handleAddWorker}
-              onGoHome={() => setActiveTab('landing')}
-            />
+            (currentUser?.role === 'admin' || userRole === 'admin') ? (
+              <AdminView
+                workers={workers}
+                onAddWorker={handleAddWorker}
+                onGoHome={() => setActiveTab('landing')}
+              />
+            ) : (
+              <div className="max-w-xl mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200 shadow-xl text-center space-y-6">
+                <div className="w-16 h-16 mx-auto bg-purple-100 text-purple-700 rounded-2xl flex items-center justify-center">
+                  <Lock className="w-8 h-8" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900">Admin Portal Restricted</h2>
+                  <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                    The System Administration Panel is restricted to platform managers and system administrators.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center space-x-3 pt-2">
+                  <button
+                    onClick={() => setLoginModalTargetRole('admin')}
+                    className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all"
+                  >
+                    Login as System Admin
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('landing')}
+                    className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all"
+                  >
+                    Return to Citizen Home
+                  </button>
+                </div>
+              </div>
+            )
           )}
 
           {activeTab === 'about' && <AboutView />}

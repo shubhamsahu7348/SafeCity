@@ -269,7 +269,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Track Complaint</span>
             </button>
 
-            {userRole === 'officer' && (
+            {(userRole === 'officer' || currentUser?.role === 'officer' || currentUser?.role === 'admin') && (
               <button
                 onClick={() => setActiveTab('department')}
                 className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center space-x-1.5 ${
@@ -283,7 +283,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {userRole === 'worker' && (
+            {(userRole === 'worker' || currentUser?.role === 'worker' || currentUser?.role === 'admin') && (
               <button
                 onClick={() => setActiveTab('worker')}
                 className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center space-x-1.5 ${
@@ -294,6 +294,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <HardHat className="w-4 h-4 text-emerald-400" />
                 <span>Worker Tasks</span>
+              </button>
+            )}
+
+            {(userRole === 'admin' || currentUser?.role === 'admin') && (
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center space-x-1.5 ${
+                  activeTab === 'admin'
+                    ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/30 text-purple-300 border border-purple-500/40 shadow-sm'
+                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                }`}
+              >
+                <Settings className="w-4 h-4 text-purple-400" />
+                <span>Admin</span>
               </button>
             )}
 
@@ -369,22 +383,36 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             Track ID
           </button>
-          <button
-            onClick={() => setActiveTab('department')}
-            className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium ${
-              activeTab === 'department' ? 'bg-amber-600 text-white' : 'text-slate-300'
-            }`}
-          >
-            Dept View
-          </button>
-          <button
-            onClick={() => setActiveTab('worker')}
-            className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium ${
-              activeTab === 'worker' ? 'bg-emerald-600 text-white' : 'text-slate-300'
-            }`}
-          >
-            Worker View
-          </button>
+          {(userRole === 'officer' || currentUser?.role === 'officer' || currentUser?.role === 'admin') && (
+            <button
+              onClick={() => setActiveTab('department')}
+              className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium ${
+                activeTab === 'department' ? 'bg-amber-600 text-white' : 'text-slate-300'
+              }`}
+            >
+              Dept View
+            </button>
+          )}
+          {(userRole === 'worker' || currentUser?.role === 'worker' || currentUser?.role === 'admin') && (
+            <button
+              onClick={() => setActiveTab('worker')}
+              className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium ${
+                activeTab === 'worker' ? 'bg-emerald-600 text-white' : 'text-slate-300'
+              }`}
+            >
+              Worker View
+            </button>
+          )}
+          {(userRole === 'admin' || currentUser?.role === 'admin') && (
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium ${
+                activeTab === 'admin' ? 'bg-purple-600 text-white' : 'text-slate-300'
+              }`}
+            >
+              Admin View
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('analytics')}
             className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium ${

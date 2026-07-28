@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, MapPin, Clock, ShieldCheck, CheckCircle2, HardHat, Building2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Search, MapPin, Clock, ShieldCheck, CheckCircle2, HardHat, Building2, AlertTriangle, ArrowRight, Ban, XCircle } from 'lucide-react';
 import { Complaint } from '../types';
 import { ComplaintDetailModal } from '../components/ComplaintDetailModal';
 
@@ -89,6 +89,18 @@ export const ComplaintTrackingView: React.FC<ComplaintTrackingViewProps> = ({
       {/* Searched Complaint Display */}
       {searchedComplaint ? (
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-md space-y-6">
+          {searchedComplaint.status === 'Rejected' && (
+            <div className="bg-rose-50 border-2 border-rose-300 p-5 rounded-2xl space-y-2">
+              <div className="flex items-center space-x-2 text-rose-800 font-extrabold text-sm">
+                <Ban className="w-5 h-5 text-rose-600" />
+                <span>COMPLAINT REJECTED (ID: {searchedComplaint.id})</span>
+              </div>
+              <p className="text-xs text-rose-950 leading-relaxed font-medium">
+                <strong>Officer Verdict:</strong> {searchedComplaint.verificationNotes || 'This hazard report was checked by the department officer and determined to be fake, duplicate, or invalid. No worker dispatch will be made.'}
+              </p>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div className="flex items-center space-x-3">
               <span className="px-3 py-1 bg-blue-100 text-blue-800 font-mono font-bold text-sm rounded-xl">
@@ -97,6 +109,12 @@ export const ComplaintTrackingView: React.FC<ComplaintTrackingViewProps> = ({
               <span className="px-3 py-1 bg-slate-100 text-slate-800 font-bold text-xs rounded-xl">
                 {searchedComplaint.category}
               </span>
+              {searchedComplaint.status === 'Rejected' && (
+                <span className="px-3 py-1 bg-rose-100 text-rose-800 border border-rose-300 font-extrabold text-xs rounded-xl flex items-center space-x-1">
+                  <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Rejected Report</span>
+                </span>
+              )}
             </div>
 
             <button
@@ -154,9 +172,16 @@ export const ComplaintTrackingView: React.FC<ComplaintTrackingViewProps> = ({
                   </div>
                   <h4 className="font-bold text-sm text-slate-900">{c.title}</h4>
                 </div>
-                <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
-                  {c.status}
-                </span>
+                {c.status === 'Rejected' ? (
+                  <span className="px-3 py-1 bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-black flex items-center space-x-1">
+                    <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Rejected (Fake)</span>
+                  </span>
+                ) : (
+                  <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
+                    {c.status}
+                  </span>
+                )}
               </div>
             ))}
           </div>

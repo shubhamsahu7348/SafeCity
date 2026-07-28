@@ -13,6 +13,7 @@ export type ComplaintStatus =
   | 'Verified'
   | 'Assigned'
   | 'In Progress'
+  | 'Work Submitted'
   | 'Resolved'
   | 'Rejected';
 
@@ -63,6 +64,8 @@ export interface Complaint {
   videoUrl?: string;
   photos?: string[];
   videos?: string[];
+  beforePhotos?: string[];
+  beforeVideos?: string[];
   afterPhotos?: string[];
   completionVideos?: string[];
   latitude: number;
@@ -78,12 +81,16 @@ export interface Complaint {
   verificationNotes?: string;
   timeline: TimelineEvent[];
   beforePhotoUrl?: string;
+  beforeVideoUrl?: string;
   afterPhotoUrl?: string;
   completionVideoUrl?: string;
   workRemarks?: string;
   aiConfidenceScore?: number;
   aiVerificationResult?: string;
   aiVerificationReason?: string;
+  officerReviewNotes?: string;
+  officerSatisfaction?: 'Satisfactory' | 'Unsatisfactory';
+  reworkReason?: string;
   duplicateOfId?: string;
   upvotes: number;
   estimatedResolutionHours?: number;
