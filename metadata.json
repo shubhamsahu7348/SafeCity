@@ -1,0 +1,6 @@
+{
+  "name": "SafeCity",
+  "description": "AI-Powered Public Hazard Intelligence Platform for Smart Cities with real-time hazard mapping, severity classification, duplicate detection, and department workflow automation.",
+  "requestFramePermissions": ["geolocation", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
