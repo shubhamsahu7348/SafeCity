@@ -10,6 +10,11 @@ import {
   ShieldCheck,
   AlertTriangle,
   RefreshCw,
+  Home,
+  Video,
+  Film,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { Complaint, Worker, AIVerificationResponse } from '../types';
 
@@ -17,12 +22,14 @@ interface WorkerDashboardViewProps {
   complaints: Complaint[];
   workers: Worker[];
   onUpdateComplaint: (id: string, updates: Partial<Complaint>) => void;
+  onGoHome?: () => void;
 }
 
 export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
   complaints,
   workers,
   onUpdateComplaint,
+  onGoHome,
 }) => {
   // Current active worker (Marcus Vance by default for field demo)
   const currentWorker = workers[0];
@@ -39,41 +46,59 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
 
   // Completion Evidence Form State
   const [afterPhotoUrl, setAfterPhotoUrl] = useState<string>('');
+  const [afterPhotos, setAfterPhotos] = useState<string[]>([]);
+  const [completionVideos, setCompletionVideos] = useState<string[]>([]);
+  const [videoInput, setVideoInput] = useState<string>('');
   const [workRemarks, setWorkRemarks] = useState<string>('');
   const [isVerifyingAI, setIsVerifyingAI] = useState<boolean>(false);
   const [aiVerification, setAiVerification] = useState<AIVerificationResponse | null>(null);
 
-  // Handle worker after photo upload
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  // Handle worker after photos upload
+  const handleMultiplePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAfterPhotoUrl(reader.result as string);
+        if (typeof reader.result === 'string') {
+          const img = reader.result;
+          setAfterPhotos((prev) => [...prev, img]);
+          if (!afterPhotoUrl) setAfterPhotoUrl(img);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Sample photo choices for rapid testing
-  const sampleAfterPhotos = [
-    {
-      label: 'New Asphalt Patch Laid',
-      url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=600&q=80',
-    },
-    {
-      label: 'Sleeved Electrical Box Closed',
-      url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80',
-    },
-    {
-      label: 'Repaired Valve Assembly',
-      url: 'https://images.unsplash.com/photo-1584467735815-f778f274e296?auto=format&fit=crop&w=600&q=80',
-    },
-  ];
+  // Handle worker completion video upload
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setCompletionVideos((prev) => [...prev, reader.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddVideoInput = () => {
+    if (!videoInput.trim()) return;
+    setCompletionVideos((prev) => [...prev, videoInput.trim()]);
+    setVideoInput('');
+  };
 
   // Action: Trigger AI Verification Assistant
   const handleRunAIVerification = async () => {
-    if (!selectedTask || !afterPhotoUrl) {
+    const primaryImg = afterPhotos[0] || afterPhotoUrl;
+    if (!selectedTask || !primaryImg) {
       alert('Please upload or select an After-Repair photo first.');
       return;
     }
@@ -85,7 +110,7 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           originalPhotoUrl: selectedTask.photoUrl,
-          workerAfterPhotoUrl: afterPhotoUrl,
+          workerAfterPhotoUrl: primaryImg,
           hazardType: selectedTask.subCategory,
           workRemarks,
         }),
@@ -106,18 +131,24 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
   const handleSubmitWork = () => {
     if (!selectedTask) return;
 
+    const primaryAfter = afterPhotos[0] || afterPhotoUrl || selectedTask.photoUrl;
+
     onUpdateComplaint(selectedTask.id, {
       status: 'Resolved',
-      afterPhotoUrl: afterPhotoUrl || selectedTask.photoUrl,
+      afterPhotoUrl: primaryAfter,
+      afterPhotos: afterPhotos.length > 0 ? afterPhotos : [primaryAfter],
+      completionVideos: completionVideos,
       workRemarks: workRemarks || 'Maintenance repair completed according to city infrastructure standards.',
       aiConfidenceScore: aiVerification?.confidenceScore || 95,
       aiVerificationResult: aiVerification?.verdict || 'Resolved',
       aiVerificationReason: aiVerification?.analysisNotes || 'Image analysis confirms restoration of physical hazard site.',
     });
 
-    alert(`Task ${selectedTask.id} marked RESOLVED with evidence uploaded!`);
+    alert(`Task ${selectedTask.id} marked RESOLVED with multiple evidence files attached!`);
     setSelectedTask(null);
     setAfterPhotoUrl('');
+    setAfterPhotos([]);
+    setCompletionVideos([]);
     setWorkRemarks('');
     setAiVerification(null);
   };
@@ -146,10 +177,23 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-3 bg-emerald-950 p-3 rounded-2xl border border-emerald-800 text-xs font-bold text-emerald-200">
-          <span>Worker Rating:</span>
-          <span className="text-amber-400 text-sm">★ {currentWorker.rating}</span>
-          <span className="text-emerald-400">| {currentWorker.completedTasksCount} Closed</span>
+        <div className="flex flex-wrap items-center gap-3">
+          {onGoHome && (
+            <button
+              onClick={onGoHome}
+              className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 border border-emerald-400/40 text-white text-xs font-black rounded-xl flex items-center space-x-1.5 transition-all shadow-md active:scale-95"
+              title="Return to Public Home Page"
+            >
+              <Home className="w-4 h-4 text-emerald-100" />
+              <span>Home Page</span>
+            </button>
+          )}
+
+          <div className="flex items-center space-x-3 bg-emerald-950 p-3 rounded-2xl border border-emerald-800 text-xs font-bold text-emerald-200">
+            <span>Worker Rating:</span>
+            <span className="text-amber-400 text-sm">★ {currentWorker.rating}</span>
+            <span className="text-emerald-400">| {currentWorker.completedTasksCount} Closed</span>
+          </div>
         </div>
       </div>
 
@@ -229,47 +273,101 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
 
               {/* Evidence Upload Section */}
               <div className="space-y-4 pt-2 border-t border-slate-100">
-                <h3 className="font-extrabold text-slate-900 text-base flex items-center space-x-2">
-                  <Camera className="w-5 h-5 text-emerald-600" />
-                  <span>Upload Completed Repair Photo Evidence</span>
-                </h3>
-
-                {/* Upload or Choose Photo */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="border-2 border-dashed border-slate-300 bg-slate-50 rounded-2xl p-4 text-center space-y-2">
-                    {afterPhotoUrl ? (
-                      <img src={afterPhotoUrl} alt="After Evidence" className="w-full h-36 object-cover rounded-xl" />
-                    ) : (
-                      <label className="cursor-pointer block py-4 space-y-2">
-                        <Upload className="w-8 h-8 text-emerald-600 mx-auto" />
-                        <span className="text-xs font-bold text-slate-700 block">Upload After Repair Photo</span>
-                        <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-                      </label>
-                    )}
+                <div className="flex items-center justify-between">
+                  <h3 className="font-extrabold text-slate-900 text-base flex items-center space-x-2">
+                    <Camera className="w-5 h-5 text-emerald-600" />
+                    <span>Upload Completed Repair Proof (Photos & Videos)</span>
+                  </h3>
+                  <div className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                    {afterPhotos.length} Photo(s) • {completionVideos.length} Video(s)
                   </div>
+                </div>
 
-                  {/* Sample Evidence Options */}
-                  <div className="space-y-2">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                      Quick Sample Repair Photos:
-                    </span>
-                    <div className="space-y-2">
-                      {sampleAfterPhotos.map((s) => (
-                        <button
-                          key={s.label}
-                          onClick={() => setAfterPhotoUrl(s.url)}
-                          className={`w-full p-2 rounded-xl border text-left flex items-center space-x-2 text-xs font-semibold ${
-                            afterPhotoUrl === s.url
-                              ? 'border-emerald-600 bg-emerald-50 text-emerald-900'
-                              : 'border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          <img src={s.url} alt={s.label} className="w-8 h-8 rounded-lg object-cover" />
-                          <span>{s.label}</span>
-                        </button>
-                      ))}
+                {/* Multi Photos & Video Pickers */}
+                <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="file"
+                        id="worker-photos-upload"
+                        accept="image/*"
+                        multiple
+                        onChange={handleMultiplePhotoUpload}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="worker-photos-upload"
+                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer flex items-center space-x-1.5 transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add After Photos</span>
+                      </label>
+
+                      <input
+                        type="file"
+                        id="worker-videos-upload"
+                        accept="video/*"
+                        multiple
+                        onChange={handleVideoUpload}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="worker-videos-upload"
+                        className="px-3 py-2 bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer flex items-center space-x-1.5 transition-colors"
+                      >
+                        <Video className="w-3.5 h-3.5" />
+                        <span>Add Repair Video</span>
+                      </label>
                     </div>
                   </div>
+
+                  {/* After Photos Grid */}
+                  {afterPhotos.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+                      {afterPhotos.map((img, idx) => (
+                        <div key={idx} className="relative rounded-xl overflow-hidden h-24 border border-emerald-300 bg-slate-900 group">
+                          <img src={img} alt={`After ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setAfterPhotos((prev) => prev.filter((_, i) => i !== idx))}
+                            className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-md text-[10px]"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                          <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/70 text-white font-mono text-[9px] rounded">
+                            Photo #{idx + 1}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Completion Videos Grid */}
+                  {completionVideos.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                      {completionVideos.map((vid, idx) => (
+                        <div key={idx} className="relative bg-slate-950 p-2 rounded-xl border border-slate-800">
+                          <div className="flex items-center justify-between pb-1 text-[10px] font-mono text-cyan-400 font-bold">
+                            <span>Video Proof #{idx + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => setCompletionVideos((prev) => prev.filter((_, i) => i !== idx))}
+                              className="text-rose-400 hover:text-rose-300"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                          {vid.startsWith('data:video') || vid.endsWith('.mp4') || vid.endsWith('.webm') ? (
+                            <video src={vid} controls className="w-full h-24 rounded-lg object-cover bg-black" />
+                          ) : (
+                            <div className="text-[10px] font-mono text-slate-300 truncate p-2 bg-slate-900 rounded-lg">
+                              🔗 {vid}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Worker Remarks Field */}

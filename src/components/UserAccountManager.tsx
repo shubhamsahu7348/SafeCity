@@ -14,6 +14,10 @@ import {
   CheckCircle2,
   Copy,
   Lock,
+  Upload,
+  Calendar,
+  Camera,
+  Phone,
 } from 'lucide-react';
 import { UserAccount, Worker, Department, UserRole } from '../types';
 
@@ -42,8 +46,10 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
   const [password, setPassword] = useState<string>('');
   const [role, setRole] = useState<'officer' | 'worker'>('worker');
   const [department, setDepartment] = useState<Department>('Road Department');
-  const [phone, setPhone] = useState<string>('');
+  const [phoneDigits, setPhoneDigits] = useState<string>('');
   const [email, setEmail] = useState<string>('');
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [joiningDate, setJoiningDate] = useState<string>('');
   const [formError, setFormError] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -75,8 +81,10 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
     setPassword('pass123');
     setRole(defaultRole);
     setDepartment('Road Department');
-    setPhone('');
+    setPhoneDigits('');
     setEmail('');
+    setAvatarUrl('');
+    setJoiningDate('');
     setFormError('');
     setShowAddModal(true);
   };
@@ -88,10 +96,34 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
     setPassword(u.password);
     setRole(u.role as 'officer' | 'worker');
     setDepartment(u.department || 'Road Department');
-    setPhone(u.phone || '');
+    
+    // Clean +91 or +1 prefix for editing
+    const rawPhone = (u.phone || '').replace(/^\+91\s*/, '').replace(/^\+1\s*/, '').trim();
+    setPhoneDigits(rawPhone);
     setEmail(u.email || '');
+    setAvatarUrl(u.avatarUrl || '');
+    setJoiningDate(u.joiningDate || '');
     setFormError('');
     setShowAddModal(true);
+  };
+
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setFormError('Image size must be less than 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        setAvatarUrl(reader.result);
+        setFormError('');
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSaveUser = async (e: React.FormEvent) => {
@@ -104,27 +136,37 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
     setIsSaving(true);
     setFormError('');
 
+    const formattedPhone = phoneDigits.trim() ? `+91 ${phoneDigits.trim()}` : '';
+
     try {
       if (editingUser) {
+        const payload: Record<string, any> = {
+          name,
+          username: username.trim(),
+          password,
+          department,
+          phone: formattedPhone,
+          email,
+          avatarUrl,
+        };
+
+        // Date of joining locked once set
+        const isAlreadyLocked = Boolean(editingUser.joiningDate && editingUser.joiningDate.trim().length > 0);
+        if (!isAlreadyLocked && joiningDate.trim()) {
+          payload.joiningDate = joiningDate.trim();
+        }
+
         // Edit existing
         const res = await fetch(`/api/users/${editingUser.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name,
-            username: username.trim(),
-            password,
-            department,
-            phone,
-            email,
-          }),
+          body: JSON.stringify(payload),
         });
 
         if (res.ok) {
           await fetchUsers();
           if (onRefreshData) onRefreshData();
           setShowAddModal(false);
-          alert(`Account for ${name} updated successfully!`);
         } else {
           const err = await res.json();
           setFormError(err.error || 'Failed to update account.');
@@ -140,8 +182,10 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
             password,
             role,
             department,
-            phone,
+            phone: formattedPhone,
             email,
+            avatarUrl,
+            joiningDate: joiningDate.trim() || undefined,
           }),
         });
 
@@ -149,7 +193,6 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
           await fetchUsers();
           if (onRefreshData) onRefreshData();
           setShowAddModal(false);
-          alert(`New ${role.toUpperCase()} account created for ${name}! Username: ${username}`);
         } else {
           const err = await res.json();
           setFormError(err.error || 'Failed to create account.');
@@ -354,7 +397,37 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
               </div>
             )}
 
-            <form onSubmit={handleSaveUser} className="space-y-3 text-xs">
+            <form onSubmit={handleSaveUser} className="space-y-3.5 text-xs">
+              {/* Profile Image Upload */}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <label className="block text-[11px] font-black text-slate-800 uppercase tracking-wider mb-1">
+                  Profile Picture / Avatar Image
+                </label>
+                <div className="flex items-center space-x-3">
+                  <img
+                    src={avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'}
+                    alt={name || 'Avatar'}
+                    className="w-12 h-12 rounded-xl object-cover border border-slate-300 shadow-sm"
+                  />
+                  <div className="flex-1 space-y-1">
+                    <input
+                      type="file"
+                      id="account-image-upload"
+                      accept="image/*"
+                      onChange={handleImageFileUpload}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="account-image-upload"
+                      className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-[11px] rounded-lg cursor-pointer transition-colors"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload Image File</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1">
                   Full Name
@@ -436,20 +509,25 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Phone
+                    Mobile (+91 India)
                   </label>
-                  <input
-                    type="text"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+1 (555) 000-1122"
-                    className="w-full p-2.5 border border-slate-300 rounded-xl font-medium"
-                  />
+                  <div className="flex items-center rounded-xl border border-slate-300 overflow-hidden bg-white">
+                    <span className="px-2.5 py-2.5 bg-slate-100 text-slate-700 font-extrabold text-[11px] border-r border-slate-300">
+                      +91
+                    </span>
+                    <input
+                      type="text"
+                      value={phoneDigits}
+                      onChange={(e) => setPhoneDigits(e.target.value)}
+                      placeholder="9876543210"
+                      className="w-full px-2.5 py-2.5 font-mono font-bold text-slate-900 focus:outline-none"
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Email
+                    Email Address
                   </label>
                   <input
                     type="email"
@@ -459,6 +537,45 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
                     className="w-full p-2.5 border border-slate-300 rounded-xl font-medium"
                   />
                 </div>
+              </div>
+
+              {/* Date of Joining Field */}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-bold text-slate-800 uppercase tracking-wider flex items-center space-x-1">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Date of Joining</span>
+                  </label>
+                  {editingUser && editingUser.joiningDate && editingUser.joiningDate.trim().length > 0 ? (
+                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 bg-amber-100 text-amber-900 rounded font-bold text-[9px] border border-amber-300">
+                      <Lock className="w-2.5 h-2.5 text-amber-700" />
+                      <span>Locked (Editing Restricted)</span>
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                      Editable Once Only
+                    </span>
+                  )}
+                </div>
+
+                {editingUser && editingUser.joiningDate && editingUser.joiningDate.trim().length > 0 ? (
+                  <div className="p-2 bg-slate-100 border border-slate-300 rounded-xl font-mono font-bold text-slate-700 flex items-center justify-between text-xs cursor-not-allowed">
+                    <span>{editingUser.joiningDate}</span>
+                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="date"
+                      value={joiningDate}
+                      onChange={(e) => setJoiningDate(e.target.value)}
+                      className="w-full p-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 text-xs"
+                    />
+                    <p className="mt-1 text-[10px] text-slate-500 font-medium">
+                      Once saved, Date of Joining will be locked permanently.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="pt-3 flex justify-end space-x-2">

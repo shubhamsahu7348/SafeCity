@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   X,
   MapPin,
@@ -14,6 +14,9 @@ import {
   ThumbsUp,
   ArrowRight,
   ExternalLink,
+  Video,
+  Camera,
+  Film,
 } from 'lucide-react';
 import { Complaint, ComplaintStatus } from '../types';
 
@@ -185,18 +188,72 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
               </div>
             </div>
 
-            {/* Photo / Evidence Display */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Original Reported Hazard Image
-              </h4>
-              <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-sm h-48 bg-slate-100">
-                <img
-                  src={complaint.photoUrl}
-                  alt={complaint.title}
-                  className="w-full h-full object-cover"
-                />
+            {/* Photo & Video Evidence Display */}
+            <div className="space-y-4">
+              {/* Photo Gallery */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center space-x-1.5">
+                    <Camera className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Reported Hazard Photos ({complaint.photos?.length || 1})</span>
+                  </h4>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {(complaint.photos && complaint.photos.length > 0
+                    ? complaint.photos
+                    : [complaint.photoUrl]
+                  ).map((url, idx) => (
+                    <div key={idx} className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-sm h-40 bg-slate-900 group">
+                      <img
+                        src={url}
+                        alt={`${complaint.title} photo ${idx + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <span className="absolute bottom-2 left-2 px-2 py-0.5 bg-slate-950/80 backdrop-blur-md text-white font-mono text-[10px] font-bold rounded-lg border border-slate-700">
+                        Photo #{idx + 1}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {/* Video Evidence List */}
+              {((complaint.videos && complaint.videos.length > 0) || complaint.videoUrl) && (
+                <div className="space-y-2 pt-2 border-t border-slate-200">
+                  <h4 className="text-xs font-bold text-cyan-800 uppercase tracking-wider flex items-center space-x-1.5">
+                    <Video className="w-3.5 h-3.5 text-cyan-600" />
+                    <span>Hazard Video Recordings ({complaint.videos?.length || (complaint.videoUrl ? 1 : 0)})</span>
+                  </h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    {(complaint.videos && complaint.videos.length > 0
+                      ? complaint.videos
+                      : complaint.videoUrl
+                      ? [complaint.videoUrl]
+                      : []
+                    ).map((vUrl, idx) => (
+                      <div key={idx} className="p-2 bg-slate-950 rounded-2xl border border-slate-800 shadow-md">
+                        <div className="flex items-center justify-between pb-1 px-1 text-[11px] font-mono text-cyan-400 font-bold">
+                          <span>Video Clip #{idx + 1}</span>
+                          <span className="text-[10px] text-slate-400">Media Recording</span>
+                        </div>
+                        {vUrl.startsWith('data:video') || vUrl.endsWith('.mp4') || vUrl.endsWith('.webm') ? (
+                          <video src={vUrl} controls className="w-full h-40 rounded-xl object-cover bg-black" />
+                        ) : (
+                          <a
+                            href={vUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-3 bg-slate-900 hover:bg-slate-800 text-cyan-300 font-mono text-xs rounded-xl flex items-center justify-between transition-colors"
+                          >
+                            <span className="truncate">▶ Play Media Video Link #{idx + 1}</span>
+                            <ExternalLink className="w-4 h-4 ml-2 flex-shrink-0" />
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

@@ -36,6 +36,7 @@ export interface UserAccount {
   phone?: string;
   email?: string;
   avatarUrl?: string;
+  joiningDate?: string;
   workerId?: string;
   createdAt?: string;
 }
@@ -60,6 +61,10 @@ export interface Complaint {
   description: string;
   photoUrl: string;
   videoUrl?: string;
+  photos?: string[];
+  videos?: string[];
+  afterPhotos?: string[];
+  completionVideos?: string[];
   latitude: number;
   longitude: number;
   address: string;

@@ -15,6 +15,7 @@ import {
   Layers,
   LogOut,
   Lock,
+  Home,
 } from 'lucide-react';
 import { UserRole, UserAccount } from '../types';
 
@@ -26,6 +27,7 @@ interface NavbarProps {
   currentUser: UserAccount | null;
   onRequestLogin: (role: UserRole) => void;
   onLogout: () => void;
+  onEditProfile?: () => void;
   emergencyCount: number;
 }
 
@@ -37,6 +39,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   onRequestLogin,
   onLogout,
+  onEditProfile,
   emergencyCount,
 }) => {
   const handleRoleClick = (targetRole: UserRole) => {
@@ -91,19 +94,31 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Account Status / Role Switcher */}
         <div className="flex items-center space-x-3">
           {currentUser && (
-            <div className="flex items-center space-x-2 bg-indigo-950/80 border border-indigo-700/60 px-3 py-1 rounded-xl text-[11px]">
+            <div className="flex items-center space-x-2 bg-indigo-950/90 border border-indigo-700/80 px-3 py-1 rounded-xl text-[11px] shadow-md">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span className="font-extrabold text-white">{currentUser.name}</span>
-              <span className="px-1.5 py-0.2 bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 rounded font-mono uppercase text-[9px]">
+              <span className="px-1.5 py-0.5 bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 rounded font-mono uppercase text-[9px] font-bold">
                 {currentUser.role}
               </span>
+              
+              {onEditProfile && currentUser.role !== 'worker' && (
+                <button
+                  onClick={onEditProfile}
+                  title="Edit Profile Credentials"
+                  className="ml-1 px-2 py-0.5 bg-indigo-800/80 hover:bg-indigo-700 text-indigo-100 border border-indigo-600/60 rounded-lg flex items-center space-x-1 font-bold transition-all active:scale-95"
+                >
+                  <UserCheck className="w-3 h-3 text-cyan-400" />
+                  <span>Edit Profile</span>
+                </button>
+              )}
+
               <button
                 onClick={onLogout}
                 title="Sign Out Account"
-                className="ml-1 text-slate-400 hover:text-rose-400 flex items-center space-x-1 font-bold transition-colors"
+                className="px-2 py-0.5 bg-rose-950/80 hover:bg-rose-900 text-rose-200 border border-rose-700/60 rounded-lg flex items-center space-x-1 font-bold transition-all active:scale-95"
               >
-                <LogOut className="w-3 h-3" />
-                <span className="hidden sm:inline">Logout</span>
+                <LogOut className="w-3 h-3 text-rose-400" />
+                <span>Logout</span>
               </button>
             </div>
           )}
@@ -202,7 +217,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
               }`}
             >
-              <span>Overview</span>
+              <Home className="w-4 h-4 text-cyan-400" />
+              <span>Home</span>
             </button>
 
             <button
@@ -322,11 +338,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="lg:hidden flex items-center space-x-1 overflow-x-auto py-2.5 border-t border-slate-800/80 text-xs no-scrollbar">
           <button
             onClick={() => setActiveTab('landing')}
-            className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium ${
+            className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium flex items-center space-x-1 ${
               activeTab === 'landing' ? 'bg-blue-600 text-white' : 'text-slate-300'
             }`}
           >
-            Overview
+            <Home className="w-3.5 h-3.5" />
+            <span>Home</span>
           </button>
           <button
             onClick={() => setActiveTab('live-map')}

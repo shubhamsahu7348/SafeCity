@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { Lock, User, KeyRound, ShieldAlert, X, ChevronDown, ChevronUp, Sparkles, Building2, HardHat, Settings, CheckCircle2 } from 'lucide-react';
+import { Lock, User, KeyRound, ShieldAlert, X, ChevronDown, ChevronUp, Sparkles, Building2, HardHat, Settings, CheckCircle2, Home } from 'lucide-react';
 import { UserRole, UserAccount } from '../types';
 
 interface LoginModalProps {
   targetRole: UserRole;
   onClose: () => void;
   onLoginSuccess: (user: UserAccount) => void;
+  onGoHome?: () => void;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
   targetRole,
   onClose,
   onLoginSuccess,
+  onGoHome,
 }) => {
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -147,12 +149,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8">
         {/* Modal Header */}
         <div className="p-6 bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white space-y-3 relative border-b border-indigo-900/50">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="absolute top-4 right-4 flex items-center space-x-2">
+            <button
+              onClick={onGoHome || onClose}
+              className="px-2.5 py-1 bg-indigo-900/80 hover:bg-indigo-800 text-indigo-200 hover:text-white border border-indigo-700/60 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-colors"
+              title="Go to Website Home Page"
+            >
+              <Home className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Home</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
           <div className="flex items-center space-x-3">
             <div className="p-2.5 bg-slate-900/80 rounded-2xl border border-indigo-800/60 shadow-md">
@@ -214,20 +226,31 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3.5 bg-gradient-to-r from-indigo-600 via-violet-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-indigo-500/25 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
-            >
-              {isLoading ? (
-                <span>Authenticating...</span>
-              ) : (
-                <>
-                  <Lock className="w-4 h-4" />
-                  <span>Sign In as {targetRole === 'officer' ? 'Officer' : targetRole === 'worker' ? 'Field Worker' : 'Administrator'}</span>
-                </>
-              )}
-            </button>
+            <div className="flex items-center space-x-2 pt-1">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="flex-1 py-3.5 bg-gradient-to-r from-indigo-600 via-violet-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-indigo-500/25 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <span>Authenticating...</span>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    <span>Sign In</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={onGoHome || onClose}
+                className="px-4 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-sm rounded-xl border border-slate-300 transition-all flex items-center space-x-1.5"
+                title="Return to Public Home Page"
+              >
+                <Home className="w-4 h-4 text-indigo-600" />
+                <span>Home Page</span>
+              </button>
+            </div>
           </form>
 
           {/* Collapsible Demo Quick Credentials Helper */}
@@ -247,7 +270,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             {showDemoCredentials && (
               <div className="space-y-1.5 pt-1 max-h-48 overflow-y-auto pr-1">
                 {demoAccounts
-                  .filter((acc) => targetRole === 'admin' || acc.role === targetRole || acc.role === 'admin')
+                  .filter((acc) => acc.role === targetRole)
                   .map((acc, idx) => (
                     <button
                       key={idx}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Complaint, Worker, DepartmentMetric, UserRole, UserAccount } from './types';
 import { Navbar } from './components/Navbar';
 import { LoginModal } from './components/LoginModal';
+import { EditProfileModal } from './components/EditProfileModal';
 import { LandingView } from './views/LandingView';
 import { ReportHazardView } from './views/ReportHazardView';
 import { LiveMapView } from './views/LiveMapView';
@@ -19,6 +20,7 @@ export default function App() {
   const [userRole, setUserRole] = useState<UserRole>('citizen');
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [loginModalTargetRole, setLoginModalTargetRole] = useState<UserRole | null>(null);
+  const [showEditProfileModal, setShowEditProfileModal] = useState<boolean>(false);
 
   // State loaded from API
   const [complaints, setComplaints] = useState<Complaint[]>([]);
@@ -159,6 +161,7 @@ export default function App() {
           currentUser={currentUser}
           onRequestLogin={(role) => setLoginModalTargetRole(role)}
           onLogout={handleLogout}
+          onEditProfile={() => setShowEditProfileModal(true)}
           emergencyCount={emergencyCount}
         />
 
@@ -212,6 +215,7 @@ export default function App() {
               workers={workers}
               onUpdateComplaint={handleUpdateComplaint}
               onUpvoteComplaint={handleUpvoteComplaint}
+              onGoHome={() => setActiveTab('landing')}
             />
           )}
 
@@ -220,6 +224,7 @@ export default function App() {
               complaints={complaints}
               workers={workers}
               onUpdateComplaint={handleUpdateComplaint}
+              onGoHome={() => setActiveTab('landing')}
             />
           )}
 
@@ -228,7 +233,11 @@ export default function App() {
           )}
 
           {activeTab === 'admin' && (
-            <AdminView workers={workers} onAddWorker={handleAddWorker} />
+            <AdminView
+              workers={workers}
+              onAddWorker={handleAddWorker}
+              onGoHome={() => setActiveTab('landing')}
+            />
           )}
 
           {activeTab === 'about' && <AboutView />}
@@ -250,6 +259,22 @@ export default function App() {
           targetRole={loginModalTargetRole}
           onClose={() => setLoginModalTargetRole(null)}
           onLoginSuccess={handleLoginSuccess}
+          onGoHome={() => {
+            setLoginModalTargetRole(null);
+            setActiveTab('landing');
+          }}
+        />
+      )}
+
+      {/* Edit Profile Modal */}
+      {showEditProfileModal && currentUser && currentUser.role !== 'worker' && (
+        <EditProfileModal
+          currentUser={currentUser}
+          onClose={() => setShowEditProfileModal(false)}
+          onUserUpdated={(updatedUser) => {
+            setCurrentUser(updatedUser);
+            fetchWorkers();
+          }}
         />
       )}
 

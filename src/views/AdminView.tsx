@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Settings, Sparkles } from 'lucide-react';
+import { Settings, Sparkles, Home } from 'lucide-react';
 import { Worker } from '../types';
 import { UserAccountManager } from '../components/UserAccountManager';
 
 interface AdminViewProps {
   workers: Worker[];
   onAddWorker: (workerData: Partial<Worker>) => void;
+  onGoHome?: () => void;
 }
 
-export const AdminView: React.FC<AdminViewProps> = ({ workers }) => {
+export const AdminView: React.FC<AdminViewProps> = ({ workers, onGoHome }) => {
   // AI threshold configuration settings
   const [aiThreshold, setAiThreshold] = useState<number>(85);
   const [duplicateDistance, setDuplicateDistance] = useState<number>(350);
@@ -16,17 +17,30 @@ export const AdminView: React.FC<AdminViewProps> = ({ workers }) => {
   return (
     <div className="space-y-8 pb-12">
       {/* Header Banner */}
-      <div className="bg-purple-900 text-white p-8 rounded-3xl border border-purple-800 shadow-xl space-y-3">
-        <div className="flex items-center space-x-2 text-purple-300">
-          <Settings className="w-6 h-6" />
-          <span className="text-xs font-extrabold uppercase tracking-widest bg-purple-500/20 px-3 py-1 rounded-full border border-purple-500/30">
-            System Administrator Console
-          </span>
+      <div className="bg-purple-900 text-white p-6 sm:p-8 rounded-3xl border border-purple-800 shadow-xl flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-2 max-w-2xl">
+          <div className="flex items-center space-x-2 text-purple-300">
+            <Settings className="w-6 h-6" />
+            <span className="text-xs font-extrabold uppercase tracking-widest bg-purple-500/20 px-3 py-1 rounded-full border border-purple-500/30">
+              System Administrator Console
+            </span>
+          </div>
+          <h1 className="text-3xl font-extrabold text-white">SafeCity Platform Control</h1>
+          <p className="text-xs sm:text-sm text-purple-200">
+            Manage officer & field worker accounts, credentials & access control, Gemini AI classification thresholds, and system integration parameters.
+          </p>
         </div>
-        <h1 className="text-3xl font-extrabold text-white">SafeCity Platform Control</h1>
-        <p className="text-xs sm:text-sm text-purple-200 max-w-2xl">
-          Manage officer & field worker accounts, credentials & access control, Gemini AI classification thresholds, and system integration parameters.
-        </p>
+
+        {onGoHome && (
+          <button
+            onClick={onGoHome}
+            className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 border border-purple-400/40 text-white text-xs font-black rounded-xl flex items-center space-x-2 transition-all shadow-md active:scale-95"
+            title="Return to Public Home Page"
+          >
+            <Home className="w-4 h-4 text-purple-100" />
+            <span>Home Page</span>
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

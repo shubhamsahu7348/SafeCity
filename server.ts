@@ -17,20 +17,25 @@ let departmentMetricsStore = [...INITIAL_DEPARTMENT_METRICS];
 let usersStore: UserAccount[] = [...INITIAL_USERS];
 
 // Initialize Gemini Client safely
-let ai: GoogleGenAI | null = null;
-if (process.env.GEMINI_API_KEY) {
-  try {
-    ai = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
-      httpOptions: {
-        headers: {
-          "User-Agent": "aistudio-build",
+let aiInstance: GoogleGenAI | null = null;
+function getAiClient(): GoogleGenAI | null {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  if (!aiInstance) {
+    try {
+      aiInstance = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            "User-Agent": "aistudio-build",
+          },
         },
-      },
-    });
-  } catch (err) {
-    console.warn("Failed to initialize Gemini AI client:", err);
+      });
+    } catch (err) {
+      console.warn("Failed to initialize Gemini AI client:", err);
+    }
   }
+  return aiInstance;
 }
 
 // Helper to calculate distance between two coordinates in meters (Haversine formula)
@@ -71,6 +76,7 @@ function mapCategoryToDepartment(category: HazardCategory): Department {
 
 // API ROUTE: Health check
 app.get("/api/health", (_req, res) => {
+  const ai = getAiClient();
   res.json({ status: "ok", geminiConfigured: !!ai });
 });
 
@@ -132,8 +138,10 @@ app.post("/api/complaints", (req, res) => {
     severity: data.severity || 'Medium',
     isEmergency: data.isEmergency || data.severity === 'Critical',
     description: data.description || '',
-    photoUrl: data.photoUrl || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80',
-    videoUrl: data.videoUrl,
+    photoUrl: (data.photos && data.photos.length > 0) ? data.photos[0] : (data.photoUrl || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80'),
+    videoUrl: (data.videos && data.videos.length > 0) ? data.videos[0] : data.videoUrl,
+    photos: Array.isArray(data.photos) && data.photos.length > 0 ? data.photos : (data.photoUrl ? [data.photoUrl] : ['https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80']),
+    videos: Array.isArray(data.videos) ? data.videos : (data.videoUrl ? [data.videoUrl] : []),
     latitude: data.latitude || 37.7749,
     longitude: data.longitude || -122.4194,
     address: data.address || 'San Francisco, CA',
@@ -224,6 +232,7 @@ app.patch("/api/complaints/:id", (req, res) => {
 app.post("/api/ai/analyze-hazard", async (req, res) => {
   const { image, description, latitude, longitude }: AIAnalysisRequest = req.body;
 
+  const ai = getAiClient();
   if (ai) {
     try {
       const prompt = `You are SafeCity AI, an expert Public Hazard Intelligence Classifier for Smart Cities.
@@ -357,6 +366,7 @@ app.post("/api/ai/check-duplicate", async (req, res) => {
 
   const closest = nearby[0];
 
+  const ai = getAiClient();
   if (ai) {
     try {
       const prompt = `Compare this new citizen hazard report against an existing nearby active complaint.
@@ -423,6 +433,7 @@ Return JSON with:
 app.post("/api/ai/verify-completion", async (req, res) => {
   const { originalPhotoUrl, workerAfterPhotoUrl, hazardType, workRemarks }: AIVerificationRequest = req.body;
 
+  const ai = getAiClient();
   if (ai) {
     try {
       const prompt = `You are SafeCity AI Quality Verification Inspector.
@@ -510,9 +521,24 @@ app.post("/api/users/login", (req, res) => {
     return res.status(401).json({ error: "Invalid username or password. Please check your credentials." });
   }
 
-  // Check role authorization if targetRole requested
-  if (targetRole && user.role !== 'admin' && user.role !== targetRole) {
-    return res.status(403).json({ error: `Account "${user.username}" is authorized for ${user.role} role, not ${targetRole}.` });
+  // Check role authorization if targetRole requested (strict matching)
+  if (targetRole && user.role !== targetRole) {
+    const userRoleDisplay =
+      user.role === 'officer'
+        ? 'Department Officer'
+        : user.role === 'worker'
+        ? 'Field Worker'
+        : 'System Administrator';
+    const targetRoleDisplay =
+      targetRole === 'officer'
+        ? 'Department Officer'
+        : targetRole === 'worker'
+        ? 'Field Worker'
+        : 'System Administrator';
+
+    return res.status(403).json({
+      error: `Access Denied: Account "${user.username}" is a ${userRoleDisplay} account. You cannot log in through ${targetRoleDisplay} Login. Please switch to ${userRoleDisplay} Login.`
+    });
   }
 
   res.json({ success: true, user });
@@ -603,6 +629,11 @@ app.patch("/api/users/:id", (req, res) => {
         ...(updates.department && { department: updates.department }),
       };
     }
+  }
+
+  // Prevent editing joiningDate once set
+  if (existing.joiningDate && updates.joiningDate) {
+    delete updates.joiningDate;
   }
 
   usersStore[userIdx] = {

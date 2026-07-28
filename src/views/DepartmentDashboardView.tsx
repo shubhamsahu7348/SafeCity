@@ -11,6 +11,7 @@ import {
   ArrowRight,
   Filter,
   Sparkles,
+  Home,
 } from 'lucide-react';
 import { Complaint, Worker, Department, ComplaintStatus } from '../types';
 import { ComplaintDetailModal } from '../components/ComplaintDetailModal';
@@ -21,6 +22,7 @@ interface DepartmentDashboardViewProps {
   workers: Worker[];
   onUpdateComplaint: (id: string, updates: Partial<Complaint>) => void;
   onUpvoteComplaint: (id: string) => void;
+  onGoHome?: () => void;
 }
 
 export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = ({
@@ -28,6 +30,7 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
   workers,
   onUpdateComplaint,
   onUpvoteComplaint,
+  onGoHome,
 }) => {
   const [selectedDept, setSelectedDept] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<string>('All');
@@ -87,8 +90,19 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
           </p>
         </div>
 
-        {/* Filters */}
+        {/* Filters & Navigation */}
         <div className="flex flex-wrap items-center gap-2">
+          {onGoHome && (
+            <button
+              onClick={onGoHome}
+              className="px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 border border-amber-400/40 text-white text-xs font-black rounded-xl flex items-center space-x-1.5 transition-all shadow-md active:scale-95"
+              title="Return to Public Home Page"
+            >
+              <Home className="w-4 h-4 text-amber-100" />
+              <span>Home Page</span>
+            </button>
+          )}
+
           <select
             value={selectedDept}
             onChange={(e) => setSelectedDept(e.target.value)}

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import {
   Camera,
+  Video,
+  Film,
   MapPin,
   Sparkles,
   AlertTriangle,
@@ -14,6 +16,10 @@ import {
   ArrowLeft,
   ShieldCheck,
   FileText,
+  X,
+  Plus,
+  Trash2,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   Complaint,
@@ -35,8 +41,11 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
 }) => {
   const [step, setStep] = useState<number>(1);
 
-  // Form State
+  // Form State - Multiple Photos and Videos
   const [photoUrl, setPhotoUrl] = useState<string>('');
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [videos, setVideos] = useState<string[]>([]);
+  const [videoUrlInput, setVideoUrlInput] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [latitude, setLatitude] = useState<number>(37.774929);
   const [longitude, setLongitude] = useState<number>(-122.419416);
@@ -57,44 +66,141 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
   // Submitted complaint state for success page
   const [submittedComplaint, setSubmittedComplaint] = useState<Complaint | null>(null);
 
-  // Handle image file selection
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  // Handle multiple photo uploads
+  const handleMultiplePhotosUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPhotoUrl(reader.result as string);
+        if (typeof reader.result === 'string') {
+          const newPhoto = reader.result;
+          setPhotos((prev) => [...prev, newPhoto]);
+          setPhotoUrl((prev) => prev || newPhoto);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Sample default image picker options
-  const setSampleImage = (url: string) => {
-    setPhotoUrl(url);
+  // Handle multiple video uploads
+  const handleMultipleVideosUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setVideos((prev) => [...prev, reader.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  // Auto-detect browser GPS location
+  // Add custom video URL
+  const handleAddVideoUrl = () => {
+    if (!videoUrlInput.trim()) return;
+    setVideos((prev) => [...prev, videoUrlInput.trim()]);
+    setVideoUrlInput('');
+  };
+
+  // Location Detection State
+  const [isLocating, setIsLocating] = useState<boolean>(false);
+  const [locationStatus, setLocationStatus] = useState<string>('');
+
+  // Sample default image picker option removed per user request
+
+  // Remove photo item
+  const handleRemovePhoto = (index: number) => {
+    setPhotos((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      if (photoUrl === prev[index]) {
+        setPhotoUrl(updated[0] || '');
+      }
+      return updated;
+    });
+  };
+
+  // Remove video item
+  const handleRemoveVideo = (index: number) => {
+    setVideos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Auto-detect browser GPS location with high accuracy and reverse geocoding
   const handleDetectLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLatitude(pos.coords.latitude);
-          setLongitude(pos.coords.longitude);
-          setAddress(`GPS Lat: ${pos.coords.latitude.toFixed(4)}, Lng: ${pos.coords.longitude.toFixed(4)} (Smart City Grid)`);
-        },
-        (err) => {
-          console.warn('Geolocation failed:', err);
-          setAddress('450 Mission St, San Francisco, CA');
-        }
-      );
+    if (!navigator.geolocation) {
+      const msg = 'Geolocation is not supported by your browser.';
+      setLocationStatus(msg);
+      alert(msg);
+      return;
     }
+
+    setIsLocating(true);
+    setLocationStatus('Acquiring high-accuracy GPS coordinates...');
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setLatitude(lat);
+        setLongitude(lng);
+
+        setLocationStatus('Resolving location address via OpenStreetMap...');
+
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.display_name) {
+              setAddress(data.display_name);
+              setLocationStatus(`✅ Location detected: ${data.display_name}`);
+            } else {
+              setAddress(`GPS Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+              setLocationStatus(`✅ Coordinates set: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+            }
+          } else {
+            setAddress(`GPS Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+            setLocationStatus(`✅ Coordinates set: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+          }
+        } catch (e) {
+          setAddress(`GPS Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+          setLocationStatus(`✅ Coordinates set: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      (err) => {
+        console.warn('Geolocation failed:', err);
+        setIsLocating(false);
+        let msg = 'Unable to access device location.';
+        if (err.code === err.PERMISSION_DENIED) {
+          msg = 'Location permission was denied by browser. Please allow location access.';
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          msg = 'Location position is unavailable on this device.';
+        } else if (err.code === err.TIMEOUT) {
+          msg = 'Location request timed out.';
+        }
+        setLocationStatus(`⚠️ ${msg}`);
+        alert(`${msg}\n\nYou can manually enter your street address in the input box below.`);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      }
+    );
   };
 
   // Step 3: Run Gemini AI Hazard Analysis
   const handleRunAIAnalysis = async () => {
-    if (!description && !photoUrl) {
-      alert('Please provide a photo or description for AI analysis.');
+    const activePhoto = photos[0] || photoUrl;
+    if (!description && !activePhoto) {
+      alert('Please provide at least one photo or description for AI analysis.');
       return;
     }
 
@@ -105,7 +211,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          image: photoUrl,
+          image: activePhoto,
           description,
           latitude,
           longitude,
@@ -148,6 +254,9 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
 
   // Final Submit
   const handleSubmitReport = async () => {
+    const primaryPhoto = photos[0] || photoUrl || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80';
+    const primaryVideo = videos[0] || undefined;
+
     const payload = {
       title: `${subCategory} Hazard at ${address.split(',')[0]}`,
       category,
@@ -155,7 +264,10 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
       severity,
       isEmergency,
       description: description || `Hazard reported near ${address}`,
-      photoUrl: photoUrl || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80',
+      photoUrl: primaryPhoto,
+      videoUrl: primaryVideo,
+      photos: photos.length > 0 ? photos : [primaryPhoto],
+      videos: videos,
       latitude,
       longitude,
       address,
@@ -213,107 +325,178 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
         ))}
       </div>
 
-      {/* STEP 1: Photo / Media Upload */}
+      {/* STEP 1: Combined Photo & Video Media Upload */}
       {step === 1 && (
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-indigo-100 shadow-sm space-y-6">
           <div>
-            <span className="px-3 py-1 bg-indigo-100/80 text-indigo-800 text-xs font-black rounded-full border border-indigo-200">
-              Step 1 of 3
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="px-3 py-1 bg-indigo-100/80 text-indigo-800 text-xs font-black rounded-full border border-indigo-200">
+                Step 1 of 3
+              </span>
+              <div className="flex items-center space-x-2 text-xs font-extrabold text-indigo-900 bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-100">
+                <Camera className="w-3.5 h-3.5 text-indigo-600" />
+                <span>{photos.length} Photo{photos.length !== 1 ? 's' : ''}</span>
+                <span className="text-slate-300">•</span>
+                <Video className="w-3.5 h-3.5 text-cyan-600" />
+                <span>{videos.length} Video{videos.length !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
             <h2 className="text-2xl font-black text-slate-900 mt-2">
-              Upload Hazard Photo or Video
+              Upload Hazard Media (Photos & Videos)
             </h2>
             <p className="text-xs text-slate-500 font-medium">
-              Clear visuals enable instant Gemini AI classification and severity scoring.
+              Combine high-resolution photos and video recordings of the hazard site in one place for AI verification.
             </p>
           </div>
 
-          {/* Drag & Drop Upload Zone */}
-          <div className="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-slate-50/80 rounded-2xl p-6 text-center space-y-3 transition-colors">
-            {photoUrl ? (
-              <div className="relative rounded-2xl overflow-hidden max-h-72 border border-slate-200 shadow-md inline-block">
-                <img src={photoUrl} alt="Uploaded Hazard" className="w-full h-full object-cover" />
-                <button
-                  onClick={() => setPhotoUrl('')}
-                  className="absolute top-3 right-3 bg-slate-950/80 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-rose-600 border border-slate-700/80 shadow-md transition-colors"
-                >
-                  Change Photo
-                </button>
-              </div>
-            ) : (
-              <label className="cursor-pointer block space-y-3">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-100 to-cyan-100 text-indigo-600 flex items-center justify-center mx-auto shadow-inner">
-                  <Camera className="w-7 h-7 text-indigo-600" />
+          {/* Unified Media Uploader Box */}
+          <div className="p-6 bg-slate-50/90 rounded-2xl border-2 border-dashed border-indigo-200 hover:border-indigo-400 space-y-5 transition-colors">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center space-x-3 text-center sm:text-left">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-100 to-cyan-100 text-indigo-600 flex items-center justify-center shadow-inner flex-shrink-0">
+                  <Camera className="w-6 h-6 text-indigo-600" />
                 </div>
                 <div>
-                  <span className="font-extrabold text-sm text-slate-800 block">
-                    Click to capture or upload photo/video
-                  </span>
-                  <span className="text-xs text-slate-500 font-medium">JPG, PNG, MP4 up to 20MB</span>
+                  <h3 className="text-sm font-black text-slate-900">Add Hazard Evidence Files</h3>
+                  <p className="text-xs text-slate-500 font-medium">Upload images (JPG, PNG) or video recordings (MP4, WebM)</p>
                 </div>
+              </div>
+
+              {/* Combined Buttons for Photo and Video */}
+              <div className="flex items-center space-x-2.5 w-full sm:w-auto justify-center">
+                {/* Photo Picker */}
                 <input
                   type="file"
-                  accept="image/*,video/*"
-                  onChange={handlePhotoUpload}
+                  id="multi-photo-upload"
+                  accept="image/*"
+                  multiple
+                  onChange={handleMultiplePhotosUpload}
                   className="hidden"
                 />
-              </label>
+                <label
+                  htmlFor="multi-photo-upload"
+                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer flex items-center space-x-1.5 transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Add Photos</span>
+                </label>
+
+                {/* Video Picker */}
+                <input
+                  type="file"
+                  id="multi-video-upload"
+                  accept="video/*"
+                  multiple
+                  onChange={handleMultipleVideosUpload}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="multi-video-upload"
+                  className="px-4 py-2.5 bg-cyan-700 hover:bg-cyan-600 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer flex items-center space-x-1.5 transition-all"
+                >
+                  <Film className="w-4 h-4" />
+                  <span>Add Videos</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Video URL Input Row */}
+            <div className="pt-2 border-t border-slate-200/80 flex items-center space-x-2">
+              <span className="text-xs font-bold text-slate-500 whitespace-nowrap">Video Link:</span>
+              <input
+                type="text"
+                value={videoUrlInput}
+                onChange={(e) => setVideoUrlInput(e.target.value)}
+                placeholder="Or paste video link (MP4, Stream URL)..."
+                className="flex-1 px-3.5 py-2 text-xs bg-white border border-slate-300 rounded-xl font-mono text-slate-900"
+              />
+              <button
+                type="button"
+                onClick={handleAddVideoUrl}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Attach Link</span>
+              </button>
+            </div>
+
+            {/* Unified Media Gallery Display */}
+            {(photos.length > 0 || videos.length > 0) ? (
+              <div className="space-y-4 pt-3 border-t border-slate-200">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+                  <span>Attached Media Gallery ({photos.length + videos.length} items)</span>
+                  <span className="text-[11px] text-slate-400">Click Trash icon to remove any file</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {/* Photo Cards */}
+                  {photos.map((url, idx) => (
+                    <div key={`photo-${idx}`} className="relative group rounded-2xl overflow-hidden border-2 border-indigo-200 shadow-sm h-36 bg-slate-900">
+                      <img src={url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
+                      <div className="absolute top-2 left-2 px-2 py-0.5 bg-indigo-950/90 text-indigo-300 font-mono text-[10px] font-bold rounded-lg border border-indigo-700/80 flex items-center space-x-1">
+                        <Camera className="w-3 h-3 text-indigo-400" />
+                        <span>Photo #{idx + 1}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePhoto(idx)}
+                        className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-md transition-all"
+                        title="Remove Photo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Video Cards */}
+                  {videos.map((vidUrl, idx) => (
+                    <div key={`video-${idx}`} className="relative bg-slate-950 p-2 rounded-2xl border-2 border-cyan-700/80 shadow-md">
+                      <div className="flex items-center justify-between pb-1 px-1">
+                        <span className="text-[10px] font-mono font-bold text-cyan-400 flex items-center space-x-1">
+                          <Video className="w-3 h-3 text-cyan-400" />
+                          <span>Video Clip #{idx + 1}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveVideo(idx)}
+                          className="p-1 bg-rose-600/90 hover:bg-rose-600 text-white rounded-md text-[10px]"
+                          title="Remove Video"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                      {vidUrl.startsWith('data:video') || vidUrl.endsWith('.mp4') || vidUrl.endsWith('.webm') ? (
+                        <video src={vidUrl} controls className="w-full h-28 rounded-xl object-cover bg-black" />
+                      ) : (
+                        <div className="p-3 bg-slate-900 text-cyan-300 font-mono text-[11px] rounded-xl truncate">
+                          🔗 {vidUrl}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 bg-white rounded-xl border border-slate-200 text-slate-500 space-y-1">
+                <Camera className="w-8 h-8 text-indigo-400 mx-auto" />
+                <p className="text-xs font-bold text-slate-700">No media attached yet</p>
+                <p className="text-[11px] text-slate-400">Add photos or videos above to proceed with hazard report</p>
+              </div>
             )}
           </div>
 
-          {/* Preset Sample Photo Options */}
-          <div className="space-y-2">
-            <span className="text-xs font-black text-slate-500 uppercase tracking-wider block">
-              Or Choose Sample Hazard Photo:
-            </span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {[
-                {
-                  label: 'Open Electric Wire',
-                  url: 'https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?auto=format&fit=crop&w=400&q=80',
-                },
-                {
-                  label: 'Deep Road Pothole',
-                  url: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=400&q=80',
-                },
-                {
-                  label: 'Water Main Burst',
-                  url: 'https://images.unsplash.com/photo-1584467735815-f778f274e296?auto=format&fit=crop&w=400&q=80',
-                },
-                {
-                  label: 'Uncovered Manhole',
-                  url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=400&q=80',
-                },
-              ].map((sample) => (
-                <button
-                  key={sample.label}
-                  onClick={() => setSampleImage(sample.url)}
-                  className={`p-2 rounded-xl border text-left flex items-center space-x-2 transition-all ${
-                    photoUrl === sample.url
-                      ? 'border-indigo-600 bg-indigo-50/80 ring-2 ring-indigo-500 shadow-sm'
-                      : 'border-slate-200 hover:border-indigo-300 bg-white'
-                  }`}
-                >
-                  <img
-                    src={sample.url}
-                    alt={sample.label}
-                    className="w-10 h-10 object-cover rounded-lg"
-                  />
-                  <span className="text-[11px] font-bold text-slate-800 line-clamp-1">
-                    {sample.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Navigation Button */}
-          <div className="pt-4 flex justify-end">
+          <div className="pt-2 flex justify-between items-center border-t border-slate-100">
+            <span className="text-xs font-bold text-slate-500">
+              Total attached: <strong className="text-indigo-700">{photos.length} photo(s)</strong> and <strong className="text-cyan-700">{videos.length} video(s)</strong>
+            </span>
+
             <button
               onClick={() => setStep(2)}
-              disabled={!photoUrl}
+              disabled={photos.length === 0 && !photoUrl && videos.length === 0}
               className={`px-6 py-3.5 rounded-xl font-extrabold text-sm flex items-center space-x-2 transition-all ${
-                photoUrl
+                photos.length > 0 || photoUrl || videos.length > 0
                   ? 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-lg shadow-indigo-500/25'
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
@@ -336,16 +519,24 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               Hazard Location & Description
             </h2>
             <p className="text-xs text-slate-500 font-medium">
-              Provide exact address or use device GPS capture for automated municipal routing.
+              Provide exact address or use high-precision device GPS capture.
             </p>
           </div>
 
           {/* GPS Location Field */}
           <div className="space-y-2">
-            <label className="block text-xs font-black text-slate-700 uppercase tracking-wider">
-              Hazard Address / Location
-            </label>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider">
+                Hazard Address / Location
+              </label>
+              {locationStatus && (
+                <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-lg border border-indigo-100">
+                  {locationStatus}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <input
                 type="text"
                 value={address}
@@ -356,10 +547,20 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               <button
                 type="button"
                 onClick={handleDetectLocation}
-                className="px-4 py-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 rounded-xl font-bold text-xs flex items-center space-x-1.5 whitespace-nowrap transition-colors shadow-sm"
+                disabled={isLocating}
+                className="px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-extrabold text-xs flex items-center justify-center space-x-1.5 whitespace-nowrap transition-colors shadow-md disabled:opacity-75"
               >
-                <MapPin className="w-4 h-4 text-indigo-600" />
-                <span>Auto-Detect GPS</span>
+                {isLocating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                    <span>Detecting GPS...</span>
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="w-4 h-4 text-white" />
+                    <span>Detect My Present Location</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
