@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 import {
   Camera,
   Video,
@@ -29,6 +30,7 @@ import {
   AIAnalysisResponse,
   AIDuplicateCheckResponse,
 } from '../types';
+import { ShareComplaintCard } from '../components/ShareComplaintCard';
 
 interface ReportHazardViewProps {
   onComplaintSubmitted: (complaint: Complaint) => void;
@@ -39,6 +41,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
   onComplaintSubmitted,
   onTrackComplaint,
 }) => {
+  const { t, language, translateDepartment, translateSeverity, translateText } = useLanguage();
   const [step, setStep] = useState<number>(1);
 
   // Form State - Multiple Photos and Videos
@@ -215,6 +218,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
           description,
           latitude,
           longitude,
+          language,
         }),
       });
 
@@ -298,10 +302,10 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
       {/* Wizard Progress Indicator */}
       <div className="bg-white p-4.5 rounded-2xl border border-indigo-100 shadow-sm flex items-center justify-between">
         {[
-          { num: 1, label: 'Upload Media' },
-          { num: 2, label: 'Location & Details' },
-          { num: 3, label: 'AI Review & Route' },
-          { num: 4, label: 'Submitted' },
+          { num: 1, label: t('report.wizard.step1', 'Upload Media') },
+          { num: 2, label: t('report.wizard.step2', 'Location & Details') },
+          { num: 3, label: t('report.wizard.step3', 'AI Review & Route') },
+          { num: 4, label: t('report.wizard.step4', 'Submitted') },
         ].map((s) => (
           <div key={s.num} className="flex items-center space-x-2">
             <div
@@ -332,21 +336,21 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
           <div>
             <div className="flex items-center justify-between">
               <span className="px-3 py-1 bg-indigo-100/80 text-indigo-800 text-xs font-black rounded-full border border-indigo-200">
-                Step 1 of 3
+                {t('report.step1_tag', 'Step 1 of 3')}
               </span>
               <div className="flex items-center space-x-2 text-xs font-extrabold text-indigo-900 bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-100">
                 <Camera className="w-3.5 h-3.5 text-indigo-600" />
-                <span>{photos.length} Photo{photos.length !== 1 ? 's' : ''}</span>
+                <span>{photos.length} {t('report.photos_count', 'Photo(s)')}</span>
                 <span className="text-slate-300">•</span>
                 <Video className="w-3.5 h-3.5 text-cyan-600" />
-                <span>{videos.length} Video{videos.length !== 1 ? 's' : ''}</span>
+                <span>{videos.length} {t('report.videos_count', 'Video(s)')}</span>
               </div>
             </div>
             <h2 className="text-2xl font-black text-slate-900 mt-2">
-              Upload Hazard Media (Photos & Videos)
+              {t('report.upload_title', 'Upload Hazard Media (Photos & Videos)')}
             </h2>
             <p className="text-xs text-slate-500 font-medium">
-              Combine high-resolution photos and video recordings of the hazard site in one place for AI verification.
+              {t('report.upload_subtitle', 'Combine high-resolution photos and video recordings of the hazard site in one place for AI verification.')}
             </p>
           </div>
 
@@ -358,8 +362,8 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                   <Camera className="w-6 h-6 text-indigo-600" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">Add Hazard Evidence Files</h3>
-                  <p className="text-xs text-slate-500 font-medium">Upload images (JPG, PNG) or video recordings (MP4, WebM)</p>
+                  <h3 className="text-sm font-black text-slate-900">{t('report.add_evidence_title', 'Add Hazard Evidence Files')}</h3>
+                  <p className="text-xs text-slate-500 font-medium">{t('report.add_evidence_desc', 'Upload images (JPG, PNG) or video recordings (MP4, WebM)')}</p>
                 </div>
               </div>
 
@@ -380,7 +384,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                 >
                   <Plus className="w-4 h-4" />
                   <Camera className="w-3.5 h-3.5" />
-                  <span>Add Photos</span>
+                  <span>{t('report.add_photos', 'Add Photos')}</span>
                 </label>
 
                 {/* Video Picker */}
@@ -397,19 +401,19 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                   className="px-4 py-2.5 bg-cyan-700 hover:bg-cyan-600 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer flex items-center space-x-1.5 transition-all"
                 >
                   <Film className="w-4 h-4" />
-                  <span>Add Videos</span>
+                  <span>{t('report.add_videos', 'Add Videos')}</span>
                 </label>
               </div>
             </div>
 
             {/* Video URL Input Row */}
             <div className="pt-2 border-t border-slate-200/80 flex items-center space-x-2">
-              <span className="text-xs font-bold text-slate-500 whitespace-nowrap">Video Link:</span>
+              <span className="text-xs font-bold text-slate-500 whitespace-nowrap">{t('report.video_link_label', 'Video Link:')}</span>
               <input
                 type="text"
                 value={videoUrlInput}
                 onChange={(e) => setVideoUrlInput(e.target.value)}
-                placeholder="Or paste video link (MP4, Stream URL)..."
+                placeholder={t('report.video_link_placeholder', 'Or paste video link (MP4, Stream URL)...')}
                 className="flex-1 px-3.5 py-2 text-xs bg-white border border-slate-300 rounded-xl font-mono text-slate-900"
               />
               <button
@@ -418,7 +422,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                 className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Attach Link</span>
+                <span>{t('report.attach_link', 'Attach Link')}</span>
               </button>
             </div>
 
@@ -426,8 +430,8 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
             {(photos.length > 0 || videos.length > 0) ? (
               <div className="space-y-4 pt-3 border-t border-slate-200">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                  <span>Attached Media Gallery ({photos.length + videos.length} items)</span>
-                  <span className="text-[11px] text-slate-400">Click Trash icon to remove any file</span>
+                  <span>{t('report.gallery_title', 'Attached Media Gallery')} ({photos.length + videos.length})</span>
+                  <span className="text-[11px] text-slate-400">{t('report.gallery_remove_hint', 'Click Trash icon to remove any file')}</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -437,7 +441,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                       <img src={url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
                       <div className="absolute top-2 left-2 px-2 py-0.5 bg-indigo-950/90 text-indigo-300 font-mono text-[10px] font-bold rounded-lg border border-indigo-700/80 flex items-center space-x-1">
                         <Camera className="w-3 h-3 text-indigo-400" />
-                        <span>Photo #{idx + 1}</span>
+                        <span>{t('report.photos_count', 'Photo')} #{idx + 1}</span>
                       </div>
                       <button
                         type="button"
@@ -456,7 +460,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                       <div className="flex items-center justify-between pb-1 px-1">
                         <span className="text-[10px] font-mono font-bold text-cyan-400 flex items-center space-x-1">
                           <Video className="w-3 h-3 text-cyan-400" />
-                          <span>Video Clip #{idx + 1}</span>
+                          <span>{t('report.videos_count', 'Video Clip')} #{idx + 1}</span>
                         </span>
                         <button
                           type="button"
@@ -481,8 +485,8 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
             ) : (
               <div className="text-center py-6 bg-white rounded-xl border border-slate-200 text-slate-500 space-y-1">
                 <Camera className="w-8 h-8 text-indigo-400 mx-auto" />
-                <p className="text-xs font-bold text-slate-700">No media attached yet</p>
-                <p className="text-[11px] text-slate-400">Add photos or videos above to proceed with hazard report</p>
+                <p className="text-xs font-bold text-slate-700">{t('report.no_media_title', 'No media attached yet')}</p>
+                <p className="text-[11px] text-slate-400">{t('report.no_media_desc', 'Add photos or videos above to proceed with hazard report')}</p>
               </div>
             )}
           </div>
@@ -490,7 +494,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
           {/* Navigation Button */}
           <div className="pt-2 flex justify-between items-center border-t border-slate-100">
             <span className="text-xs font-bold text-slate-500">
-              Total attached: <strong className="text-indigo-700">{photos.length} photo(s)</strong> and <strong className="text-cyan-700">{videos.length} video(s)</strong>
+              {t('report.total_attached', 'Total attached:')} <strong className="text-indigo-700">{photos.length} {t('report.photos_count', 'photo(s)')}</strong> and <strong className="text-cyan-700">{videos.length} {t('report.videos_count', 'video(s)')}</strong>
             </span>
 
             <button
@@ -502,7 +506,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
             >
-              <span>Next: Location & Description</span>
+              <span>{t('report.next_location', 'Next: Location & Description')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -514,13 +518,13 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-indigo-100 shadow-sm space-y-6">
           <div>
             <span className="px-3 py-1 bg-indigo-100/80 text-indigo-800 text-xs font-black rounded-full border border-indigo-200">
-              Step 2 of 3
+              {t('report.step2_tag', 'Step 2 of 3')}
             </span>
             <h2 className="text-2xl font-black text-slate-900 mt-2">
-              Hazard Location & Description
+              {t('report.location_title', 'Hazard Location & Description')}
             </h2>
             <p className="text-xs text-slate-500 font-medium">
-              Provide exact address or use high-precision device GPS capture.
+              {t('report.location_subtitle', 'Provide exact address or use high-precision device GPS capture.')}
             </p>
           </div>
 
@@ -528,7 +532,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-black text-slate-700 uppercase tracking-wider">
-                Hazard Address / Location
+                {t('report.address_label', 'Hazard Address / Location')}
               </label>
               {locationStatus && (
                 <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-lg border border-indigo-100">
@@ -542,7 +546,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="Street address or landmark"
+                placeholder={t('report.address_placeholder', 'Street address or landmark')}
                 className="flex-1 px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-semibold text-slate-800"
               />
               <button
@@ -554,12 +558,12 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                 {isLocating ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                    <span>Detecting GPS...</span>
+                    <span>{t('report.detecting_gps', 'Detecting GPS...')}</span>
                   </>
                 ) : (
                   <>
                     <MapPin className="w-4 h-4 text-white" />
-                    <span>Detect My Present Location</span>
+                    <span>{t('report.detect_location', 'Detect My Present Location')}</span>
                   </>
                 )}
               </button>
@@ -569,13 +573,13 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
           {/* Description Textarea */}
           <div className="space-y-2">
             <label className="block text-xs font-black text-slate-700 uppercase tracking-wider">
-              Describe the Hazard
+              {t('report.desc_label', 'Describe the Hazard')}
             </label>
             <textarea
               rows={4}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="E.g., Open electric cables exposed on sidewalk near school entrance. Sparking observed after rain..."
+              placeholder={t('report.desc_placeholder', 'E.g., Open electric cables exposed on sidewalk near school entrance. Sparking observed after rain...')}
               className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-semibold text-slate-800"
             />
           </div>
@@ -587,7 +591,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center space-x-1.5"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
+              <span>{t('report.back', 'Back')}</span>
             </button>
 
             <button
@@ -598,12 +602,12 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               {isAnalyzing ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                  <span>Submitting...</span>
+                  <span>{t('report.submitting', 'Submitting...')}</span>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4 text-cyan-300" />
-                  <span>Submit</span>
+                  <span>{t('btn.submit_report', 'Submit Report')}</span>
                 </>
               )}
             </button>
@@ -616,13 +620,13 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-indigo-100 shadow-sm space-y-6">
           <div>
             <span className="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-black rounded-full border border-indigo-200">
-              Step 3 of 3
+              {t('report.step3_tag', 'Step 3 of 3')}
             </span>
             <h2 className="text-2xl font-black text-slate-900 mt-2">
-              AI Hazard Analysis & Department Mapping
+              {t('report.ai_review_title', 'AI Hazard Analysis & Department Mapping')}
             </h2>
             <p className="text-xs text-slate-500 font-medium">
-              AI classified severity, checked duplicate reports nearby, and auto-routed to the responsible department.
+              {t('report.ai_review_subtitle', 'AI classified severity, checked duplicate reports nearby, and auto-routed to the responsible department.')}
             </p>
           </div>
 
@@ -631,7 +635,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
             <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl space-y-2">
               <div className="flex items-center space-x-2 text-amber-900 font-black text-sm">
                 <AlertTriangle className="w-5 h-5 text-amber-600" />
-                <span>Existing Nearby Complaint Linked ({duplicateCheck.similarityScore}% Match)</span>
+                <span>{t('report.duplicate_alert', 'Existing Nearby Complaint Linked')} ({duplicateCheck.similarityScore}% Match)</span>
               </div>
               <p className="text-xs text-amber-900 leading-relaxed font-medium">
                 {duplicateCheck.reasoning}
@@ -648,10 +652,10 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black uppercase tracking-wider text-cyan-300 flex items-center">
                   <Sparkles className="w-4 h-4 mr-1 text-cyan-300" />
-                  AI Vision Assessment
+                  {t('report.ai_vision_title', 'AI Vision Assessment')}
                 </span>
                 <span className="px-3 py-0.5 text-xs font-bold bg-indigo-500/20 text-cyan-300 rounded-full border border-indigo-500/40">
-                  {aiAnalysis.confidenceScore}% Certainty
+                  {aiAnalysis.confidenceScore}% {t('report.certainty', 'Certainty')}
                 </span>
               </div>
 
@@ -660,7 +664,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               </p>
 
               <div className="p-3 bg-slate-950/80 rounded-xl text-xs text-amber-300 border border-amber-500/30">
-                <strong>Safety Guidance:</strong> {aiAnalysis.safetyAdvice}
+                <strong>{t('report.safety_guidance', 'Safety Guidance:')}</strong> {aiAnalysis.safetyAdvice}
               </div>
             </div>
           )}
@@ -669,25 +673,25 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Hazard Category
+                {t('report.category_label', 'Hazard Category')}
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as HazardCategory)}
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-800"
               >
-                <option value="Road Hazard">Road Hazard</option>
-                <option value="Electrical Hazard">Electrical Hazard</option>
-                <option value="Water Hazard">Water Hazard</option>
-                <option value="Sanitation Hazard">Sanitation Hazard</option>
-                <option value="Environmental Hazard">Environmental Hazard</option>
-                <option value="Public Safety Hazard">Public Safety Hazard</option>
+                <option value="Road Hazard">{t('category.road', 'Road Hazard')}</option>
+                <option value="Electrical Hazard">{t('category.electrical', 'Electrical Hazard')}</option>
+                <option value="Water Hazard">{t('category.water', 'Water Hazard')}</option>
+                <option value="Sanitation Hazard">{t('category.sanitation', 'Sanitation Hazard')}</option>
+                <option value="Environmental Hazard">{t('category.environmental', 'Environmental Hazard')}</option>
+                <option value="Public Safety Hazard">{t('category.safety', 'Public Safety Hazard')}</option>
               </select>
             </div>
 
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Severity Level
+                {t('report.severity_label', 'Severity Level')}
               </label>
               <select
                 value={severity}
@@ -698,28 +702,28 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                 }}
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-800"
               >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-                <option value="Critical">Critical (Emergency)</option>
+                <option value="Low">{t('severity.low', 'Low')}</option>
+                <option value="Medium">{t('severity.medium', 'Medium')}</option>
+                <option value="High">{t('severity.high', 'High')}</option>
+                <option value="Critical">{t('severity.critical', 'Critical (Emergency)')}</option>
               </select>
             </div>
 
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Assigned Department
+                {t('report.dept_label', 'Assigned Department')}
               </label>
               <select
                 value={department}
                 onChange={(e) => setDepartment(e.target.value as Department)}
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-800"
               >
-                <option value="Road Department">Road Department</option>
-                <option value="Electricity Department">Electricity Department</option>
-                <option value="Water & Sewerage">Water & Sewerage</option>
-                <option value="Sanitation & Waste">Sanitation & Waste</option>
-                <option value="Environmental Protection">Environmental Protection</option>
-                <option value="Public Safety & Infrastructure">Public Safety & Infrastructure</option>
+                <option value="Road Department">{t('dept.road', 'Road Department')}</option>
+                <option value="Electricity Department">{t('dept.electricity', 'Electricity Department')}</option>
+                <option value="Water & Sewerage">{t('dept.water', 'Water & Sewerage')}</option>
+                <option value="Sanitation & Waste">{t('dept.sanitation', 'Sanitation & Waste')}</option>
+                <option value="Environmental Protection">{t('dept.environmental', 'Environmental Protection')}</option>
+                <option value="Public Safety & Infrastructure">{t('dept.safety', 'Public Safety & Infrastructure')}</option>
               </select>
             </div>
 
@@ -733,7 +737,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                     className="w-4 h-4 text-red-600 rounded"
                   />
                   <span className="text-xs font-extrabold text-red-700 uppercase tracking-wider">
-                    Flag as Emergency Priority
+                    {t('btn.flag_emergency', 'Flag as Emergency Priority')}
                   </span>
                 </label>
               ) : (
@@ -749,7 +753,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center space-x-1.5"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
+              <span>{t('report.back', 'Back')}</span>
             </button>
 
             <button
@@ -757,7 +761,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               className="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-600/30 flex items-center space-x-2 transition-all hover:scale-105"
             >
               <CheckCircle2 className="w-5 h-5" />
-              <span>Submit Report</span>
+              <span>{t('btn.submit_report', 'Submit Report')}</span>
             </button>
           </div>
         </div>
@@ -772,32 +776,37 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
 
           <div>
             <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest bg-emerald-100 px-3 py-1 rounded-full">
-              Report Registered Successfully
+              {t('report.success_title', 'Report Registered Successfully')}
             </span>
             <h2 className="text-3xl font-extrabold text-slate-900 mt-2">
-              Complaint ID: {submittedComplaint.id}
+              {t('report.complaint_id', 'Complaint ID:')} {submittedComplaint.id}
             </h2>
             <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-              Save this Complaint ID to track real-time verification, worker assignment, and completion evidence.
+              {t('report.success_desc', 'Save this Complaint ID to track real-time verification, worker assignment, and completion evidence.')}
             </p>
           </div>
 
           {/* Complaint Details Card */}
           <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 text-left space-y-3 max-w-md mx-auto">
             <div className="flex items-center justify-between text-xs font-bold">
-              <span className="text-slate-500">Hazard Title:</span>
-              <span className="text-slate-900">{submittedComplaint.title}</span>
+              <span className="text-slate-500">{t('report.hazard_title_label', 'Hazard Title:')}</span>
+              <span className="text-slate-900">{translateText(submittedComplaint.title)}</span>
             </div>
             <div className="flex items-center justify-between text-xs font-bold">
-              <span className="text-slate-500">Routed Department:</span>
-              <span className="text-blue-700">{submittedComplaint.assignedDepartment}</span>
+              <span className="text-slate-500">{t('report.routed_dept_label', 'Routed Department:')}</span>
+              <span className="text-blue-700">{translateDepartment(submittedComplaint.assignedDepartment)}</span>
             </div>
             <div className="flex items-center justify-between text-xs font-bold">
-              <span className="text-slate-500">Emergency Level:</span>
+              <span className="text-slate-500">{t('report.emergency_level_label', 'Emergency Level:')}</span>
               <span className={submittedComplaint.isEmergency ? 'text-red-600 font-extrabold' : 'text-slate-700'}>
-                {submittedComplaint.isEmergency ? '🚨 CRITICAL EMERGENCY' : submittedComplaint.severity}
+                {submittedComplaint.isEmergency ? t('severity.critical_emergency', '🚨 CRITICAL EMERGENCY') : translateSeverity(submittedComplaint.severity)}
               </span>
             </div>
+          </div>
+
+          {/* Send Complaint ID to Gmail & Share Card */}
+          <div className="max-w-md mx-auto">
+            <ShareComplaintCard complaint={submittedComplaint} />
           </div>
 
           {/* Action Buttons */}
@@ -807,18 +816,18 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md flex items-center space-x-2"
             >
               <FileText className="w-4 h-4" />
-              <span>Track Complaint Status Now</span>
+              <span>{t('report.track_now', 'Track Complaint Status Now')}</span>
             </button>
 
             <button
               onClick={() => {
                 navigator.clipboard.writeText(submittedComplaint.id);
-                alert(`Complaint ID ${submittedComplaint.id} copied to clipboard!`);
+                alert(`Complaint ID ${submittedComplaint.id} copied!`);
               }}
               className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-300 flex items-center space-x-1.5"
             >
               <Copy className="w-4 h-4" />
-              <span>Copy ID</span>
+              <span>{t('report.copy_id', 'Copy ID')}</span>
             </button>
 
             <button
@@ -829,7 +838,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               }}
               className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-300"
             >
-              Report Another Hazard
+              {t('report.report_another', 'Report Another Hazard')}
             </button>
           </div>
         </div>

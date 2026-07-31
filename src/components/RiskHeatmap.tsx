@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { Navigation, RefreshCw, MapPin } from 'lucide-react';
 import { Complaint } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface RiskHeatmapProps {
   complaints: Complaint[];
@@ -22,6 +23,7 @@ export const RiskHeatmap: React.FC<RiskHeatmapProps> = ({
   isLocating = false,
   onLocateMe,
 }) => {
+  const { t, translateSeverity, translateText } = useLanguage();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const heatmapLayerGroupRef = useRef<L.LayerGroup | null>(null);
@@ -74,9 +76,9 @@ export const RiskHeatmap: React.FC<RiskHeatmapProps> = ({
       userMarker.bindPopup(`
         <div class="p-1.5 font-sans">
           <div class="font-extrabold text-blue-400 text-xs flex items-center space-x-1 mb-0.5">
-            <span>📍 MY LIVE LOCATION</span>
+            <span>📍 ${t('map.active_center', 'MY LIVE LOCATION')}</span>
           </div>
-          <div class="text-[11px] text-slate-200 font-medium">${userAddress || 'GPS Position Detected'}</div>
+          <div class="text-[11px] text-slate-200 font-medium">${translateText(userAddress) || 'GPS Position Detected'}</div>
           <div class="text-[10px] text-slate-400 font-mono mt-1">${userCoords.lat.toFixed(5)}, ${userCoords.lng.toFixed(5)}</div>
         </div>
       `);
@@ -104,9 +106,9 @@ export const RiskHeatmap: React.FC<RiskHeatmapProps> = ({
       userMarkerRef.current.setPopupContent(`
         <div class="p-1.5 font-sans">
           <div class="font-extrabold text-blue-400 text-xs flex items-center space-x-1 mb-0.5">
-            <span>📍 MY LIVE LOCATION</span>
+            <span>📍 ${t('map.active_center', 'MY LIVE LOCATION')}</span>
           </div>
-          <div class="text-[11px] text-slate-200 font-medium">${userAddress || 'GPS Position Detected'}</div>
+          <div class="text-[11px] text-slate-200 font-medium">${translateText(userAddress) || 'GPS Position Detected'}</div>
           <div class="text-[10px] text-slate-400 font-mono mt-1">${userCoords.lat.toFixed(5)}, ${userCoords.lng.toFixed(5)}</div>
         </div>
       `);
@@ -164,9 +166,9 @@ export const RiskHeatmap: React.FC<RiskHeatmapProps> = ({
 
       const popupContent = `
         <div class="p-2 text-slate-900 font-sans">
-          <div class="font-extrabold text-sm mb-1">${c.title}</div>
-          <div class="text-xs text-slate-600 mb-1">Zone Risk Intensity: <span class="font-bold text-red-600">${c.severity}</span></div>
-          <div class="text-xs text-slate-500">${c.address}</div>
+          <div class="font-extrabold text-sm mb-1">${translateText(c.title)}</div>
+          <div class="text-xs text-slate-600 mb-1">${t('heatmap.zone_intensity', 'Zone Risk Intensity:')} <span class="font-bold text-red-600">${translateSeverity(c.severity)}</span></div>
+          <div class="text-xs text-slate-500">${translateText(c.address)}</div>
         </div>
       `;
 
@@ -191,11 +193,11 @@ export const RiskHeatmap: React.FC<RiskHeatmapProps> = ({
   };
 
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-slate-800 shadow-xl">
+    <div className="relative z-0 isolate rounded-2xl overflow-hidden border border-slate-800 shadow-xl">
       <div ref={mapContainerRef} style={{ height, width: '100%' }} />
 
       {/* Floating GPS Location Button */}
-      <div className="absolute top-4 left-4 z-[400] flex flex-col items-start space-y-2">
+      <div className="absolute top-4 left-4 z-10 flex flex-col items-start space-y-2">
         <button
           onClick={handleCenterOnUser}
           disabled={isLocating}
@@ -219,7 +221,7 @@ export const RiskHeatmap: React.FC<RiskHeatmapProps> = ({
       </div>
 
       {/* Heatmap Legend */}
-      <div className="absolute top-4 right-4 z-[400] bg-slate-900/90 backdrop-blur-md p-3.5 rounded-xl border border-slate-800 text-white text-xs space-y-2 shadow-xl max-w-xs">
+      <div className="absolute top-4 right-4 z-10 bg-slate-900/90 backdrop-blur-md p-3.5 rounded-xl border border-slate-800 text-white text-xs space-y-2 shadow-xl max-w-xs">
         <div className="font-bold uppercase tracking-wider text-[11px] text-slate-300">GIS Risk Heatmap Key</div>
         <div className="space-y-1.5">
           <div className="flex items-center justify-between space-x-4">

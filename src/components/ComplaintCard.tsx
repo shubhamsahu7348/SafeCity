@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../context/LanguageContext';
 import {
   MapPin,
   Clock,
@@ -25,32 +26,34 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
   onSelect,
   onUpvote,
 }) => {
+  const { t, translateCategory, translateText } = useLanguage();
+
   const getSeverityBadge = () => {
     if (complaint.isEmergency || complaint.severity === 'Critical') {
       return (
         <span className="px-2.5 py-1 text-xs font-black uppercase rounded-full bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-md flex items-center space-x-1 animate-pulse border border-rose-400/40">
           <AlertTriangle className="w-3.5 h-3.5" />
-          <span>Emergency</span>
+          <span>{t('severity.critical', 'Critical')}</span>
         </span>
       );
     }
     if (complaint.severity === 'High') {
       return (
         <span className="px-2.5 py-1 text-xs font-extrabold uppercase rounded-full bg-orange-500/15 text-orange-700 border border-orange-300">
-          High
+          {t('severity.high', 'High')}
         </span>
       );
     }
     if (complaint.severity === 'Medium') {
       return (
         <span className="px-2.5 py-1 text-xs font-bold uppercase rounded-full bg-amber-500/15 text-amber-800 border border-amber-300">
-          Medium
+          {t('severity.medium', 'Medium')}
         </span>
       );
     }
     return (
       <span className="px-2.5 py-1 text-xs font-bold uppercase rounded-full bg-emerald-500/15 text-emerald-800 border border-emerald-300">
-        Low
+        {t('severity.low', 'Low')}
       </span>
     );
   };
@@ -61,49 +64,49 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
         return (
           <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-900/80 backdrop-blur-md text-slate-200 border border-slate-700/80 inline-flex items-center space-x-1 shadow-sm whitespace-nowrap">
             <FileText className="w-3 h-3 text-cyan-300 shrink-0" />
-            <span>Submitted</span>
+            <span>{t('status.submitted', 'Submitted')}</span>
           </span>
         );
       case 'Verified':
         return (
           <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-indigo-500/20 text-indigo-300 backdrop-blur-md border border-indigo-400/40 inline-flex items-center space-x-1 shadow-sm whitespace-nowrap">
             <ShieldCheck className="w-3 h-3 text-cyan-300 shrink-0" />
-            <span>Verified</span>
+            <span>{t('status.verified', 'Verified')}</span>
           </span>
         );
       case 'Assigned':
         return (
           <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-violet-500/20 text-violet-300 backdrop-blur-md border border-violet-400/40 inline-flex items-center space-x-1 shadow-sm whitespace-nowrap">
             <HardHat className="w-3 h-3 text-violet-300 shrink-0" />
-            <span>Assigned</span>
+            <span>{t('status.assigned', 'Assigned')}</span>
           </span>
         );
       case 'In Progress':
         return (
           <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-500/25 text-amber-200 backdrop-blur-md border border-amber-400/40 inline-flex items-center space-x-1 animate-pulse shadow-sm whitespace-nowrap">
             <Clock className="w-3 h-3 text-amber-300 shrink-0" />
-            <span>In Progress</span>
+            <span>{t('status.in_progress', 'In Progress')}</span>
           </span>
         );
       case 'Resolved':
         return (
           <span className="px-2.5 py-1 text-xs font-black rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md inline-flex items-center space-x-1 border border-emerald-400/40 whitespace-nowrap">
             <CheckCircle2 className="w-3 h-3 shrink-0" />
-            <span>Resolved</span>
+            <span>{t('status.resolved', 'Resolved')}</span>
           </span>
         );
       case 'Work Submitted':
         return (
           <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-purple-500/25 text-purple-200 backdrop-blur-md border border-purple-400/40 inline-flex items-center space-x-1 shadow-sm whitespace-nowrap">
             <Sparkles className="w-3 h-3 text-purple-300 shrink-0" />
-            <span>Work Submitted</span>
+            <span>{t('status.work_submitted', 'Work Submitted')}</span>
           </span>
         );
       case 'Rejected':
         return (
           <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-500/25 text-rose-200 backdrop-blur-md border border-rose-400/40 inline-flex items-center space-x-1 shadow-sm whitespace-nowrap">
             <XCircle className="w-3 h-3 text-rose-300 shrink-0" />
-            <span>Rejected</span>
+            <span>{t('status.rejected', 'Rejected')}</span>
           </span>
         );
       default:
@@ -128,7 +131,7 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
           <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 items-center">
             {getSeverityBadge()}
             <span className="px-2.5 py-1 text-xs font-bold bg-slate-950/80 backdrop-blur-md text-cyan-200 border border-slate-700/60 rounded-full shadow-sm">
-              {complaint.category}
+              {translateCategory(complaint.category)}
             </span>
           </div>
 
@@ -153,16 +156,16 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
             onClick={() => onSelect(complaint)}
             className="font-black text-slate-900 text-base group-hover:text-indigo-600 transition-colors line-clamp-2 cursor-pointer leading-snug"
           >
-            {complaint.title}
+            {translateText(complaint.title)}
           </h3>
 
           <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed font-medium">
-            {complaint.description}
+            {translateText(complaint.description)}
           </p>
 
           <div className="pt-2 flex items-center text-xs text-slate-500 font-semibold">
             <MapPin className="w-3.5 h-3.5 text-indigo-500 mr-1 flex-shrink-0" />
-            <span className="truncate">{complaint.address}</span>
+            <span className="truncate">{translateText(complaint.address)}</span>
           </div>
         </div>
       </div>
@@ -177,14 +180,14 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
           className="flex items-center space-x-1 text-xs font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-200/80 transition-all shadow-sm active:scale-95"
         >
           <ThumbsUp className="w-3.5 h-3.5 text-indigo-500" />
-          <span>{complaint.upvotes} Citizens</span>
+          <span>{complaint.upvotes} {t('card.citizens', 'Citizens')}</span>
         </button>
 
         <button
           onClick={() => onSelect(complaint)}
           className="flex items-center space-x-1 text-xs font-extrabold text-indigo-600 hover:text-indigo-700 hover:translate-x-0.5 transition-transform"
         >
-          <span>Track Status</span>
+          <span>{t('card.track_status', 'Track Status')}</span>
           <ChevronRight className="w-4 h-4 text-indigo-600" />
         </button>
       </div>

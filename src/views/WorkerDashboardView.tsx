@@ -18,6 +18,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { Complaint, Worker, AIVerificationResponse, ComplaintStatus } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface WorkerDashboardViewProps {
   complaints: Complaint[];
@@ -32,6 +33,7 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
   onUpdateComplaint,
   onGoHome,
 }) => {
+  const { t, translateCategory, translateDepartment, translateStatus, translateSeverity, translateText } = useLanguage();
   // Current active worker (Marcus Vance by default for field demo)
   const currentWorker = workers[0];
 
@@ -359,11 +361,11 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
                   </span>
                 </div>
 
-                <h3 className="font-bold text-sm text-slate-900 line-clamp-1">{task.title}</h3>
+                <h3 className="font-bold text-sm text-slate-900 line-clamp-1">{translateText(task.title)}</h3>
 
                 <div className="flex items-center text-xs text-slate-500">
                   <MapPin className="w-3.5 h-3.5 text-blue-500 mr-1 flex-shrink-0" />
-                  <span className="truncate">{task.address}</span>
+                  <span className="truncate">{translateText(task.address)}</span>
                 </div>
               </div>
             ))}
@@ -379,7 +381,7 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
                   <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 font-mono font-bold text-xs rounded-md">
                     {selectedTask.id}
                   </span>
-                  <h2 className="text-xl font-extrabold text-slate-900 mt-1">{selectedTask.title}</h2>
+                  <h2 className="text-xl font-extrabold text-slate-900 mt-1">{translateText(selectedTask.title)}</h2>
                 </div>
                 <span className="px-3 py-1 bg-amber-50 text-amber-900 border border-amber-200 font-extrabold text-xs rounded-full inline-flex items-center space-x-1.5 shadow-sm">
                   {selectedTask.status === 'In Progress' && <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0 animate-pulse" />}
@@ -387,7 +389,7 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
                   {selectedTask.status === 'Assigned' && <HardHat className="w-3.5 h-3.5 text-violet-600 shrink-0" />}
                   {selectedTask.status === 'Work Submitted' && <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />}
                   {selectedTask.status === 'Resolved' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
-                  <span>Status: {selectedTask.status}</span>
+                  <span>{t('modal.status', 'Status:')} {translateStatus(selectedTask.status)}</span>
                 </span>
               </div>
 

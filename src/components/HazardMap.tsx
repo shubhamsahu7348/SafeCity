@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { LocateFixed, RefreshCw, Navigation } from 'lucide-react';
 import { Complaint, SeverityLevel } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface HazardMapProps {
   complaints: Complaint[];
@@ -26,6 +27,7 @@ export const HazardMap: React.FC<HazardMapProps> = ({
   onLocateMe,
   height = '500px',
 }) => {
+  const { t, translateCategory, translateSeverity, translateText } = useLanguage();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersGroupRef = useRef<L.LayerGroup | null>(null);
@@ -121,9 +123,9 @@ export const HazardMap: React.FC<HazardMapProps> = ({
       userMarker.bindPopup(`
         <div class="p-1.5 font-sans">
           <div class="font-extrabold text-blue-700 text-xs flex items-center space-x-1 mb-0.5">
-            <span>📍 MY LIVE LOCATION</span>
+            <span>📍 ${t('map.active_center', 'MY LIVE LOCATION')}</span>
           </div>
-          <div class="text-[11px] text-slate-700 font-medium">${userAddress || 'GPS Position Detected'}</div>
+          <div class="text-[11px] text-slate-700 font-medium">${translateText(userAddress) || 'GPS Position Detected'}</div>
           <div class="text-[10px] text-slate-400 font-mono mt-1">${userCoords.lat.toFixed(5)}, ${userCoords.lng.toFixed(5)}</div>
         </div>
       `);
@@ -151,9 +153,9 @@ export const HazardMap: React.FC<HazardMapProps> = ({
       userMarkerRef.current.setPopupContent(`
         <div class="p-1.5 font-sans">
           <div class="font-extrabold text-blue-700 text-xs flex items-center space-x-1 mb-0.5">
-            <span>📍 MY LIVE LOCATION</span>
+            <span>📍 ${t('map.active_center', 'MY LIVE LOCATION')}</span>
           </div>
-          <div class="text-[11px] text-slate-700 font-medium">${userAddress || 'GPS Position Detected'}</div>
+          <div class="text-[11px] text-slate-700 font-medium">${translateText(userAddress) || 'GPS Position Detected'}</div>
           <div class="text-[10px] text-slate-400 font-mono mt-1">${userCoords.lat.toFixed(5)}, ${userCoords.lng.toFixed(5)}</div>
         </div>
       `);
@@ -207,18 +209,18 @@ export const HazardMap: React.FC<HazardMapProps> = ({
           <span class="px-2 py-0.5 text-[10px] font-extrabold uppercase rounded ${
             c.isEmergency ? 'bg-red-600 text-white animate-pulse' : 'bg-slate-100 text-slate-800'
           }">
-            ${c.isEmergency ? '🚨 EMERGENCY' : c.severity}
+            ${c.isEmergency ? `🚨 ${t('map.emergency', 'EMERGENCY')}` : translateSeverity(c.severity)}
           </span>
           <span class="px-2 py-0.5 text-[10px] font-semibold bg-blue-50 text-blue-700 rounded border border-blue-200">
-            ${c.category}
+            ${translateCategory(c.category)}
           </span>
         </div>
-        <h4 class="font-bold text-sm text-slate-900 leading-snug mb-1">${c.title}</h4>
-        <p class="text-xs text-slate-600 mb-2 truncate">${c.address}</p>
+        <h4 class="font-bold text-sm text-slate-900 leading-snug mb-1">${translateText(c.title)}</h4>
+        <p class="text-xs text-slate-600 mb-2 truncate">${translateText(c.address)}</p>
         <div class="flex items-center justify-between pt-1 border-t border-slate-100">
           <span class="text-[10px] font-medium text-slate-500">ID: ${c.id}</span>
           <button id="view-detail-${c.id}" class="px-2.5 py-1 bg-blue-600 text-white font-semibold text-xs rounded hover:bg-blue-700 transition-colors flex items-center space-x-1">
-            <span>🔍 View Details</span>
+            <span>🔍 ${t('map.full_details', 'View Details')}</span>
           </button>
         </div>
       `;
@@ -274,11 +276,11 @@ export const HazardMap: React.FC<HazardMapProps> = ({
   };
 
   return (
-    <div className="relative rounded-3xl overflow-hidden border border-slate-200 shadow-md">
+    <div className="relative z-0 isolate rounded-3xl overflow-hidden border border-slate-200 shadow-md">
       <div ref={mapContainerRef} style={{ height, width: '100%' }} />
 
       {/* Floating GPS Control Overlay */}
-      <div className="absolute top-4 right-4 z-[400] flex flex-col items-end space-y-2">
+      <div className="absolute top-4 right-4 z-10 flex flex-col items-end space-y-2">
         <button
           onClick={handleCenterOnUser}
           disabled={isLocating}
@@ -302,7 +304,7 @@ export const HazardMap: React.FC<HazardMapProps> = ({
       </div>
 
       {/* Map Legend Overlay */}
-      <div className="absolute bottom-4 left-4 z-[400] bg-white/95 backdrop-blur-md p-3 rounded-xl shadow-lg border border-slate-200/80 text-xs flex flex-wrap items-center gap-3">
+      <div className="absolute bottom-4 left-4 z-10 bg-white/95 backdrop-blur-md p-3 rounded-xl shadow-lg border border-slate-200/80 text-xs flex flex-wrap items-center gap-3">
         <span className="font-bold text-slate-800 text-[11px] uppercase tracking-wider">Severity:</span>
         <div className="flex items-center space-x-1">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>

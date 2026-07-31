@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Layers, Flame, ShieldAlert, Navigation, RefreshCw, Search, MapPin } from 'lucide-react';
 import { Complaint } from '../types';
 import { RiskHeatmap } from '../components/RiskHeatmap';
+import { useLanguage } from '../context/LanguageContext';
 
 interface PublicRiskMapViewProps {
   complaints: Complaint[];
 }
 
 export const PublicRiskMapView: React.FC<PublicRiskMapViewProps> = ({ complaints }) => {
+  const { t, translateCategory, translateText } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   // Live Geolocation State
@@ -147,10 +149,10 @@ export const PublicRiskMapView: React.FC<PublicRiskMapViewProps> = ({ complaints
           <div>
             <div className="flex items-center space-x-2">
               <Layers className="w-6 h-6 text-amber-400" />
-              <h1 className="text-2xl font-extrabold text-white">Public Risk Intelligence GIS Heatmap</h1>
+              <h1 className="text-2xl font-extrabold text-white">{t('heatmap.title', 'Public Risk & Hazard Heatmap')}</h1>
             </div>
             <p className="text-xs text-slate-300 mt-1">
-              Real-time hazard density, severity intensity weights, and live GPS user positioning
+              {t('heatmap.subtitle', 'GIS density analysis & high-risk emergency zones')}
             </p>
           </div>
 
@@ -165,7 +167,7 @@ export const PublicRiskMapView: React.FC<PublicRiskMapViewProps> = ({ complaints
               ) : (
                 <Navigation className="w-4 h-4 text-blue-200 animate-bounce" />
               )}
-              <span>{isLocating ? 'Acquiring GPS...' : 'Detect My Live Location'}</span>
+              <span>{isLocating ? t('map.acquiring_gps', 'Acquiring GPS...') : t('map.detect_location', 'Detect My Live Location')}</span>
             </button>
 
             <select
@@ -173,13 +175,13 @@ export const PublicRiskMapView: React.FC<PublicRiskMapViewProps> = ({ complaints
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="px-4 py-2.5 bg-slate-950 border border-slate-800 text-white rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="All">All Hazard Categories</option>
-              <option value="Road Hazard">Road Hazards</option>
-              <option value="Electrical Hazard">Electrical Hazards</option>
-              <option value="Water Hazard">Water Hazards</option>
-              <option value="Sanitation Hazard">Sanitation Hazards</option>
-              <option value="Environmental Hazard">Environmental Hazards</option>
-              <option value="Public Safety Hazard">Public Safety</option>
+              <option value="All">{t('map.all_categories', 'All Hazard Categories')}</option>
+              <option value="Road Hazard">{t('category.road', 'Road Hazards')}</option>
+              <option value="Electrical Hazard">{t('category.electrical', 'Electrical Hazards')}</option>
+              <option value="Water Hazard">{t('category.water', 'Water Hazards')}</option>
+              <option value="Sanitation Hazard">{t('category.sanitation', 'Sanitation Hazards')}</option>
+              <option value="Environmental Hazard">{t('category.environmental', 'Environmental Hazards')}</option>
+              <option value="Public Safety Hazard">{t('category.safety', 'Public Safety')}</option>
             </select>
           </div>
         </div>
@@ -190,14 +192,14 @@ export const PublicRiskMapView: React.FC<PublicRiskMapViewProps> = ({ complaints
             <MapPin className="w-5 h-5 text-blue-400 flex-shrink-0" />
             <div className="min-w-0 flex-1">
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                Active GIS Map Center
+                {t('map.active_center', 'Active GIS Map Center')}
               </span>
               <p className="text-xs font-bold text-white truncate">
-                {userAddress}
+                📍 {translateText(userAddress)}
               </p>
               {locationStatusMessage && (
                 <p className="text-[11px] text-blue-400 font-semibold truncate mt-0.5">
-                  {locationStatusMessage}
+                  {translateText(locationStatusMessage)}
                 </p>
               )}
             </div>
@@ -210,7 +212,7 @@ export const PublicRiskMapView: React.FC<PublicRiskMapViewProps> = ({ complaints
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search location (e.g. Belapur East, Mumbai, San Francisco)..."
+                placeholder={t('map.search_placeholder', 'Search location (e.g. Mumbai, Pune)...')}
                 className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -219,7 +221,7 @@ export const PublicRiskMapView: React.FC<PublicRiskMapViewProps> = ({ complaints
               disabled={isSearching}
               className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center space-x-1"
             >
-              {isSearching ? <RefreshCw className="w-4 h-4 animate-spin" /> : <span>Go</span>}
+              {isSearching ? <RefreshCw className="w-4 h-4 animate-spin" /> : <span>{t('map.search_go', 'Go')}</span>}
             </button>
           </form>
         </div>
@@ -229,24 +231,24 @@ export const PublicRiskMapView: React.FC<PublicRiskMapViewProps> = ({ complaints
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-red-950/20 p-4 rounded-2xl border border-red-500/30 flex items-center justify-between">
           <div>
-            <span className="text-xs font-extrabold text-red-600 uppercase tracking-wider block">Red Hotspot Zones</span>
-            <span className="text-2xl font-black text-red-700">{criticalZoneCount} Zones</span>
+            <span className="text-xs font-extrabold text-red-600 uppercase tracking-wider block">{t('heatmap.high_density', 'Red Hotspot Zones')}</span>
+            <span className="text-2xl font-black text-red-700">{criticalZoneCount} {t('heatmap.zones', 'Zones')}</span>
           </div>
           <Flame className="w-8 h-8 text-red-600 animate-bounce" />
         </div>
 
         <div className="bg-orange-950/20 p-4 rounded-2xl border border-orange-500/30 flex items-center justify-between">
           <div>
-            <span className="text-xs font-extrabold text-orange-600 uppercase tracking-wider block">Orange High Risk</span>
-            <span className="text-2xl font-black text-orange-700">{highZoneCount} Zones</span>
+            <span className="text-xs font-extrabold text-orange-600 uppercase tracking-wider block">{t('heatmap.medium_density', 'Orange High Risk')}</span>
+            <span className="text-2xl font-black text-orange-700">{highZoneCount} {t('heatmap.zones', 'Zones')}</span>
           </div>
           <ShieldAlert className="w-8 h-8 text-orange-600" />
         </div>
 
         <div className="bg-emerald-950/20 p-4 rounded-2xl border border-emerald-500/30 flex items-center justify-between">
           <div>
-            <span className="text-xs font-extrabold text-emerald-600 uppercase tracking-wider block">Green Clear Zones</span>
-            <span className="text-2xl font-black text-emerald-700">84.2% City Area</span>
+            <span className="text-xs font-extrabold text-emerald-600 uppercase tracking-wider block">{t('heatmap.low_density', 'Green Clear Zones')}</span>
+            <span className="text-2xl font-black text-emerald-700">84.2% {t('heatmap.city_area', 'City Area')}</span>
           </div>
           <Layers className="w-8 h-8 text-emerald-600" />
         </div>

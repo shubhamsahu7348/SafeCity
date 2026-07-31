@@ -37,6 +37,18 @@ export const INITIAL_USERS: UserAccount[] = [
     createdAt: new Date().toISOString(),
   },
   {
+    id: 'U-103',
+    name: 'Inspector Vikram Sharma',
+    username: 'officer.vikram',
+    password: 'officer123',
+    role: 'officer',
+    department: 'Traffic Police Department',
+    email: 'v.sharma@trafficpolice.gov',
+    phone: '+1 (555) 033-6644',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
+    createdAt: new Date().toISOString(),
+  },
+  {
     id: 'U-W101',
     name: 'Marcus Vance',
     username: 'marcus.vance',
@@ -99,6 +111,19 @@ export const INITIAL_USERS: UserAccount[] = [
     email: 'c.gomez@safecity.gov',
     phone: '+1 (555) 044-6622',
     avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'U-W106',
+    name: 'Rohan Patil',
+    username: 'rohan.patil',
+    password: 'worker123',
+    role: 'worker',
+    department: 'Traffic Police Department',
+    workerId: 'W-106',
+    email: 'r.patil@trafficpolice.gov',
+    phone: '+1 (555) 055-7788',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
     createdAt: new Date().toISOString(),
   }
 ];
@@ -445,6 +470,90 @@ export const INITIAL_COMPLAINTS: Complaint[] = [
     ],
     upvotes: 8,
     estimatedResolutionHours: 24
+  },
+  {
+    id: 'SC-2026-9010',
+    title: 'Red Light Violation & Over-speeding at Central Avenue Junction',
+    category: 'Traffic Violation',
+    subCategory: 'Signal Jumping',
+    severity: 'High',
+    isEmergency: false,
+    description: 'Black sedan broke red signal light at high speed during peak school hour, nearly hitting pedestrian crosswalk.',
+    photoUrl: 'https://images.unsplash.com/photo-1508974239320-0a029497e820?auto=format&fit=crop&w=800&q=80',
+    latitude: 37.776200,
+    longitude: -122.421100,
+    address: 'Central Ave & 7th St, San Francisco, CA',
+    reportedAt: new Date(Date.now() - 3600000 * 3).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 1).toISOString(),
+    status: 'Verified',
+    assignedDepartment: 'Traffic Police Department',
+    assignedWorkerId: 'W-106',
+    assignedWorkerName: 'Rohan Patil (Traffic Patrol)',
+    verifiedByOfficer: 'Inspector Vikram Sharma',
+    verificationNotes: 'AI license plate camera identified vehicle plate MH-12-TR-8899. Official challan issued.',
+    vehiclePlateNumber: 'MH-12-TR-8899',
+    violationType: 'Red Light Signal Jumping & Reckless Speeding',
+    fineAmount: 1500,
+    fineStatus: 'Issued',
+    challanNumber: 'CH-2026-7711',
+    challanIssuedAt: new Date(Date.now() - 3600000 * 1).toISOString(),
+    licensePlateDetectedByAI: true,
+    aiDetectedPlateNumber: 'MH-12-TR-8899',
+    timeline: [
+      {
+        id: 'tl-tr1',
+        status: 'Submitted',
+        timestamp: new Date(Date.now() - 3600000 * 3).toISOString(),
+        actor: 'Citizen Patrol',
+        actorRole: 'Citizen',
+        note: 'Traffic violation reported with photo. AI automatic license plate scanner activated.'
+      },
+      {
+        id: 'tl-tr2',
+        status: 'Verified',
+        timestamp: new Date(Date.now() - 3600000 * 1).toISOString(),
+        actor: 'Inspector Vikram Sharma',
+        actorRole: 'Traffic Police Officer',
+        note: 'Violation confirmed. Official Challan CH-2026-7711 issued for $1,500 fine.'
+      }
+    ],
+    upvotes: 35,
+    estimatedResolutionHours: 1
+  },
+  {
+    id: 'SC-2026-9015',
+    title: 'Dangerous Triple Riding Without Helmet on Express Highway',
+    category: 'Traffic Violation',
+    subCategory: 'No Helmet / Dangerous Riding',
+    severity: 'Medium',
+    isEmergency: false,
+    description: 'Motorcycle carrying 3 riders without helmets weaving dangerously through traffic lanes.',
+    photoUrl: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
+    latitude: 37.781100,
+    longitude: -122.412200,
+    address: 'Highway 101 Northbound, SF',
+    reportedAt: new Date(Date.now() - 3600000 * 0.5).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 0.5).toISOString(),
+    status: 'Submitted',
+    assignedDepartment: 'Traffic Police Department',
+    vehiclePlateNumber: 'MH-14-AB-4321',
+    violationType: 'No Helmet & Triple Riding',
+    fineAmount: 1000,
+    fineStatus: 'Pending',
+    licensePlateDetectedByAI: true,
+    aiDetectedPlateNumber: 'MH-14-AB-4321',
+    timeline: [
+      {
+        id: 'tl-tr3',
+        status: 'Submitted',
+        timestamp: new Date(Date.now() - 3600000 * 0.5).toISOString(),
+        actor: 'Citizen Anonymous',
+        actorRole: 'Citizen',
+        note: 'Traffic violation logged. Plate MH-14-AB-4321 detected by AI vision.'
+      }
+    ],
+    upvotes: 18,
+    estimatedResolutionHours: 2
   }
 ];
 
@@ -523,10 +632,34 @@ export const INITIAL_WORKERS: Worker[] = [
     rating: 4.7,
     status: 'Available',
     currentLocation: { latitude: 37.765432, longitude: -122.445678 }
+  },
+  {
+    id: 'W-106',
+    name: 'Rohan Patil',
+    department: 'Traffic Police Department',
+    phone: '+1 (555) 055-7788',
+    email: 'r.patil@trafficpolice.gov',
+    username: 'rohan.patil',
+    password: 'worker123',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    activeTasksCount: 1,
+    completedTasksCount: 165,
+    rating: 4.9,
+    status: 'Available',
+    currentLocation: { latitude: 37.776200, longitude: -122.421100 }
   }
 ];
 
 export const INITIAL_DEPARTMENT_METRICS: DepartmentMetric[] = [
+  {
+    department: 'Traffic Police Department',
+    totalComplaints: 284,
+    resolvedComplaints: 260,
+    pendingComplaints: 24,
+    emergencyCount: 1,
+    avgResolutionTimeHours: 1.5,
+    satisfactionRate: 95
+  },
   {
     department: 'Road Department',
     totalComplaints: 342,

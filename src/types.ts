@@ -4,7 +4,8 @@ export type HazardCategory =
   | 'Water Hazard'
   | 'Sanitation Hazard'
   | 'Environmental Hazard'
-  | 'Public Safety Hazard';
+  | 'Public Safety Hazard'
+  | 'Traffic Violation';
 
 export type SeverityLevel = 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -23,7 +24,8 @@ export type Department =
   | 'Water & Sewerage'
   | 'Sanitation & Waste'
   | 'Environmental Protection'
-  | 'Public Safety & Infrastructure';
+  | 'Public Safety & Infrastructure'
+  | 'Traffic Police Department';
 
 export type UserRole = 'citizen' | 'officer' | 'worker' | 'admin';
 
@@ -94,6 +96,15 @@ export interface Complaint {
   duplicateOfId?: string;
   upvotes: number;
   estimatedResolutionHours?: number;
+  // Traffic Police / Violation specific fields
+  vehiclePlateNumber?: string;
+  violationType?: string;
+  fineAmount?: number;
+  fineStatus?: 'Pending' | 'Issued' | 'Paid' | 'Waived';
+  challanNumber?: string;
+  challanIssuedAt?: string;
+  licensePlateDetectedByAI?: boolean;
+  aiDetectedPlateNumber?: string;
 }
 
 export interface Worker {
@@ -142,6 +153,9 @@ export interface AIAnalysisResponse {
   aiSummary: string;
   safetyAdvice: string;
   estimatedFixHours: number;
+  detectedVehiclePlateNumber?: string;
+  violationType?: string;
+  suggestedFineAmount?: number;
 }
 
 export interface AIDuplicateCheckResponse {

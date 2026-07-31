@@ -21,6 +21,7 @@ import {
 import { Complaint, Worker, Department, ComplaintStatus, TimelineEvent } from '../types';
 import { ComplaintDetailModal } from '../components/ComplaintDetailModal';
 import { UserAccountManager } from '../components/UserAccountManager';
+import { useLanguage } from '../context/LanguageContext';
 
 interface DepartmentDashboardViewProps {
   complaints: Complaint[];
@@ -37,6 +38,7 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
   onUpvoteComplaint,
   onGoHome,
 }) => {
+  const { t, translateCategory, translateDepartment, translateStatus, translateSeverity, translateText } = useLanguage();
   const [selectedDept, setSelectedDept] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
@@ -277,8 +279,8 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
                 <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="p-4 font-mono font-bold text-blue-700">{c.id}</td>
                   <td className="p-4">
-                    <div className="font-bold text-slate-900 text-sm">{c.title}</div>
-                    <div className="text-slate-500 text-[11px] truncate max-w-xs">{c.address}</div>
+                    <div className="font-bold text-slate-900 text-sm">{translateText(c.title)}</div>
+                    <div className="text-slate-500 text-[11px] truncate max-w-xs">{translateText(c.address)}</div>
                   </td>
                   <td className="p-4">
                     {c.isEmergency ? (

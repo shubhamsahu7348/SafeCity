@@ -21,6 +21,8 @@ import {
   Ban,
 } from 'lucide-react';
 import { Complaint, ComplaintStatus } from '../types';
+import { useLanguage } from '../context/LanguageContext';
+import { ShareComplaintCard } from './ShareComplaintCard';
 
 interface ComplaintDetailModalProps {
   complaint: Complaint | null;
@@ -33,6 +35,8 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
   onClose,
   onUpvote,
 }) => {
+  const { t, translateCategory, translateDepartment, translateStatus, translateSeverity, translateText } = useLanguage();
+
   if (!complaint) return null;
 
   const STATUS_STEPS: ComplaintStatus[] = [
@@ -62,7 +66,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
             {complaint.isEmergency && (
               <span className="px-3 py-1 bg-gradient-to-r from-rose-600 to-red-600 text-white font-black text-xs uppercase tracking-wider rounded-lg flex items-center space-x-1 animate-pulse border border-rose-400/40 shadow-sm">
                 <AlertTriangle className="w-3.5 h-3.5" />
-                <span>Emergency Hazard</span>
+                <span>{t('map.emergency', 'Emergency Hazard')}</span>
               </span>
             )}
           </div>
@@ -86,7 +90,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                 </div>
                 <div>
                   <h3 className="font-black text-base text-rose-950">
-                    Hazard Complaint Rejected (Marked Fake / Invalid)
+                    {t('modal.rejected_title', 'Hazard Complaint Rejected (Marked Fake / Invalid)')}
                   </h3>
                   <p className="text-xs text-rose-800 font-medium mt-0.5">
                     Official Notice for Complaint ID <code className="font-mono font-bold">{complaint.id}</code>
@@ -97,14 +101,14 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
               <div className="p-3.5 bg-white/90 rounded-2xl border border-rose-200 text-xs text-slate-800 space-y-1">
                 <div className="font-bold text-rose-900 flex items-center space-x-1">
                   <XCircle className="w-4 h-4 text-rose-600" />
-                  <span>Officer Verification Verdict:</span>
+                  <span>{t('track.officer_verdict', 'Officer Verification Verdict:')}</span>
                 </div>
                 <p className="text-slate-700 font-medium pl-5 leading-relaxed">
-                  {complaint.verificationNotes || 'This complaint was reviewed by municipal officers and determined to be fake, unverified, or out of municipal jurisdiction.'}
+                  {complaint.verificationNotes ? translateText(complaint.verificationNotes) : t('track.rejected_default_note', 'This complaint was reviewed by municipal officers and determined to be fake, unverified, or out of municipal jurisdiction.')}
                 </p>
                 {complaint.verifiedByOfficer && (
                   <p className="text-[11px] text-slate-500 pl-5 pt-1">
-                    Reviewed by: <strong>{complaint.verifiedByOfficer}</strong>
+                    {t('modal.verified_by', 'Verified By:')} <strong>{complaint.verifiedByOfficer}</strong>
                   </p>
                 )}
               </div>
@@ -116,14 +120,14 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
             <div className="bg-emerald-50 border-2 border-emerald-300 p-4 rounded-3xl space-y-1.5 shadow-sm">
               <div className="flex items-center space-x-2 text-emerald-900 font-extrabold text-sm">
                 <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                <span>Officer Re-Verification Verdict: SATISFACTORY (APPROVED)</span>
+                <span>{t('modal.verdict_satisfactory', 'Officer Re-Verification Verdict: SATISFACTORY (APPROVED)')}</span>
               </div>
               <p className="text-xs text-emerald-950 font-medium">
-                {complaint.officerReviewNotes || 'Officer inspected maintenance repair work and confirmed resolution meets city standards.'}
+                {complaint.officerReviewNotes ? translateText(complaint.officerReviewNotes) : t('modal.satisfactory_default', 'Officer inspected maintenance repair work and confirmed resolution meets city standards.')}
               </p>
               {complaint.verifiedByOfficer && (
                 <p className="text-[11px] text-emerald-800 font-semibold pt-0.5">
-                  Verified By: <strong>{complaint.verifiedByOfficer}</strong>
+                  {t('modal.verified_by', 'Verified By:')} <strong>{complaint.verifiedByOfficer}</strong>
                 </p>
               )}
             </div>
@@ -134,14 +138,14 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
             <div className="bg-rose-50 border-2 border-rose-300 p-4 rounded-3xl space-y-1.5 shadow-sm">
               <div className="flex items-center space-x-2 text-rose-900 font-extrabold text-sm">
                 <AlertTriangle className="w-5 h-5 text-rose-600" />
-                <span>Officer Re-Verification Verdict: UNSATISFACTORY (REWORK REQUIRED)</span>
+                <span>{t('modal.verdict_unsatisfactory', 'Officer Re-Verification Verdict: UNSATISFACTORY (REWORK REQUIRED)')}</span>
               </div>
               <p className="text-xs text-rose-950 font-medium">
-                {complaint.reworkReason || complaint.officerReviewNotes || 'Officer found maintenance repair incomplete or defective. Work has been reassigned to technician for rework.'}
+                {translateText(complaint.reworkReason || complaint.officerReviewNotes || 'Officer found maintenance repair incomplete or defective. Work has been reassigned to technician for rework.')}
               </p>
               {complaint.assignedWorkerName && (
                 <p className="text-[11px] text-rose-800 font-semibold pt-0.5">
-                  Reassigned Technician for Rework: <strong>{complaint.assignedWorkerName}</strong>
+                  {t('modal.reassigned_tech', 'Reassigned Technician for Rework:')} <strong>{complaint.assignedWorkerName}</strong>
                 </p>
               )}
             </div>
@@ -151,26 +155,26 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 rounded-md">
-                {complaint.category}
+                {translateCategory(complaint.category)}
               </span>
               <span className="px-2.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-700 rounded-md">
-                {complaint.subCategory}
+                {translateText(complaint.subCategory)}
               </span>
               <span className="px-2.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded-md">
-                Severity: {complaint.severity}
+                {t('modal.severity', 'Severity:')} {translateSeverity(complaint.severity)}
               </span>
             </div>
             <h2 className="text-xl font-extrabold text-slate-900 leading-snug">
-              {complaint.title}
+              {translateText(complaint.title)}
             </h2>
             <div className="mt-2 flex flex-wrap items-center text-xs text-slate-500 gap-4">
               <span className="flex items-center">
                 <MapPin className="w-3.5 h-3.5 text-blue-500 mr-1" />
-                {complaint.address}
+                {translateText(complaint.address)}
               </span>
               <span className="flex items-center">
                 <Calendar className="w-3.5 h-3.5 text-slate-400 mr-1" />
-                Reported {new Date(complaint.reportedAt).toLocaleString()}
+                {t('modal.reported_at', 'Reported')} {new Date(complaint.reportedAt).toLocaleString()}
               </span>
             </div>
           </div>
@@ -178,7 +182,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
           {/* Visual Step Progress Timeline */}
           <div className="bg-gradient-to-br from-indigo-50/50 to-slate-50 p-5 rounded-2xl border border-indigo-100">
             <h4 className="text-xs font-black uppercase tracking-wider text-indigo-900 mb-4">
-              Resolution Progress Tracking
+              {t('modal.resolution_tracking', 'Resolution Progress Tracking')}
             </h4>
             <div className="relative flex items-center justify-between">
               {/* Connecting Line */}
@@ -221,7 +225,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                           : 'text-slate-400'
                       }`}
                     >
-                      {step}
+                      {translateStatus(step)}
                     </span>
                   </div>
                 );
@@ -234,10 +238,10 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
             <div className="space-y-3">
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                  Citizen Description
+                  {t('modal.citizen_desc', 'Citizen Description')}
                 </h4>
                 <p className="text-sm text-slate-700 leading-relaxed">
-                  {complaint.description}
+                  {translateText(complaint.description)}
                 </p>
               </div>
 
@@ -245,15 +249,15 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
               <div className="bg-blue-50/60 p-4 rounded-2xl border border-blue-100 space-y-2">
                 <div className="flex items-center space-x-2 text-xs font-bold text-blue-900">
                   <Building2 className="w-4 h-4 text-blue-600" />
-                  <span>Assigned Department:</span>
+                  <span>{t('modal.department', 'Assigned Department:')}</span>
                   <span className="text-blue-700 font-extrabold">
-                    {complaint.assignedDepartment}
+                    {translateDepartment(complaint.assignedDepartment)}
                   </span>
                 </div>
                 {complaint.assignedWorkerName && (
                   <div className="flex items-center space-x-2 text-xs text-slate-700">
                     <HardHat className="w-4 h-4 text-amber-600" />
-                    <span>Dispatched Worker:</span>
+                    <span>{t('modal.dispatched_worker', 'Dispatched Worker:')}</span>
                     <span className="font-semibold">{complaint.assignedWorkerName}</span>
                   </div>
                 )}
@@ -267,7 +271,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center space-x-1.5">
                     <Camera className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Reported Hazard Photos ({complaint.photos?.length || 1})</span>
+                    <span>{t('modal.photos_title', 'Reported Hazard Photos')} ({complaint.photos?.length || 1})</span>
                   </h4>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -294,7 +298,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                 <div className="space-y-2 pt-2 border-t border-slate-200">
                   <h4 className="text-xs font-bold text-cyan-800 uppercase tracking-wider flex items-center space-x-1.5">
                     <Video className="w-3.5 h-3.5 text-cyan-600" />
-                    <span>Hazard Video Recordings ({complaint.videos?.length || (complaint.videoUrl ? 1 : 0)})</span>
+                    <span>{t('modal.videos_title', 'Hazard Video Recordings')} ({complaint.videos?.length || (complaint.videoUrl ? 1 : 0)})</span>
                   </h4>
                   <div className="grid grid-cols-1 gap-2">
                     {(complaint.videos && complaint.videos.length > 0
@@ -306,7 +310,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                       <div key={idx} className="p-2 bg-slate-950 rounded-2xl border border-slate-800 shadow-md">
                         <div className="flex items-center justify-between pb-1 px-1 text-[11px] font-mono text-cyan-400 font-bold">
                           <span>Video Clip #{idx + 1}</span>
-                          <span className="text-[10px] text-slate-400">Media Recording</span>
+                          <span className="text-[10px] text-slate-400">{t('modal.media_rec', 'Media Recording')}</span>
                         </div>
                         {vUrl.startsWith('data:video') || vUrl.endsWith('.mp4') || vUrl.endsWith('.webm') ? (
                           <video src={vUrl} controls className="w-full h-40 rounded-xl object-cover bg-black" />
@@ -341,12 +345,12 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
                 <div className="flex items-center space-x-2 text-emerald-400 font-extrabold text-sm">
                   <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                  <span>Field Technician Onsite Maintenance Evidence</span>
+                  <span>{t('modal.field_evidence', 'Field Technician Onsite Maintenance Evidence')}</span>
                 </div>
                 {complaint.aiConfidenceScore && (
                   <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center space-x-1">
                     <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                    <span>AI Audit: {complaint.aiConfidenceScore}% Match</span>
+                    <span>{t('modal.ai_audit', 'AI Audit:')} {complaint.aiConfidenceScore}% {t('modal.match', 'Match')}</span>
                   </span>
                 )}
               </div>
@@ -355,7 +359,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                 {/* BEFORE MAINTENANCE BOX */}
                 <div className="bg-slate-950 p-4 rounded-2xl border border-amber-500/30 space-y-3">
                   <div className="flex items-center justify-between text-xs font-bold text-amber-400 uppercase tracking-wider">
-                    <span>1. BEFORE Maintenance (Onsite Arrival)</span>
+                    <span>1. {t('modal.before_maint', 'BEFORE Maintenance (Onsite Arrival)')}</span>
                     <span className="text-[10px] text-slate-400 font-mono">
                       {(complaint.beforePhotos?.length || 1)} Photo(s) • {(complaint.beforeVideos?.length || (complaint.beforeVideoUrl ? 1 : 0))} Video(s)
                     </span>
@@ -380,7 +384,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                   {((complaint.beforeVideos && complaint.beforeVideos.length > 0) || complaint.beforeVideoUrl) && (
                     <div className="space-y-1.5 pt-2 border-t border-slate-800">
                       <span className="text-[10px] font-bold text-amber-300 font-mono uppercase">
-                        Before Video Recordings:
+                        {t('modal.before_videos', 'Before Video Recordings:')}
                       </span>
                       <div className="grid grid-cols-1 gap-1.5">
                         {(complaint.beforeVideos && complaint.beforeVideos.length > 0
@@ -413,7 +417,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                 {/* AFTER MAINTENANCE BOX */}
                 <div className="bg-slate-950 p-4 rounded-2xl border border-emerald-500/30 space-y-3">
                   <div className="flex items-center justify-between text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                    <span>2. AFTER Maintenance (Completed)</span>
+                    <span>2. {t('modal.after_maint', 'AFTER Maintenance (Completed)')}</span>
                     <span className="text-[10px] text-slate-400 font-mono">
                       {(complaint.afterPhotos?.length || (complaint.afterPhotoUrl ? 1 : 0))} Photo(s) • {(complaint.completionVideos?.length || (complaint.completionVideoUrl ? 1 : 0))} Video(s)
                     </span>
@@ -436,7 +440,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                     </div>
                   ) : (
                     <div className="p-4 bg-slate-900/60 rounded-xl border border-slate-800 text-center text-xs text-slate-400 font-medium">
-                      Maintenance repair in progress. Completion photos will be uploaded upon work resolution.
+                      {t('modal.maint_in_progress', 'Maintenance repair in progress. Completion photos will be uploaded upon work resolution.')}
                     </div>
                   )}
 
@@ -444,7 +448,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                   {((complaint.completionVideos && complaint.completionVideos.length > 0) || complaint.completionVideoUrl) && (
                     <div className="space-y-1.5 pt-2 border-t border-slate-800">
                       <span className="text-[10px] font-bold text-emerald-300 font-mono uppercase">
-                        Completion Repair Videos:
+                        {t('modal.completion_videos', 'Completion Repair Videos:')}
                       </span>
                       <div className="grid grid-cols-1 gap-1.5">
                         {(complaint.completionVideos && complaint.completionVideos.length > 0
@@ -477,7 +481,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
 
               {complaint.workRemarks && (
                 <div className="text-xs text-slate-200 font-medium bg-slate-950 p-3.5 rounded-xl border border-slate-800">
-                  <strong className="text-emerald-400">Worker Field Remarks:</strong> {complaint.workRemarks}
+                  <strong className="text-emerald-400">{t('modal.worker_remarks', 'Worker Field Remarks:')}</strong> {translateText(complaint.workRemarks)}
                 </div>
               )}
             </div>
@@ -486,7 +490,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
           {/* Timeline Activity Log */}
           <div>
             <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-3">
-              Official Audit Timeline Log
+              {t('modal.audit_log', 'Official Audit Timeline Log')}
             </h4>
             <div className="space-y-3">
               {complaint.timeline.map((event) => (
@@ -499,17 +503,20 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between font-semibold text-slate-900">
-                      <span>{event.actor} ({event.actorRole})</span>
+                      <span>{event.actor} ({translateText(event.actorRole)})</span>
                       <span className="text-[10px] text-slate-400">
                         {new Date(event.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
-                    <p className="text-slate-600 mt-0.5">{event.note}</p>
+                    <p className="text-slate-600 mt-0.5">{translateText(event.note)}</p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
+
+          {/* Send Complaint ID to Gmail & Sharing Options Card */}
+          <ShareComplaintCard complaint={complaint} />
         </div>
 
         {/* Modal Footer Actions */}
@@ -519,7 +526,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
             className="px-4 py-2 bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 rounded-xl font-semibold text-xs flex items-center space-x-1.5 transition-colors"
           >
             <ThumbsUp className="w-4 h-4 text-blue-600" />
-            <span>Upvote ({complaint.upvotes})</span>
+            <span>{t('modal.upvote', 'Upvote')} ({complaint.upvotes})</span>
           </button>
 
           <div className="flex items-center space-x-2">
@@ -533,7 +540,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
               className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-xl font-semibold text-xs flex items-center space-x-1.5 transition-colors"
             >
               <Share2 className="w-4 h-4" />
-              <span>Share Tracking Link</span>
+              <span>{t('modal.share_link', 'Share Tracking Link')}</span>
             </button>
 
             <button
@@ -541,7 +548,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
               className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl transition-colors flex items-center space-x-1.5"
             >
               <X className="w-4 h-4 text-slate-300" />
-              <span>Close</span>
+              <span>{t('modal.close', 'Close')}</span>
             </button>
           </div>
         </div>

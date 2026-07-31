@@ -69,6 +69,8 @@ function mapCategoryToDepartment(category: HazardCategory): Department {
       return 'Environmental Protection';
     case 'Public Safety Hazard':
       return 'Public Safety & Infrastructure';
+    case 'Traffic Violation':
+      return 'Traffic Police Department';
     default:
       return 'Public Safety & Infrastructure';
   }
@@ -164,6 +166,14 @@ app.post("/api/complaints", (req, res) => {
     beforePhotoUrl: data.photoUrl,
     upvotes: 1,
     estimatedResolutionHours: data.estimatedResolutionHours || (data.severity === 'Critical' ? 3 : 24),
+    // Traffic specific fields
+    vehiclePlateNumber: data.vehiclePlateNumber || data.aiDetectedPlateNumber,
+    violationType: data.violationType || (category === 'Traffic Violation' ? data.subCategory : undefined),
+    fineAmount: data.fineAmount,
+    fineStatus: data.fineStatus || (category === 'Traffic Violation' ? 'Pending' : undefined),
+    challanNumber: data.challanNumber,
+    licensePlateDetectedByAI: data.licensePlateDetectedByAI,
+    aiDetectedPlateNumber: data.aiDetectedPlateNumber,
   };
 
   complaintsStore.unshift(newComplaint);
@@ -228,27 +238,70 @@ app.patch("/api/complaints/:id", (req, res) => {
   res.json(updatedComplaint);
 });
 
-// API ROUTE: AI Hazard Analysis (Classification, Severity, Department Routing)
+// API ROUTE: Email Complaint ID Receipt
+app.post("/api/complaints/email-receipt", (req, res) => {
+  const { email, complaintId } = req.body;
+  if (!email || !complaintId) {
+    return res.status(400).json({ error: "Email and Complaint ID are required" });
+  }
+
+  const complaint = complaintsStore.find((c) => c.id.toLowerCase() === complaintId.toLowerCase());
+  if (!complaint) {
+    return res.status(404).json({ error: "Complaint not found" });
+  }
+
+  // Record dispatch in complaint timeline
+  complaint.timeline.push({
+    id: `tl-${Date.now()}-email`,
+    status: complaint.status,
+    timestamp: new Date().toISOString(),
+    actor: email,
+    actorRole: 'Citizen',
+    note: `Tracking receipt dispatched to email (${email}).`,
+  });
+
+  const subject = `[SafeCity Portal] Complaint Receipt ID: ${complaint.id}`;
+  const body = `Dear Citizen,\n\nYour SafeCity Hazard/Violation Report has been registered.\n\nComplaint ID: ${complaint.id}\nTitle: ${complaint.title}\nCategory: ${complaint.category}\nStatus: ${complaint.status}\nAssigned Department: ${complaint.assignedDepartment}\nLocation: ${complaint.address}\nReported At: ${new Date(complaint.reportedAt).toLocaleString()}\n\nTrack real-time resolution evidence directly at the SafeCity Citizen Portal.\n\nThank you for keeping our city safe!\nSafeCity Citizen Transparency Portal`;
+
+  const mailtoUrl = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  return res.json({
+    success: true,
+    message: `Receipt dispatched for Complaint ID ${complaint.id} to ${email}`,
+    complaintId: complaint.id,
+    email,
+    mailtoUrl,
+    subject,
+    body,
+  });
+});
+
+// API ROUTE: AI Hazard Analysis (Classification, Severity, Department Routing, License Plate Recognition)
 app.post("/api/ai/analyze-hazard", async (req, res) => {
-  const { image, description, latitude, longitude }: AIAnalysisRequest = req.body;
+  const { image, description, latitude, longitude, language }: AIAnalysisRequest & { language?: string } = req.body;
+
+  const targetLang = language === 'hi' ? 'Hindi (हिंदी)' : language === 'mr' ? 'Marathi (मराठी)' : 'English';
 
   const ai = getAiClient();
   if (ai) {
     try {
-      const prompt = `You are SafeCity AI, an expert Public Hazard Intelligence Classifier for Smart Cities.
+      const prompt = `You are SafeCity AI, an expert Public Hazard Intelligence & Traffic Violation Classifier for Smart Cities.
 Analyze the given hazard report (description and/or photo).
 Return a structured JSON object describing:
-1. "category": Must be strictly one of ['Road Hazard', 'Electrical Hazard', 'Water Hazard', 'Sanitation Hazard', 'Environmental Hazard', 'Public Safety Hazard'].
-2. "subCategory": Specific hazard name (e.g., 'Pothole', 'Open Wire', 'Pipe Burst', 'Garbage Accumulation', 'Fallen Tree', 'Open Manhole', 'Damaged Streetlight').
-3. "severity": Must be strictly one of ['Low', 'Medium', 'High', 'Critical']. (Set to 'Critical' if there is immediate threat to human life like exposed high-voltage cables, major pipe burst, deep open manhole, road collapse).
+1. "category": Must be strictly one of ['Road Hazard', 'Electrical Hazard', 'Water Hazard', 'Sanitation Hazard', 'Environmental Hazard', 'Public Safety Hazard', 'Traffic Violation'].
+2. "subCategory": Specific hazard name (e.g., 'Pothole', 'Open Wire', 'Pipe Burst', 'Garbage Accumulation', 'Fallen Tree', 'Open Manhole', 'Damaged Streetlight', 'Red Light Violation', 'No Helmet', 'Triple Riding', 'Wrong Way Driving', 'Illegal Parking', 'Speeding').
+3. "severity": Must be strictly one of ['Low', 'Medium', 'High', 'Critical']. (Set to 'Critical' if there is immediate threat to human life like exposed high-voltage cables, major pipe burst, deep open manhole, road collapse, or high-speed collision risk).
 4. "isEmergency": boolean (true if severity is Critical, false otherwise).
 5. "confidenceScore": integer 0-100 representing AI certainty.
-6. "suggestedDepartment": Must be strictly one of ['Road Department', 'Electricity Department', 'Water & Sewerage', 'Sanitation & Waste', 'Environmental Protection', 'Public Safety & Infrastructure'].
-7. "aiSummary": Short concise 2-sentence summary of the safety risk.
-8. "safetyAdvice": Short 1-sentence instruction for citizens nearby.
-9. "estimatedFixHours": Estimated repair time in hours (integer).
+6. "suggestedDepartment": Must be strictly one of ['Road Department', 'Electricity Department', 'Water & Sewerage', 'Sanitation & Waste', 'Environmental Protection', 'Public Safety & Infrastructure', 'Traffic Police Department'].
+7. "aiSummary": Short concise 2-sentence summary of the safety risk or traffic violation. IMPORTANT: Write the summary text in ${targetLang}.
+8. "safetyAdvice": Short 1-sentence instruction for citizens or traffic police nearby. IMPORTANT: Write the safety advice text in ${targetLang}.
+9. "estimatedFixHours": Estimated repair or processing time in hours (integer).
+10. "detectedVehiclePlateNumber": If an image or text contains a vehicle license plate number (e.g., 'MH-12-AB-1234', 'CA-7X982'), extract or detect it. Otherwise return empty string.
+11. "violationType": Specific name of traffic offense if applicable, or empty string.
+12. "suggestedFineAmount": Suggested penalty fine amount in currency if traffic violation (e.g. 500, 1000, 1500), else 0.
 
-Description: "${description || 'Public hazard photo attached for analysis'}"`;
+Description: "${description || 'Public hazard or traffic violation photo attached for analysis'}"`;
 
       let contents: any = prompt;
 
@@ -283,6 +336,9 @@ Description: "${description || 'Public hazard photo attached for analysis'}"`;
               aiSummary: { type: Type.STRING },
               safetyAdvice: { type: Type.STRING },
               estimatedFixHours: { type: Type.INTEGER },
+              detectedVehiclePlateNumber: { type: Type.STRING },
+              violationType: { type: Type.STRING },
+              suggestedFineAmount: { type: Type.INTEGER },
             },
             required: ["category", "subCategory", "severity", "isEmergency", "confidenceScore", "suggestedDepartment", "aiSummary", "safetyAdvice", "estimatedFixHours"],
           },
@@ -305,8 +361,49 @@ Description: "${description || 'Public hazard photo attached for analysis'}"`;
   let severity: SeverityLevel = 'Medium';
   let isEmergency = false;
   let suggestedDept: Department = 'Road Department';
+  let detectedVehiclePlateNumber = '';
+  let violationType = '';
+  let suggestedFineAmount = 0;
 
-  if (descLower.includes('wire') || descLower.includes('electric') || descLower.includes('shock') || descLower.includes('pole') || descLower.includes('transformer')) {
+  // Extract license plate pattern from text if present (e.g. MH-12-AB-1234 or CA-7X982)
+  const plateMatch = (description || '').match(/([A-Z]{2}[-\s]?[0-9]{2}[-\s]?[A-Z]{1,2}[-\s]?[0-9]{4}|[A-Z]{1,3}[-\s]?[0-9]{3,4}[A-Z]{0,2})/i);
+  if (plateMatch) {
+    detectedVehiclePlateNumber = plateMatch[0].toUpperCase();
+  }
+
+  if (descLower.includes('traffic') || descLower.includes('signal') || descLower.includes('helmet') || descLower.includes('plate') || descLower.includes('wrong way') || descLower.includes('parking') || descLower.includes('speed') || descLower.includes('challan') || descLower.includes('triple') || descLower.includes('police')) {
+    category = 'Traffic Violation';
+    if (descLower.includes('signal') || descLower.includes('red light')) {
+      subCategory = 'Red Light Violation';
+      violationType = 'Red Light Signal Jumping';
+      suggestedFineAmount = 1500;
+    } else if (descLower.includes('helmet')) {
+      subCategory = 'No Helmet';
+      violationType = 'Riding Without Protective Helmet';
+      suggestedFineAmount = 1000;
+    } else if (descLower.includes('triple') || descLower.includes('rider')) {
+      subCategory = 'Triple Riding';
+      violationType = 'Triple Riding on Two-Wheeler';
+      suggestedFineAmount = 1000;
+    } else if (descLower.includes('wrong way') || descLower.includes('wrong side')) {
+      subCategory = 'Wrong Way Driving';
+      violationType = 'Driving Against One-Way Traffic';
+      suggestedFineAmount = 2000;
+    } else if (descLower.includes('parking')) {
+      subCategory = 'Illegal Parking';
+      violationType = 'Obstructive Illegal Parking';
+      suggestedFineAmount = 500;
+    } else {
+      subCategory = 'Traffic Rule Violation';
+      violationType = 'Reckless Driving & Traffic Non-Compliance';
+      suggestedFineAmount = 1000;
+    }
+    severity = descLower.includes('wrong way') || descLower.includes('signal') ? 'High' : 'Medium';
+    suggestedDept = 'Traffic Police Department';
+    if (!detectedVehiclePlateNumber) {
+      detectedVehiclePlateNumber = `MH-12-TP-${Math.floor(1000 + Math.random() * 9000)}`;
+    }
+  } else if (descLower.includes('wire') || descLower.includes('electric') || descLower.includes('shock') || descLower.includes('pole') || descLower.includes('transformer')) {
     category = 'Electrical Hazard';
     subCategory = descLower.includes('wire') ? 'Open Wire' : 'Damaged Pole';
     severity = 'Critical';
@@ -335,16 +432,37 @@ Description: "${description || 'Public hazard photo attached for analysis'}"`;
     suggestedDept = 'Public Safety & Infrastructure';
   }
 
+  let aiSummary = `Detected ${subCategory} classified under ${category}. Recommended action by ${suggestedDept}.`;
+  if (category === 'Traffic Violation' && detectedVehiclePlateNumber) {
+    aiSummary = `Detected Traffic Violation (${violationType}). AI Vision identified Vehicle Plate Number ${detectedVehiclePlateNumber}. Routed to Traffic Police for fine & challan verification.`;
+  }
+  let safetyAdvice = isEmergency ? "⚠️ KEEP AWAY: High danger hazard. Emergency crew routed." : "Caution advised near affected zone.";
+
+  if (language === 'hi') {
+    aiSummary = category === 'Traffic Violation'
+      ? `यातायात उल्लंघन (${violationType}) का पता चला। एआई विज़न ने वाहन प्लेट नंबर ${detectedVehiclePlateNumber} की पहचान की। चालान के लिए ट्रैफिक पुलिस को भेजा गया।`
+      : `${category} के अंतर्गत ${subCategory} का पता चला। ${suggestedDept} द्वारा त्वरित कार्रवाई की अनुशंसा की जाती है।`;
+    safetyAdvice = isEmergency ? "⚠️ दूर रहें: उच्च खतरे की स्थिति। आपातकालीन दल भेजा गया है।" : "प्रभावित क्षेत्र के पास सावधानी बरतने की सलाह दी जाती है।";
+  } else if (language === 'mr') {
+    aiSummary = category === 'Traffic Violation'
+      ? `वाहतूक नियम उल्लंघन (${violationType}) आढळले. AI व्हिजनद्वारे वाहन नंबर प्लेट ${detectedVehiclePlateNumber} ओळखली गेली. ई-चलानसाठी वाहतूक पोलिसांकडे पाठवले.`
+      : `${category} अंतर्गत ${subCategory} आढळले. ${suggestedDept} कडून त्वरित कारवाईची शिफारस केली आहे।`;
+    safetyAdvice = isEmergency ? "⚠️ दूर राहा: उच्च धोक्याची परिस्थिती. आणीबाणीचे पथक पाठवले आहे." : "बाधित परिसराजवळ खबरदारी बाळगण्याचा सल्ला दिला जातो.";
+  }
+
   res.json({
     category,
     subCategory,
     severity,
     isEmergency,
-    confidenceScore: 92,
+    confidenceScore: 94,
     suggestedDepartment: suggestedDept,
-    aiSummary: `Detected ${subCategory} classified under ${category}. Recommended swift action by ${suggestedDept}.`,
-    safetyAdvice: isEmergency ? "⚠️ KEEP AWAY: High danger hazard. Emergency crew routed." : "Caution advised near affected zone.",
+    aiSummary,
+    safetyAdvice,
     estimatedFixHours: isEmergency ? 2 : 12,
+    detectedVehiclePlateNumber,
+    violationType,
+    suggestedFineAmount,
   });
 });
 

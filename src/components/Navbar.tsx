@@ -16,8 +16,10 @@ import {
   LogOut,
   Lock,
   Home,
+  Globe,
 } from 'lucide-react';
 import { UserRole, UserAccount } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface NavbarProps {
   activeTab: string;
@@ -42,6 +44,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onEditProfile,
   emergencyCount,
 }) => {
+  const { language, setLanguage, t } = useLanguage();
+
   const handleRoleClick = (targetRole: UserRole) => {
     if (targetRole === 'citizen') {
       setUserRole('citizen');
@@ -61,13 +65,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-indigo-900/50 text-white shadow-xl">
-      {/* Top Banner Bar for Emergency Alerts & Role Switcher */}
+    <header className="sticky top-0 z-[2000] bg-slate-900/95 backdrop-blur-md border-b border-indigo-900/50 text-white shadow-xl">
+      {/* Top Banner Bar for Emergency Alerts, Role Switcher & Language Switcher */}
       <div className="bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-950 px-4 py-2 text-xs border-b border-indigo-900/40 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center space-x-3">
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm">
             <Radio className="w-3 h-3 mr-1.5 animate-pulse text-cyan-400" />
-            LIVE CITY INTEL
+            {t('nav.live_intel', 'LIVE CITY INTEL')}
           </span>
 
           {emergencyCount > 0 ? (
@@ -82,17 +86,55 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="flex items-center text-rose-300 font-bold hover:underline bg-rose-950/70 border border-rose-500/50 px-2.5 py-0.5 rounded-full shadow-sm"
             >
               <Flame className="w-3.5 h-3.5 mr-1 text-rose-500 animate-bounce" />
-              <span>{emergencyCount} Emergency Hazard{emergencyCount > 1 ? 's' : ''} Active</span>
+              <span>{emergencyCount} {t('nav.emergency_hazards_plural', 'Emergency Hazards Active')}</span>
             </button>
           ) : (
             <span className="text-slate-400 font-medium">
-              All critical hazards cleared or under response
+              {t('nav.all_hazards_cleared', 'All critical hazards cleared or under response')}
             </span>
           )}
         </div>
 
-        {/* Account Status / Role Switcher */}
-        <div className="flex items-center space-x-3">
+        {/* Account Status / Language Switcher / Role Switcher */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Language Switcher Feature */}
+          <div className="flex items-center space-x-1 bg-slate-900/90 border border-indigo-700/80 p-0.5 rounded-xl shadow-inner text-[11px]">
+            <div className="px-2 py-0.5 text-indigo-300 font-extrabold flex items-center space-x-1">
+              <Globe className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <span className="hidden sm:inline">Lang:</span>
+            </div>
+            <button
+              onClick={() => setLanguage('en')}
+              className={`px-2 py-1 rounded-lg font-extrabold transition-all ${
+                language === 'en'
+                  ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              English
+            </button>
+            <button
+              onClick={() => setLanguage('hi')}
+              className={`px-2 py-1 rounded-lg font-extrabold transition-all ${
+                language === 'hi'
+                  ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              हिंदी
+            </button>
+            <button
+              onClick={() => setLanguage('mr')}
+              className={`px-2 py-1 rounded-lg font-extrabold transition-all ${
+                language === 'mr'
+                  ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              मराठी
+            </button>
+          </div>
+
           {currentUser && (
             <div className="flex items-center space-x-2 bg-indigo-950/90 border border-indigo-700/80 px-3 py-1 rounded-xl text-[11px] shadow-md">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -108,7 +150,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className="ml-1 px-2 py-0.5 bg-indigo-800/80 hover:bg-indigo-700 text-indigo-100 border border-indigo-600/60 rounded-lg flex items-center space-x-1 font-bold transition-all active:scale-95"
                 >
                   <UserCheck className="w-3 h-3 text-cyan-400" />
-                  <span>Edit Profile</span>
+                  <span>{t('nav.edit_profile', 'Edit Profile')}</span>
                 </button>
               )}
 
@@ -118,7 +160,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="px-2 py-0.5 bg-rose-950/80 hover:bg-rose-900 text-rose-200 border border-rose-700/60 rounded-lg flex items-center space-x-1 font-bold transition-all active:scale-95"
               >
                 <LogOut className="w-3 h-3 text-rose-400" />
-                <span>Logout</span>
+                <span>{t('nav.logout', 'Logout')}</span>
               </button>
             </div>
           )}
@@ -133,7 +175,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <UserCheck className="w-3 h-3" />
-              <span>Citizen</span>
+              <span>{t('nav.citizen', 'Citizen')}</span>
             </button>
             <button
               onClick={() => handleRoleClick('officer')}
@@ -144,7 +186,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Building2 className="w-3 h-3" />
-              <span>Officer</span>
+              <span>{t('nav.officer', 'Officer')}</span>
               {(!currentUser || currentUser.role !== 'officer') && userRole !== 'officer' && (
                 <Lock className="w-2.5 h-2.5 ml-0.5 text-amber-300" />
               )}
@@ -158,7 +200,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <HardHat className="w-3 h-3" />
-              <span>Field Worker</span>
+              <span>{t('nav.worker', 'Field Worker')}</span>
               {(!currentUser || currentUser.role !== 'worker') && userRole !== 'worker' && (
                 <Lock className="w-2.5 h-2.5 ml-0.5 text-emerald-300" />
               )}
@@ -172,7 +214,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Settings className="w-3 h-3" />
-              <span>Admin</span>
+              <span>{t('nav.admin', 'Admin')}</span>
               {(!currentUser || currentUser.role !== 'admin') && userRole !== 'admin' && (
                 <Lock className="w-2.5 h-2.5 ml-0.5 text-purple-300" />
               )}
@@ -218,7 +260,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Home className="w-4 h-4 text-cyan-400" />
-              <span>Home</span>
+              <span>{t('nav.tab.home', 'Home')}</span>
             </button>
 
             <button
@@ -230,7 +272,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <PlusCircle className="w-4 h-4 text-cyan-300" />
-              <span>Report Hazard</span>
+              <span>{t('nav.tab.report', 'Report Hazard')}</span>
             </button>
 
             <button
@@ -242,7 +284,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <MapPin className="w-4 h-4 text-emerald-400" />
-              <span>Live Hazard Map</span>
+              <span>{t('nav.tab.live_map', 'Live Map')}</span>
             </button>
 
             <button
@@ -254,7 +296,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Layers className="w-4 h-4 text-amber-400" />
-              <span>GIS Heatmap</span>
+              <span>{t('nav.tab.risk_heatmap', 'Risk Heatmap')}</span>
             </button>
 
             <button
@@ -266,7 +308,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Search className="w-4 h-4 text-indigo-400" />
-              <span>Track Complaint</span>
+              <span>{t('nav.tab.track', 'Track Report')}</span>
             </button>
 
             {(userRole === 'officer' || currentUser?.role === 'officer' || currentUser?.role === 'admin') && (
@@ -279,7 +321,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
               >
                 <Building2 className="w-4 h-4 text-amber-400" />
-                <span>Dept Portal</span>
+                <span>{t('nav.tab.department', 'Dept Dashboard')}</span>
               </button>
             )}
 
@@ -293,7 +335,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
               >
                 <HardHat className="w-4 h-4 text-emerald-400" />
-                <span>Worker Tasks</span>
+                <span>{t('nav.tab.worker_portal', 'Worker Portal')}</span>
               </button>
             )}
 
@@ -307,7 +349,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
               >
                 <Settings className="w-4 h-4 text-purple-400" />
-                <span>Admin</span>
+                <span>{t('nav.tab.system_admin', 'System Admin')}</span>
               </button>
             )}
 
@@ -320,7 +362,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <BarChart3 className="w-4 h-4 text-cyan-400" />
-              <span>Analytics</span>
+              <span>{t('nav.tab.analytics', 'Analytics')}</span>
             </button>
 
             <button
@@ -332,7 +374,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Info className="w-4 h-4 text-slate-400" />
-              <span>About / Arch</span>
+              <span>{t('nav.tab.architecture', 'Architecture')}</span>
             </button>
           </nav>
 
@@ -343,7 +385,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="lg:hidden px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-cyan-500 text-white flex items-center space-x-1 shadow-md"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span>Report</span>
+              <span>{t('nav.tab.report', 'Report')}</span>
             </button>
           </div>
         </div>
@@ -357,7 +399,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <Home className="w-3.5 h-3.5" />
-            <span>Home</span>
+            <span>{t('nav.tab.home', 'Home')}</span>
           </button>
           <button
             onClick={() => setActiveTab('live-map')}
@@ -366,7 +408,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <MapPin className="w-3.5 h-3.5" />
-            <span>Live Map</span>
+            <span>{t('nav.tab.live_map', 'Live Map')}</span>
           </button>
           <button
             onClick={() => setActiveTab('risk-heatmap')}
@@ -375,7 +417,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>GIS Heatmap</span>
+            <span>{t('nav.tab.risk_heatmap', 'Risk Heatmap')}</span>
           </button>
           <button
             onClick={() => setActiveTab('track')}
@@ -384,7 +426,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <Search className="w-3.5 h-3.5" />
-            <span>Track ID</span>
+            <span>{t('nav.tab.track', 'Track Report')}</span>
           </button>
           {(userRole === 'officer' || currentUser?.role === 'officer' || currentUser?.role === 'admin') && (
             <button
@@ -394,7 +436,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Building2 className="w-3.5 h-3.5" />
-              <span>Dept View</span>
+              <span>{t('nav.tab.department', 'Dept View')}</span>
             </button>
           )}
           {(userRole === 'worker' || currentUser?.role === 'worker' || currentUser?.role === 'admin') && (
@@ -405,7 +447,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <HardHat className="w-3.5 h-3.5" />
-              <span>Worker View</span>
+              <span>{t('nav.tab.worker_portal', 'Worker View')}</span>
             </button>
           )}
           {(userRole === 'admin' || currentUser?.role === 'admin') && (
@@ -416,7 +458,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Settings className="w-3.5 h-3.5" />
-              <span>Admin View</span>
+              <span>{t('nav.tab.system_admin', 'Admin View')}</span>
             </button>
           )}
           <button
@@ -426,10 +468,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <BarChart3 className="w-3.5 h-3.5" />
-            <span>Analytics</span>
+            <span>{t('nav.tab.analytics', 'Analytics')}</span>
           </button>
         </div>
       </div>
     </header>
   );
 };
+

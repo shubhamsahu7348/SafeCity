@@ -3,6 +3,7 @@ import { MapPin, Filter, PlusCircle, Search, Flame, ShieldAlert, Navigation, Ref
 import { Complaint, HazardCategory, ComplaintStatus } from '../types';
 import { HazardMap } from '../components/HazardMap';
 import { ComplaintDetailModal } from '../components/ComplaintDetailModal';
+import { useLanguage } from '../context/LanguageContext';
 
 interface LiveMapViewProps {
   complaints: Complaint[];
@@ -30,6 +31,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
   setActiveTab,
   onUpvoteComplaint,
 }) => {
+  const { t, translateCategory, translateStatus, translateSeverity, translateText } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [radiusKm, setRadiusKm] = useState<number>(5);
@@ -182,10 +184,10 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
           <div>
             <div className="flex items-center space-x-2">
               <MapPin className="w-6 h-6 text-emerald-600" />
-              <h1 className="text-xl font-extrabold text-slate-900">Live Hazard Intelligence Map</h1>
+              <h1 className="text-xl font-extrabold text-slate-900">{t('map.title', 'Live Hazard Intelligence Map')}</h1>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Real-time geospatial hazard tracking, live GPS location detection & radius filtering
+              {t('map.subtitle', 'Real-time geospatial hazard tracking, live GPS location detection & radius filtering')}
             </p>
           </div>
 
@@ -201,7 +203,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
               ) : (
                 <Navigation className="w-4 h-4 text-emerald-200 animate-bounce" />
               )}
-              <span>{isLocating ? 'Acquiring GPS...' : 'Detect My Live Location'}</span>
+              <span>{isLocating ? t('map.acquiring_gps', 'Acquiring GPS...') : t('map.detect_location', 'Detect My Live Location')}</span>
             </button>
 
             <button
@@ -209,7 +211,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 shadow-sm"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>Report Hazard</span>
+              <span>{t('map.report_hazard', 'Report Hazard')}</span>
             </button>
           </div>
         </div>
@@ -220,14 +222,14 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
           <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
             <div className="min-w-0 flex-1">
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                Active Map Center / Live GPS
+                {t('map.active_center', 'Active Map Center / Live GPS')}
               </span>
               <p className="text-xs font-bold text-slate-800 truncate">
-                📍 {userAddress}
+                📍 {translateText(userAddress)}
               </p>
               {locationStatusMessage && (
                 <p className="text-[11px] text-emerald-700 font-semibold truncate mt-0.5">
-                  {locationStatusMessage}
+                  {translateText(locationStatusMessage)}
                 </p>
               )}
             </div>
@@ -241,7 +243,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search location/address (e.g., London, New York)..."
+                placeholder={t('map.search_placeholder', 'Search location/address (e.g., London, New York)...')}
                 className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -252,7 +254,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
             >
               {isSearching ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <>
                 <Search className="w-3.5 h-3.5 text-cyan-300" />
-                <span>Go</span>
+                <span>{t('map.search_go', 'Go')}</span>
               </>}
             </button>
           </form>
@@ -266,13 +268,13 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
           >
-            <option value="All">All Categories</option>
-            <option value="Road Hazard">Road Hazards</option>
-            <option value="Electrical Hazard">Electrical Hazards</option>
-            <option value="Water Hazard">Water Hazards</option>
-            <option value="Sanitation Hazard">Sanitation Hazards</option>
-            <option value="Environmental Hazard">Environmental Hazards</option>
-            <option value="Public Safety Hazard">Public Safety</option>
+            <option value="All">{t('map.all_categories', 'All Categories')}</option>
+            <option value="Road Hazard">{t('category.road', 'Road Hazards')}</option>
+            <option value="Electrical Hazard">{t('category.electrical', 'Electrical Hazards')}</option>
+            <option value="Water Hazard">{t('category.water', 'Water Hazards')}</option>
+            <option value="Sanitation Hazard">{t('category.sanitation', 'Sanitation Hazards')}</option>
+            <option value="Environmental Hazard">{t('category.environmental', 'Environmental Hazards')}</option>
+            <option value="Public Safety Hazard">{t('category.safety', 'Public Safety')}</option>
           </select>
 
           {/* Status Filter */}
@@ -281,17 +283,17 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
           >
-            <option value="All">All Statuses</option>
-            <option value="Submitted">Submitted</option>
-            <option value="Verified">Verified</option>
-            <option value="Assigned">Assigned</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Resolved">Resolved</option>
+            <option value="All">{t('map.all_statuses', 'All Statuses')}</option>
+            <option value="Submitted">{t('status.submitted', 'Submitted')}</option>
+            <option value="Verified">{t('status.verified', 'Verified')}</option>
+            <option value="Assigned">{t('status.assigned', 'Assigned')}</option>
+            <option value="In Progress">{t('status.in_progress', 'In Progress')}</option>
+            <option value="Resolved">{t('status.resolved', 'Resolved')}</option>
           </select>
 
           {/* Radius Filter */}
           <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
-            <span className="px-2 text-slate-500 text-[11px]">Radius:</span>
+            <span className="px-2 text-slate-500 text-[11px]">{t('map.radius', 'Radius:')}</span>
             {[1, 5, 10, 25].map((r) => (
               <button
                 key={r}
@@ -333,18 +335,18 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="font-extrabold text-slate-900 text-sm">
-                Nearby Hazards ({filteredComplaints.length})
+                {t('map.nearby_hazards', 'Nearby Hazards')} ({filteredComplaints.length})
               </h3>
-              <p className="text-[11px] text-slate-400 font-medium">Sorted by distance from your live location</p>
+              <p className="text-[11px] text-slate-400 font-medium">{t('map.sorted_distance', 'Sorted by distance from your live location')}</p>
             </div>
-            <span className="text-[11px] font-semibold text-slate-400">Click to Inspect</span>
+            <span className="text-[11px] font-semibold text-slate-400">{t('map.click_inspect', 'Click to Inspect')}</span>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-3 pt-3 pr-1">
             {filteredComplaints.length === 0 ? (
               <div className="text-center py-12 text-slate-400 space-y-2">
                 <MapPin className="w-8 h-8 mx-auto opacity-50 text-slate-400" />
-                <p className="text-xs font-bold">No hazards found matching current filters.</p>
+                <p className="text-xs font-bold">{t('map.no_hazards', 'No hazards found matching current filters.')}</p>
               </div>
             ) : (
               filteredComplaints.map((c) => (
@@ -374,16 +376,16 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
                               c.isEmergency ? 'bg-red-600 text-white animate-pulse' : 'bg-slate-200 text-slate-800'
                             }`}
                           >
-                            {c.isEmergency ? 'Emergency' : c.severity}
+                            {c.isEmergency ? t('map.emergency', 'Emergency') : translateSeverity(c.severity)}
                           </span>
-                          <span className="text-[10px] font-semibold text-slate-500 truncate">{c.category}</span>
+                          <span className="text-[10px] font-semibold text-slate-500 truncate">{translateCategory(c.category)}</span>
                         </div>
                         <span className="text-[10px] font-black text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-md flex-shrink-0">
                           📍 {c.distanceKm < 1 ? `${Math.round(c.distanceKm * 1000)} m` : `${c.distanceKm.toFixed(1)} km`}
                         </span>
                       </div>
-                      <h4 className="font-bold text-xs text-slate-900 truncate">{c.title}</h4>
-                      <p className="text-[11px] text-slate-500 truncate mt-0.5">{c.address}</p>
+                      <h4 className="font-bold text-xs text-slate-900 truncate">{translateText(c.title)}</h4>
+                      <p className="text-[11px] text-slate-500 truncate mt-0.5">{translateText(c.address)}</p>
                     </div>
                   </div>
 
@@ -396,10 +398,9 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
                         setSelectedComplaint(c);
                       }}
                       className="px-2.5 py-1 bg-slate-100 hover:bg-blue-100 text-slate-700 hover:text-blue-800 border border-slate-200 hover:border-blue-300 rounded-lg text-[10px] font-extrabold flex items-center space-x-1 transition-all"
-                      title="Center and highlight this hazard on the live map"
                     >
                       <MapPin className="w-3 h-3 text-blue-600" />
-                      <span>Center Map</span>
+                      <span>{t('map.center_map', 'Center Map')}</span>
                     </button>
 
                     <button
@@ -412,7 +413,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
                       className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-black shadow-sm flex items-center space-x-1 transition-all"
                     >
                       <Info className="w-3 h-3 text-cyan-200" />
-                      <span>Full Details</span>
+                      <span>{t('map.full_details', 'Full Details')}</span>
                     </button>
                   </div>
                 </div>
