@@ -13,7 +13,7 @@ export const AboutView: React.FC = () => {
           SafeCity Architecture Specification
         </h1>
         <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-          Full-stack public hazard intelligence platform architecture combining browser GPS detection, computer vision AI classification with Gemini 3.6 Flash, geospatial GIS heatmapping, and automated municipal workflow state machines.
+          Full-stack public hazard intelligence platform architecture combining browser GPS detection, computer vision AI classification, geospatial GIS heatmapping, and automated municipal workflow state machines.
         </p>
       </div>
 
@@ -29,7 +29,7 @@ export const AboutView: React.FC = () => {
             <strong className="text-blue-700">1. Citizen Anonymous Capture:</strong> Photo/Video upload + Browser Geolocation API capture. ID generated via <code className="bg-slate-200 px-1 rounded">SC-2026-XXXX</code> format.
           </div>
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-            <strong className="text-indigo-700">2. Gemini 3.6 Flash Server AI Analysis:</strong> Vision model extracts hazard category, subcategory, severity score, emergency flag, and auto-routes to municipal department.
+            <strong className="text-indigo-700">2. Server AI Analysis:</strong> Vision model extracts hazard category, subcategory, severity score, emergency flag, and auto-routes to municipal department.
           </div>
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
             <strong className="text-amber-700">3. Spatial Duplicate Filter:</strong> Haversine distance formula (&lt;350m buffer) + AI semantic match checks if hazard is already registered.

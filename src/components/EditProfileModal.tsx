@@ -17,6 +17,8 @@ import {
   Calendar,
   Lock,
   Camera,
+  Save,
+  RefreshCw,
 } from 'lucide-react';
 import { UserAccount } from '../types';
 
@@ -359,16 +361,27 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
+              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl flex items-center space-x-1 transition-colors"
             >
-              Cancel
+              <X className="w-3.5 h-3.5" />
+              <span>Cancel</span>
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-extrabold rounded-xl shadow-md disabled:opacity-50 active:scale-95 transition-all"
+              className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-extrabold rounded-xl shadow-md disabled:opacity-50 active:scale-95 transition-all flex items-center space-x-1.5"
             >
-              {isLoading ? 'Saving Changes...' : 'Save Profile Updates'}
+              {isLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Saving Changes...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Save Profile Updates</span>
+                </>
+              )}
             </button>
           </div>
         </form>

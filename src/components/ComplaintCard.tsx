@@ -8,6 +8,9 @@ import {
   ShieldCheck,
   CheckCircle2,
   HardHat,
+  FileText,
+  Sparkles,
+  XCircle,
 } from 'lucide-react';
 import { Complaint } from '../types';
 
@@ -56,36 +59,51 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
     switch (complaint.status) {
       case 'Submitted':
         return (
-          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-900/80 backdrop-blur-md text-slate-200 border border-slate-700/80 shadow-sm">
-            Submitted
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-900/80 backdrop-blur-md text-slate-200 border border-slate-700/80 inline-flex items-center space-x-1 shadow-sm whitespace-nowrap">
+            <FileText className="w-3 h-3 text-cyan-300 shrink-0" />
+            <span>Submitted</span>
           </span>
         );
       case 'Verified':
         return (
-          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-indigo-500/20 text-indigo-300 backdrop-blur-md border border-indigo-400/40 flex items-center space-x-1 shadow-sm">
-            <ShieldCheck className="w-3 h-3 text-cyan-300" />
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-indigo-500/20 text-indigo-300 backdrop-blur-md border border-indigo-400/40 inline-flex items-center space-x-1 shadow-sm whitespace-nowrap">
+            <ShieldCheck className="w-3 h-3 text-cyan-300 shrink-0" />
             <span>Verified</span>
           </span>
         );
       case 'Assigned':
         return (
-          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-violet-500/20 text-violet-300 backdrop-blur-md border border-violet-400/40 flex items-center space-x-1 shadow-sm">
-            <HardHat className="w-3 h-3 text-violet-300" />
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-violet-500/20 text-violet-300 backdrop-blur-md border border-violet-400/40 inline-flex items-center space-x-1 shadow-sm whitespace-nowrap">
+            <HardHat className="w-3 h-3 text-violet-300 shrink-0" />
             <span>Assigned</span>
           </span>
         );
       case 'In Progress':
         return (
-          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-500/25 text-amber-200 backdrop-blur-md border border-amber-400/40 flex items-center space-x-1 animate-pulse shadow-sm">
-            <Clock className="w-3 h-3 text-amber-300" />
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-500/25 text-amber-200 backdrop-blur-md border border-amber-400/40 inline-flex items-center space-x-1 animate-pulse shadow-sm whitespace-nowrap">
+            <Clock className="w-3 h-3 text-amber-300 shrink-0" />
             <span>In Progress</span>
           </span>
         );
       case 'Resolved':
         return (
-          <span className="px-2.5 py-1 text-xs font-black rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md flex items-center space-x-1 border border-emerald-400/40">
-            <CheckCircle2 className="w-3 h-3" />
+          <span className="px-2.5 py-1 text-xs font-black rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md inline-flex items-center space-x-1 border border-emerald-400/40 whitespace-nowrap">
+            <CheckCircle2 className="w-3 h-3 shrink-0" />
             <span>Resolved</span>
+          </span>
+        );
+      case 'Work Submitted':
+        return (
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-purple-500/25 text-purple-200 backdrop-blur-md border border-purple-400/40 inline-flex items-center space-x-1 shadow-sm whitespace-nowrap">
+            <Sparkles className="w-3 h-3 text-purple-300 shrink-0" />
+            <span>Work Submitted</span>
+          </span>
+        );
+      case 'Rejected':
+        return (
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-500/25 text-rose-200 backdrop-blur-md border border-rose-400/40 inline-flex items-center space-x-1 shadow-sm whitespace-nowrap">
+            <XCircle className="w-3 h-3 text-rose-300 shrink-0" />
+            <span>Rejected</span>
           </span>
         );
       default:

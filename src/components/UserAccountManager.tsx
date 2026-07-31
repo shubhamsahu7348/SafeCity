@@ -18,6 +18,10 @@ import {
   Calendar,
   Camera,
   Phone,
+  X,
+  Save,
+  UserPlus,
+  RefreshCw,
 } from 'lucide-react';
 import { UserAccount, Worker, Department, UserRole } from '../types';
 
@@ -384,9 +388,9 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-slate-700 font-bold"
+                className="text-slate-400 hover:text-slate-700 font-bold p-1 rounded-lg hover:bg-slate-100 transition-colors"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -582,16 +586,32 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 bg-slate-100 font-bold text-slate-700 rounded-xl"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 rounded-xl flex items-center space-x-1 transition-colors"
                 >
-                  Cancel
+                  <X className="w-3.5 h-3.5" />
+                  <span>Cancel</span>
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-cyan-600 text-white font-extrabold rounded-xl shadow-md disabled:opacity-50"
+                  className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-extrabold rounded-xl shadow-md disabled:opacity-50 flex items-center space-x-1.5 transition-all"
                 >
-                  {isSaving ? 'Saving...' : editingUser ? 'Save Updates' : 'Create Account'}
+                  {isSaving ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : editingUser ? (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Save Updates</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>Create Account</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

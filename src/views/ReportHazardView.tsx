@@ -196,7 +196,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
     );
   };
 
-  // Step 3: Run Gemini AI Hazard Analysis
+  // Step 3: Run AI Hazard Analysis
   const handleRunAIAnalysis = async () => {
     const activePhoto = photos[0] || photoUrl;
     if (!description && !activePhoto) {
@@ -223,8 +223,9 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
         setAiAnalysis(data);
         setCategory(data.category);
         setSubCategory(data.subCategory);
-        setSeverity(data.severity);
-        setIsEmergency(data.isEmergency);
+        const resolvedSeverity = data.severity === 'Critical' || data.isEmergency ? 'Critical' : data.severity;
+        setSeverity(resolvedSeverity);
+        setIsEmergency(resolvedSeverity === 'Critical');
         setDepartment(data.suggestedDepartment);
       }
 
@@ -262,7 +263,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
       category,
       subCategory,
       severity,
-      isEmergency,
+      isEmergency: severity === 'Critical',
       description: description || `Hazard reported near ${address}`,
       photoUrl: primaryPhoto,
       videoUrl: primaryVideo,
@@ -597,12 +598,12 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               {isAnalyzing ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                  <span>Analyzing with Gemini AI...</span>
+                  <span>Submitting...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4 text-cyan-300" />
-                  <span>Run AI Classification & Routing</span>
+                  <CheckCircle2 className="w-4 h-4 text-cyan-300" />
+                  <span>Submit</span>
                 </>
               )}
             </button>
@@ -618,7 +619,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               Step 3 of 3
             </span>
             <h2 className="text-2xl font-black text-slate-900 mt-2">
-              Gemini AI Hazard Analysis & Department Mapping
+              AI Hazard Analysis & Department Mapping
             </h2>
             <p className="text-xs text-slate-500 font-medium">
               AI classified severity, checked duplicate reports nearby, and auto-routed to the responsible department.
@@ -647,7 +648,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black uppercase tracking-wider text-cyan-300 flex items-center">
                   <Sparkles className="w-4 h-4 mr-1 text-cyan-300" />
-                  Gemini AI Vision Assessment
+                  AI Vision Assessment
                 </span>
                 <span className="px-3 py-0.5 text-xs font-bold bg-indigo-500/20 text-cyan-300 rounded-full border border-indigo-500/40">
                   {aiAnalysis.confidenceScore}% Certainty
@@ -693,7 +694,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                 onChange={(e) => {
                   const val = e.target.value as SeverityLevel;
                   setSeverity(val);
-                  if (val === 'Critical') setIsEmergency(true);
+                  setIsEmergency(val === 'Critical');
                 }}
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-800"
               >
@@ -723,17 +724,21 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
             </div>
 
             <div className="space-y-1.5 flex flex-col justify-end">
-              <label className="flex items-center space-x-2 p-3 bg-red-50 rounded-xl border border-red-200 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isEmergency}
-                  onChange={(e) => setIsEmergency(e.target.checked)}
-                  className="w-4 h-4 text-red-600 rounded"
-                />
-                <span className="text-xs font-extrabold text-red-700 uppercase tracking-wider">
-                  Flag as Emergency Priority
-                </span>
-              </label>
+              {severity === 'Critical' ? (
+                <label className="flex items-center space-x-2 p-3 bg-red-50 rounded-xl border border-red-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isEmergency}
+                    onChange={(e) => setIsEmergency(e.target.checked)}
+                    className="w-4 h-4 text-red-600 rounded"
+                  />
+                  <span className="text-xs font-extrabold text-red-700 uppercase tracking-wider">
+                    Flag as Emergency Priority
+                  </span>
+                </label>
+              ) : (
+                <div className="hidden sm:block min-h-[46px]" />
+              )}
             </div>
           </div>
 
@@ -752,7 +757,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               className="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-600/30 flex items-center space-x-2 transition-all hover:scale-105"
             >
               <CheckCircle2 className="w-5 h-5" />
-              <span>Submit Anonymous Report</span>
+              <span>Submit Report</span>
             </button>
           </div>
         </div>

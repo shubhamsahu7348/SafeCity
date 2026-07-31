@@ -217,8 +217,8 @@ export const HazardMap: React.FC<HazardMapProps> = ({
         <p class="text-xs text-slate-600 mb-2 truncate">${c.address}</p>
         <div class="flex items-center justify-between pt-1 border-t border-slate-100">
           <span class="text-[10px] font-medium text-slate-500">ID: ${c.id}</span>
-          <button id="view-detail-${c.id}" class="px-2.5 py-1 bg-blue-600 text-white font-semibold text-xs rounded hover:bg-blue-700 transition-colors">
-            View Details
+          <button id="view-detail-${c.id}" class="px-2.5 py-1 bg-blue-600 text-white font-semibold text-xs rounded hover:bg-blue-700 transition-colors flex items-center space-x-1">
+            <span>🔍 View Details</span>
           </button>
         </div>
       `;

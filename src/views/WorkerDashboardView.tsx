@@ -15,6 +15,7 @@ import {
   Film,
   Plus,
   Trash2,
+  FileText,
 } from 'lucide-react';
 import { Complaint, Worker, AIVerificationResponse, ComplaintStatus } from '../types';
 
@@ -380,8 +381,13 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
                   </span>
                   <h2 className="text-xl font-extrabold text-slate-900 mt-1">{selectedTask.title}</h2>
                 </div>
-                <span className="px-3 py-1 bg-amber-100 text-amber-800 font-bold text-xs rounded-full">
-                  Status: {selectedTask.status}
+                <span className="px-3 py-1 bg-amber-50 text-amber-900 border border-amber-200 font-extrabold text-xs rounded-full inline-flex items-center space-x-1.5 shadow-sm">
+                  {selectedTask.status === 'In Progress' && <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0 animate-pulse" />}
+                  {selectedTask.status === 'Submitted' && <FileText className="w-3.5 h-3.5 text-blue-600 shrink-0" />}
+                  {selectedTask.status === 'Assigned' && <HardHat className="w-3.5 h-3.5 text-violet-600 shrink-0" />}
+                  {selectedTask.status === 'Work Submitted' && <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />}
+                  {selectedTask.status === 'Resolved' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                  <span>Status: {selectedTask.status}</span>
                 </span>
               </div>
 
@@ -467,9 +473,10 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
                       <button
                         type="button"
                         onClick={handleAddBeforeVideoLink}
-                        className="px-3 py-1.5 bg-amber-700 hover:bg-amber-600 text-white font-bold text-xs rounded-xl whitespace-nowrap"
+                        className="px-3 py-1.5 bg-amber-700 hover:bg-amber-600 text-white font-bold text-xs rounded-xl whitespace-nowrap flex items-center space-x-1"
                       >
-                        Add Link
+                        <Plus className="w-3.5 h-3.5 text-amber-200" />
+                        <span>Add Link</span>
                       </button>
                     </div>
                   </div>
@@ -611,9 +618,10 @@ export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
                       <button
                         type="button"
                         onClick={handleAddAfterVideoLink}
-                        className="px-3 py-1.5 bg-cyan-800 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl whitespace-nowrap"
+                        className="px-3 py-1.5 bg-cyan-800 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl whitespace-nowrap flex items-center space-x-1"
                       >
-                        Add Link
+                        <Plus className="w-3.5 h-3.5 text-cyan-200" />
+                        <span>Add Link</span>
                       </button>
                     </div>
                   </div>

@@ -361,65 +361,72 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('live-map')}
-            className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium ${
+            className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium flex items-center space-x-1 ${
               activeTab === 'live-map' ? 'bg-blue-600 text-white' : 'text-slate-300'
             }`}
           >
-            Live Map
+            <MapPin className="w-3.5 h-3.5" />
+            <span>Live Map</span>
           </button>
           <button
             onClick={() => setActiveTab('risk-heatmap')}
-            className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium ${
+            className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium flex items-center space-x-1 ${
               activeTab === 'risk-heatmap' ? 'bg-blue-600 text-white' : 'text-slate-300'
             }`}
           >
-            GIS Heatmap
+            <Layers className="w-3.5 h-3.5" />
+            <span>GIS Heatmap</span>
           </button>
           <button
             onClick={() => setActiveTab('track')}
-            className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium ${
+            className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium flex items-center space-x-1 ${
               activeTab === 'track' ? 'bg-blue-600 text-white' : 'text-slate-300'
             }`}
           >
-            Track ID
+            <Search className="w-3.5 h-3.5" />
+            <span>Track ID</span>
           </button>
           {(userRole === 'officer' || currentUser?.role === 'officer' || currentUser?.role === 'admin') && (
             <button
               onClick={() => setActiveTab('department')}
-              className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium ${
+              className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium flex items-center space-x-1 ${
                 activeTab === 'department' ? 'bg-amber-600 text-white' : 'text-slate-300'
               }`}
             >
-              Dept View
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Dept View</span>
             </button>
           )}
           {(userRole === 'worker' || currentUser?.role === 'worker' || currentUser?.role === 'admin') && (
             <button
               onClick={() => setActiveTab('worker')}
-              className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium ${
+              className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium flex items-center space-x-1 ${
                 activeTab === 'worker' ? 'bg-emerald-600 text-white' : 'text-slate-300'
               }`}
             >
-              Worker View
+              <HardHat className="w-3.5 h-3.5" />
+              <span>Worker View</span>
             </button>
           )}
           {(userRole === 'admin' || currentUser?.role === 'admin') && (
             <button
               onClick={() => setActiveTab('admin')}
-              className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium ${
+              className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium flex items-center space-x-1 ${
                 activeTab === 'admin' ? 'bg-purple-600 text-white' : 'text-slate-300'
               }`}
             >
-              Admin View
+              <Settings className="w-3.5 h-3.5" />
+              <span>Admin View</span>
             </button>
           )}
           <button
             onClick={() => setActiveTab('analytics')}
-            className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium ${
+            className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium flex items-center space-x-1 ${
               activeTab === 'analytics' ? 'bg-blue-600 text-white' : 'text-slate-300'
             }`}
           >
-            Analytics
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Analytics</span>
           </button>
         </div>
       </div>

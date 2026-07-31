@@ -14,6 +14,9 @@ import {
   Home,
   XCircle,
   Ban,
+  X,
+  RefreshCw,
+  FileText,
 } from 'lucide-react';
 import { Complaint, Worker, Department, ComplaintStatus, TimelineEvent } from '../types';
 import { ComplaintDetailModal } from '../components/ComplaintDetailModal';
@@ -302,12 +305,33 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
                         <span>Rejected (Fake)</span>
                       </span>
                     ) : c.status === 'Resolved' ? (
-                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full font-bold">
-                        Resolved
+                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full font-bold inline-flex items-center space-x-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>Resolved</span>
+                      </span>
+                    ) : c.status === 'In Progress' ? (
+                      <span className="px-2.5 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full font-bold inline-flex items-center space-x-1 animate-pulse">
+                        <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span>In Progress</span>
+                      </span>
+                    ) : c.status === 'Submitted' ? (
+                      <span className="px-2.5 py-1 bg-slate-100 text-slate-800 border border-slate-300 rounded-full font-bold inline-flex items-center space-x-1">
+                        <FileText className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                        <span>Submitted</span>
+                      </span>
+                    ) : c.status === 'Verified' ? (
+                      <span className="px-2.5 py-1 bg-indigo-100 text-indigo-900 border border-indigo-300 rounded-full font-bold inline-flex items-center space-x-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                        <span>Verified</span>
+                      </span>
+                    ) : c.status === 'Assigned' ? (
+                      <span className="px-2.5 py-1 bg-violet-100 text-violet-900 border border-violet-300 rounded-full font-bold inline-flex items-center space-x-1">
+                        <HardHat className="w-3.5 h-3.5 text-violet-600 shrink-0" />
+                        <span>Assigned</span>
                       </span>
                     ) : (
-                      <span className="px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full font-bold">
-                        {c.status}
+                      <span className="px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full font-bold inline-flex items-center space-x-1">
+                        <span>{c.status}</span>
                       </span>
                     )}
                   </td>
@@ -325,27 +349,30 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
                     {(c.status === 'In Progress' || c.status === 'Resolved') && (
                       <button
                         onClick={() => handleStartReverification(c)}
-                        className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold border border-indigo-200 rounded-lg shadow-sm text-[11px]"
+                        className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold border border-indigo-200 rounded-lg shadow-sm text-[11px] inline-flex items-center space-x-1"
                       >
-                        Audit / Reassign
+                        <RefreshCw className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Audit / Reassign</span>
                       </button>
                     )}
 
                     {c.status === 'Submitted' && (
                       <button
                         onClick={() => handleVerify(c.id)}
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm"
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm inline-flex items-center space-x-1"
                       >
-                        Verify Complaint
+                        <CheckCircle2 className="w-3.5 h-3.5 text-cyan-200" />
+                        <span>Verify Complaint</span>
                       </button>
                     )}
 
                     {(c.status === 'Submitted' || c.status === 'Verified') && (
                       <button
                         onClick={() => setAssigningComplaint(c)}
-                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-sm"
+                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-sm inline-flex items-center space-x-1"
                       >
-                        Assign Worker
+                        <UserCheck className="w-3.5 h-3.5 text-amber-200" />
+                        <span>Assign Worker</span>
                       </button>
                     )}
 
@@ -362,9 +389,10 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
 
                     <button
                       onClick={() => setSelectedComplaint(c)}
-                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg"
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg inline-flex items-center space-x-1"
                     >
-                      Audit
+                      <FileText className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Audit</span>
                     </button>
                   </td>
                 </tr>
@@ -409,16 +437,18 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
             <div className="pt-3 flex justify-end space-x-2">
               <button
                 onClick={() => setAssigningComplaint(null)}
-                className="px-4 py-2 bg-slate-100 font-bold text-xs rounded-xl"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 font-bold text-xs text-slate-700 rounded-xl flex items-center space-x-1 transition-colors"
               >
-                Cancel
+                <X className="w-3.5 h-3.5" />
+                <span>Cancel</span>
               </button>
               <button
                 onClick={handleAssignWorker}
                 disabled={!selectedWorkerId}
-                className="px-5 py-2 bg-amber-600 text-white font-extrabold text-xs rounded-xl shadow-md disabled:opacity-50"
+                className="px-5 py-2 bg-amber-600 text-white font-extrabold text-xs rounded-xl shadow-md disabled:opacity-50 flex items-center space-x-1.5"
               >
-                Confirm Dispatch
+                <UserCheck className="w-4 h-4" />
+                <span>Confirm Dispatch</span>
               </button>
             </div>
           </div>
@@ -486,9 +516,10 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
             <div className="pt-2 flex justify-end space-x-2">
               <button
                 onClick={() => setRejectingComplaint(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 font-bold text-xs text-slate-700 rounded-xl transition-colors"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 font-bold text-xs text-slate-700 rounded-xl transition-colors flex items-center space-x-1"
               >
-                Cancel
+                <X className="w-3.5 h-3.5" />
+                <span>Cancel</span>
               </button>
               <button
                 onClick={handleConfirmReject}
@@ -525,7 +556,7 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
                 onClick={() => setReverifyingComplaint(null)}
                 className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 font-bold"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -704,9 +735,10 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
             <div className="pt-3 border-t border-slate-100 flex justify-end space-x-2">
               <button
                 onClick={() => setReverifyingComplaint(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center space-x-1"
               >
-                Cancel
+                <X className="w-3.5 h-3.5" />
+                <span>Cancel</span>
               </button>
 
               {reverifyDecision === 'Satisfactory' ? (

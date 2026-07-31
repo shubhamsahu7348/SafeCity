@@ -538,9 +538,10 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
 
             <button
               onClick={onClose}
-              className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl transition-colors"
+              className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl transition-colors flex items-center space-x-1.5"
             >
-              Close
+              <X className="w-4 h-4 text-slate-300" />
+              <span>Close</span>
             </button>
           </div>
         </div>

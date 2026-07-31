@@ -60,9 +60,9 @@ export const LandingView: React.FC<LandingViewProps> = ({
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight">
-            Report Hazards Anonymously.{' '}
+            Report Hazards Privately.{' '}
             <span className="bg-gradient-to-r from-cyan-300 via-indigo-300 to-pink-300 bg-clip-text text-transparent">
-              Resolve Issues Instantly.
+              Make Your City Safer.
             </span>
           </h1>
 
@@ -207,7 +207,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
           </span>
           <h2 className="text-2xl font-black text-slate-900">How SafeCity Solves Public Hazards</h2>
           <p className="text-xs font-medium text-slate-600">
-            End-to-end transparent hazard intelligence workflow powered by Gemini vision models
+            End-to-end transparent hazard intelligence workflow powered by advanced AI vision models
           </p>
         </div>
 
@@ -228,7 +228,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
             </div>
             <h3 className="font-extrabold text-slate-900 text-sm">AI Analysis & Routing</h3>
             <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              Gemini AI classifies severity, checks duplicate hazards nearby, and routes to correct municipal department.
+              AI classifies severity, checks duplicate hazards nearby, and routes to correct municipal department.
             </p>
           </div>
 

@@ -27,7 +27,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ workers, onGoHome }) => {
           </div>
           <h1 className="text-3xl font-extrabold text-white">SafeCity Platform Control</h1>
           <p className="text-xs sm:text-sm text-purple-200">
-            Manage officer & field worker accounts, credentials & access control, Gemini AI classification thresholds, and system integration parameters.
+            Manage officer & field worker accounts, credentials & access control, AI classification thresholds, and system integration parameters.
           </p>
         </div>
 
@@ -58,11 +58,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ workers, onGoHome }) => {
 
           <div className="space-y-4 text-xs font-medium text-slate-700">
             <div className="space-y-1">
-              <label className="font-bold text-slate-800">Primary Gemini Model</label>
+              <label className="font-bold text-slate-800">Primary AI Model</label>
               <input
                 type="text"
                 disabled
-                value="gemini-3.6-flash (Server Side @google/genai)"
+                value="v3.6-flash (Server Side AI)"
                 className="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl font-mono text-[11px] font-bold text-slate-700"
               />
             </div>
