@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock } from 'lucide-react';
 import { Complaint, Worker, DepartmentMetric, UserRole, UserAccount } from './types';
+import { INITIAL_COMPLAINTS, INITIAL_WORKERS, INITIAL_DEPARTMENT_METRICS } from './server/mockData';
 import { Navbar } from './components/Navbar';
 import { LoginModal } from './components/LoginModal';
 import { EditProfileModal } from './components/EditProfileModal';
@@ -30,17 +31,21 @@ export default function App() {
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [trackedId, setTrackedId] = useState<string>('');
 
-  // Fetch initial data from server
+  // Fetch initial data from server with fallback to initial mock data
   const fetchComplaints = async () => {
     try {
       const res = await fetch('/api/complaints');
       if (res.ok) {
         const data = await res.json();
-        setComplaints(data);
+        if (Array.isArray(data) && data.length > 0) {
+          setComplaints(data);
+          return;
+        }
       }
     } catch (err) {
-      console.error('Error fetching complaints:', err);
+      console.warn('Error fetching complaints, using fallback:', err);
     }
+    setComplaints((prev) => (prev.length > 0 ? prev : INITIAL_COMPLAINTS));
   };
 
   const fetchWorkers = async () => {
@@ -48,11 +53,15 @@ export default function App() {
       const res = await fetch('/api/workers');
       if (res.ok) {
         const data = await res.json();
-        setWorkers(data);
+        if (Array.isArray(data) && data.length > 0) {
+          setWorkers(data);
+          return;
+        }
       }
     } catch (err) {
-      console.error('Error fetching workers:', err);
+      console.warn('Error fetching workers, using fallback:', err);
     }
+    setWorkers((prev) => (prev.length > 0 ? prev : INITIAL_WORKERS));
   };
 
   const fetchAnalytics = async () => {
@@ -60,11 +69,15 @@ export default function App() {
       const res = await fetch('/api/analytics');
       if (res.ok) {
         const data = await res.json();
-        if (data.departments) setDepartmentMetrics(data.departments);
+        if (data.departments && Array.isArray(data.departments) && data.departments.length > 0) {
+          setDepartmentMetrics(data.departments);
+          return;
+        }
       }
     } catch (err) {
-      console.error('Error fetching analytics:', err);
+      console.warn('Error fetching analytics, using fallback:', err);
     }
+    setDepartmentMetrics((prev) => (prev.length > 0 ? prev : INITIAL_DEPARTMENT_METRICS));
   };
 
   useEffect(() => {

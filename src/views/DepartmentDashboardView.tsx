@@ -209,6 +209,29 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
     setSelectedWorkerId('');
   };
 
+  // Action: Traffic Officer resolves complaint directly without field worker dispatch
+  const handleTrafficOfficerDirectResolve = (c: Complaint) => {
+    const note = `Resolved directly on-site by Traffic Officer (${officerName}). Traffic patrol inspected and handled the situation.`;
+    const newTimelineEvent: TimelineEvent = {
+      id: `tl-${Date.now()}`,
+      status: 'Resolved',
+      timestamp: new Date().toISOString(),
+      actor: officerName,
+      actorRole: 'Traffic Police Officer',
+      note: note,
+    };
+
+    onUpdateComplaint(c.id, {
+      status: 'Resolved',
+      verifiedByOfficer: officerName,
+      officerSatisfaction: 'Satisfactory',
+      officerReviewNotes: note,
+      updatedAt: new Date().toISOString(),
+      timeline: [...c.timeline, newTimelineEvent],
+    });
+    alert(`Complaint #${c.id} marked RESOLVED directly by Traffic Officer ${officerName}!`);
+  };
+
   // Action: Officer Closes Complaint
   const handleCloseComplaint = (id: string) => {
     onUpdateComplaint(id, {
@@ -412,13 +435,24 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
                     )}
 
                     {(c.status === 'Submitted' || c.status === 'Verified') && (
-                      <button
-                        onClick={() => setAssigningComplaint(c)}
-                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-sm inline-flex items-center space-x-1"
-                      >
-                        <UserCheck className="w-3.5 h-3.5 text-amber-200" />
-                        <span>Assign Worker</span>
-                      </button>
+                      (c.assignedDepartment === 'Traffic Police Department' || selectedDept === 'Traffic Police Department') ? (
+                        <button
+                          onClick={() => handleTrafficOfficerDirectResolve(c)}
+                          className="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white font-black rounded-lg shadow-sm inline-flex items-center space-x-1 transition-all"
+                          title="Traffic Police Department operates directly via Traffic Officers (No field workers)"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
+                          <span>Action (Traffic Officer)</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setAssigningComplaint(c)}
+                          className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-sm inline-flex items-center space-x-1"
+                        >
+                          <UserCheck className="w-3.5 h-3.5 text-amber-200" />
+                          <span>Assign Worker</span>
+                        </button>
+                      )
                     )}
 
                     {c.status !== 'Resolved' && c.status !== 'Rejected' && (
@@ -459,47 +493,84 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4">
             <h3 className="font-extrabold text-lg text-slate-900">
-              Dispatch Worker for {assigningComplaint.id}
+              Dispatch Action for {assigningComplaint.id}
             </h3>
-            <p className="text-xs text-slate-500">
-              Select available field technician in {assigningComplaint.assignedDepartment}
-            </p>
+            
+            {(assigningComplaint.assignedDepartment === 'Traffic Police Department' || selectedDept === 'Traffic Police Department') ? (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-3 text-slate-800">
+                <div className="flex items-center space-x-2 text-amber-900 font-extrabold text-sm">
+                  <Building2 className="w-5 h-5 text-indigo-600" />
+                  <span>Traffic Police Department Direct Handling</span>
+                </div>
+                <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                  Traffic Police Department operates exclusively with Traffic Officers on patrol. Field worker dispatch is not used for traffic enforcement/signal issues.
+                </p>
+                <div className="pt-2 flex justify-end space-x-2">
+                  <button
+                    onClick={() => setAssigningComplaint(null)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 font-bold text-xs text-slate-700 rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleTrafficOfficerDirectResolve(assigningComplaint);
+                      setAssigningComplaint(null);
+                    }}
+                    className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center space-x-1.5"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-cyan-200" />
+                    <span>Resolve Directly as Traffic Officer</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-slate-500">
+                  Select available field technician in {assigningComplaint.assignedDepartment}
+                </p>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 uppercase">Available Workers</label>
-              <select
-                value={selectedWorkerId}
-                onChange={(e) => setSelectedWorkerId(e.target.value)}
-                className="w-full p-3 border border-slate-300 rounded-xl font-bold text-sm"
-              >
-                <option value="">-- Choose Field Worker --</option>
-                {workers
-                  .filter((w) => w.department === (assigningComplaint.assignedDepartment || selectedDept))
-                  .map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name} ({w.status} - {w.activeTasksCount} active tasks)
-                    </option>
-                  ))}
-              </select>
-            </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase">Available Workers</label>
+                  <select
+                    value={selectedWorkerId}
+                    onChange={(e) => setSelectedWorkerId(e.target.value)}
+                    className="w-full p-3 border border-slate-300 rounded-xl font-bold text-sm"
+                  >
+                    <option value="">-- Choose Field Worker --</option>
+                    {workers
+                      .filter((w) => {
+                        const targetDept = assigningComplaint.assignedDepartment || selectedDept;
+                        if (!targetDept || targetDept === 'All') return true;
+                        return w.department === targetDept;
+                      })
+                      .map((w) => (
+                        <option key={w.id} value={w.id}>
+                          {w.name} ({w.status} - {w.activeTasksCount} active tasks)
+                        </option>
+                      ))}
+                  </select>
+                </div>
 
-            <div className="pt-3 flex justify-end space-x-2">
-              <button
-                onClick={() => setAssigningComplaint(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 font-bold text-xs text-slate-700 rounded-xl flex items-center space-x-1 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-                <span>Cancel</span>
-              </button>
-              <button
-                onClick={handleAssignWorker}
-                disabled={!selectedWorkerId}
-                className="px-5 py-2 bg-amber-600 text-white font-extrabold text-xs rounded-xl shadow-md disabled:opacity-50 flex items-center space-x-1.5"
-              >
-                <UserCheck className="w-4 h-4" />
-                <span>Confirm Dispatch</span>
-              </button>
-            </div>
+                <div className="pt-3 flex justify-end space-x-2">
+                  <button
+                    onClick={() => setAssigningComplaint(null)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 font-bold text-xs text-slate-700 rounded-xl flex items-center space-x-1 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Cancel</span>
+                  </button>
+                  <button
+                    onClick={handleAssignWorker}
+                    disabled={!selectedWorkerId}
+                    className="px-5 py-2 bg-amber-600 text-white font-extrabold text-xs rounded-xl shadow-md disabled:opacity-50 flex items-center space-x-1.5"
+                  >
+                    <UserCheck className="w-4 h-4" />
+                    <span>Confirm Dispatch</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -755,7 +826,11 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
                       className="w-full p-2.5 border border-rose-300 rounded-xl text-xs bg-white text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-rose-500"
                     >
                       {workers
-                        .filter((w) => w.department === (reverifyingComplaint.assignedDepartment || selectedDept))
+                        .filter((w) => {
+                          const targetDept = reverifyingComplaint.assignedDepartment || selectedDept;
+                          if (!targetDept || targetDept === 'All') return true;
+                          return w.department === targetDept;
+                        })
                         .map((w) => (
                           <option key={w.id} value={w.id}>
                             {w.name} ({w.status}) {w.id === reverifyingComplaint.assignedWorkerId ? '(Currently Assigned)' : ''}

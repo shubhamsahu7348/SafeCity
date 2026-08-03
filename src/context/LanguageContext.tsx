@@ -344,6 +344,7 @@ const translations: Record<Language, Record<string, string>> = {
     'category.sanitation': 'स्वच्छता/कचरा का खतरा',
     'category.environmental': 'पर्यावरण का खतरा',
     'category.safety': 'सार्वजनिक सुरक्षा का खतरा',
+    'category.traffic': 'ट्रैफिक पुलिस / यातायात उल्लंघन',
 
     // Departments
     'dept.road': 'सड़क विभाग',
@@ -352,6 +353,7 @@ const translations: Record<Language, Record<string, string>> = {
     'dept.sanitation': 'स्वच्छता एवं कचरा प्रबंधन',
     'dept.environmental': 'पर्यावरण संरक्षण विभाग',
     'dept.safety': 'सार्वजनिक सुरक्षा एवं बुनियादी ढांचा',
+    'dept.traffic': 'ट्रैफिक पुलिस विभाग',
 
     // Report Hazard View
     'report.wizard.step1': 'मीडिया अपलोड करें',
@@ -493,6 +495,12 @@ const translations: Record<Language, Record<string, string>> = {
     'analytics.score_col': 'सार्वजनिक स्कोर',
     'analytics.hrs': 'घंटे',
 
+    // Card UI
+    'card.citizens': 'नागरिक',
+    'card.track_status': 'स्थिति ट्रैक करें',
+    'card.citizens_upvoted': 'नागरिकों ने अपवोट किया',
+    'card.upvote': 'अपवोट',
+
     // Track & Evidence
     'track.portal': 'नागरिक पारदर्शिता पोर्टल',
     'track.title': 'शिकायत की स्थिति और साक्ष्य ट्रैक करें',
@@ -615,14 +623,16 @@ const translations: Record<Language, Record<string, string>> = {
     'category.sanitation': 'स्वच्छतेचा धोका',
     'category.environmental': 'पर्यावरणाचा धोका',
     'category.safety': 'सार्वजनिक सुरक्षेचा धोका',
+    'category.traffic': 'ट्रॅफिक पोलीस / वाहतूक उल्लंघन',
 
     // Departments
     'dept.road': 'रस्ते विभाग',
     'dept.electricity': 'विद्युत विभाग',
-    'dept.water': 'पाणी आणि सांडपाणी विभाग',
-    'dept.sanitation': 'स्वच्छता आणि कचरा व्यवस्थापन',
+    'dept.water': 'पाणी व सांडपाणी विभाग',
+    'dept.sanitation': 'स्वच्छता व कचरा व्यवस्थापन',
     'dept.environmental': 'पर्यावरण संरक्षण विभाग',
-    'dept.safety': 'सार्वजनिक सुरक्षा आणि पायाभूत सुविधा',
+    'dept.safety': 'सार्वजनिक सुरक्षा व पायाभूत सुविधा',
+    'dept.traffic': 'ट्रॅफिक पोलीस विभाग',
 
     // Report Hazard View
     'report.wizard.step1': 'मीडिया अपलोड करा',
@@ -822,6 +832,12 @@ const translations: Record<Language, Record<string, string>> = {
     'report.share_gmail': 'जीमेल ड्राफ्ट उघडा',
     'report.share_native': 'सिस्टमद्वारे शेअर करा',
 
+    // Card UI
+    'card.citizens': 'नागरिक',
+    'card.track_status': 'स्थिती ट्रॅक करा',
+    'card.citizens_upvoted': 'नागरिकांनी अपव्होट केले',
+    'card.upvote': 'अपव्होट',
+
     'language.select': 'भाषा (Language)',
     'language.en': 'English',
     'language.hi': 'हिंदी (Hindi)',
@@ -847,6 +863,38 @@ const textTranslations: Record<Language, Record<string, string>> = {
     'Garbage Accumulation near Market': 'बाजार के पास कचरे का ढेर',
     'Water Leakage on Park Avenue': 'पार्क एवेन्यू पर पानी का रिसाव',
     'Damaged Transformer': 'क्षतिग्रस्त ट्रांसफार्मर',
+
+    // Traffic & Violation Phrases
+    'traffic violation': 'ट्रैफिक नियम का उल्लंघन',
+    'Traffic violation': 'ट्रैफिक नियम का उल्लंघन',
+    'Traffic Violation': 'ट्रैफिक नियम का उल्लंघन',
+    'traffic violations': 'ट्रैफिक नियमों का उल्लंघन',
+    'Traffic violations': 'ट्रैफिक नियमों का उल्लंघन',
+    'Traffic Violations': 'ट्रैफिक नियमों का उल्लंघन',
+    'traffic police': 'ट्रैफिक पुलिस',
+    'Traffic police': 'ट्रैफिक पुलिस',
+    'Traffic Police': 'ट्रैफिक पुलिस',
+    'Traffic Police Department': 'ट्रैफिक पुलिस विभाग',
+    'Traffic Police Officer': 'ट्रैफिक पुलिस अधिकारी',
+    'traffic signal broken': 'ट्रैफिक सिग्नल खराब / बंद',
+    'Traffic signal broken': 'ट्रैफिक सिग्नल खराब / बंद',
+    'Traffic Signal Broken': 'ट्रैफिक सिग्नल खराब / बंद',
+    'traffic signal failure': 'ट्रैफिक सिग्नल विफलता',
+    'Traffic signal failure': 'ट्रैफिक सिग्नल विफलता',
+    'Traffic Signal Failure': 'ट्रैफिक सिग्नल विफलता',
+    'illegal parking': 'अवैध पार्किंग',
+    'Illegal parking': 'अवैध पार्किंग',
+    'Illegal Parking': 'अवैध पार्किंग',
+    'driving on wrong side': 'गलत दिशा में ड्राइविंग',
+    'Driving on wrong side': 'गलत दिशा में ड्राइविंग',
+    'Wrong side driving': 'गलत दिशा में ड्राइविंग',
+    'speeding vehicle': 'तेज रफ्तार वाहन',
+    'Speeding vehicle': 'तेज रफ्तार वाहन',
+    'traffic congestion': 'ट्रैफिक जाम / भीड़भाड़',
+    'Traffic congestion': 'ट्रैफिक जाम / भीड़भाड़',
+    'traffic jam': 'ट्रैफिक जाम',
+    'Traffic jam': 'ट्रैफिक जाम',
+    'Traffic Jam': 'ट्रैफिक जाम',
 
     // SubCategories
     'Open Wire': 'खुला तार',
@@ -924,6 +972,38 @@ const textTranslations: Record<Language, Record<string, string>> = {
     'Garbage Accumulation near Market': 'बाजाराजवळ कचऱ्याचा साचलेला ढीग',
     'Water Leakage on Park Avenue': 'पार्क एव्हेन्यूवर पाण्याची गळती',
     'Damaged Transformer': 'नादुरुस्त ट्रान्सफॉर्मर',
+
+    // Traffic & Violation Phrases
+    'traffic violation': 'वाहतूक नियमांचे उल्लंघन',
+    'Traffic violation': 'वाहतूक नियमांचे उल्लंघन',
+    'Traffic Violation': 'वाहतूक नियमांचे उल्लंघन',
+    'traffic violations': 'वाहतूक नियमांचे उल्लंघन',
+    'Traffic violations': 'वाहतूक नियमांचे उल्लंघन',
+    'Traffic Violations': 'वाहतूक नियमांचे उल्लंघन',
+    'traffic police': 'ट्रॅफिक पोलीस',
+    'Traffic police': 'ट्रॅफिक पोलीस',
+    'Traffic Police': 'ट्रॅफिक पोलीस',
+    'Traffic Police Department': 'ट्रॅफिक पोलीस विभाग',
+    'Traffic Police Officer': 'ट्रॅफिक पोलीस अधिकारी',
+    'traffic signal broken': 'ट्रॅफिक सिग्नल नादुरुस्त / बंद',
+    'Traffic signal broken': 'ट्रॅफिक सिग्नल नादुरुस्त / बंद',
+    'Traffic Signal Broken': 'ट्रॅफिक सिग्नल नादुरुस्त / बंद',
+    'traffic signal failure': 'ट्रॅफिक सिग्नल विफलता',
+    'Traffic signal failure': 'ट्रॅफिक सिग्नल विफलता',
+    'Traffic Signal Failure': 'ट्रॅफिक सिग्नल विफलता',
+    'illegal parking': 'बेकायदेशीर पार्किंग',
+    'Illegal parking': 'बेकायदेशीर पार्किंग',
+    'Illegal Parking': 'बेकायदेशीर पार्किंग',
+    'driving on wrong side': 'उलट्या दिशेने वाहन चालवणे',
+    'Driving on wrong side': 'उलट्या दिशेने वाहन चालवणे',
+    'Wrong side driving': 'उलट्या दिशेने वाहन चालवणे',
+    'speeding vehicle': 'अतिवेगाने जाणारे वाहन',
+    'Speeding vehicle': 'अतिवेगाने जाणारे वाहन',
+    'traffic congestion': 'वाहतूक कोंडी',
+    'Traffic congestion': 'वाहतूक कोंडी',
+    'traffic jam': 'वाहतूक कोंडी',
+    'Traffic jam': 'वाहतूक कोंडी',
+    'Traffic Jam': 'वाहतूक कोंडी',
 
     // SubCategories
     'Open Wire': 'उघडी तार',
@@ -1021,8 +1101,9 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (lower.includes('water')) return t('category.water', 'Water Hazard');
     if (lower.includes('sanitat') || lower.includes('waste')) return t('category.sanitation', 'Sanitation Hazard');
     if (lower.includes('environ')) return t('category.environmental', 'Environmental Hazard');
+    if (lower.includes('traffic') || lower.includes('violat')) return t('category.traffic', 'Traffic Police / Violation');
     if (lower.includes('safety') || lower.includes('public')) return t('category.safety', 'Public Safety Hazard');
-    return cat;
+    return translateText(cat);
   };
 
   const translateDepartment = (dept: string): string => {
@@ -1033,8 +1114,9 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (lower.includes('water') || lower.includes('sewer')) return t('dept.water', 'Water & Sewerage');
     if (lower.includes('sanitat') || lower.includes('waste')) return t('dept.sanitation', 'Sanitation & Waste');
     if (lower.includes('environ')) return t('dept.environmental', 'Environmental Protection');
+    if (lower.includes('traffic')) return t('dept.traffic', 'Traffic Police Department');
     if (lower.includes('safety') || lower.includes('infrastr')) return t('dept.safety', 'Public Safety & Infrastructure');
-    return dept;
+    return translateText(dept);
   };
 
   const translateStatus = (status: string): string => {
@@ -1076,42 +1158,255 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return translations[language][trimmed];
     }
 
-    // 3. Case-insensitive exact lookup
-    const lower = trimmed.toLowerCase();
+    // 3. Case-insensitive exact lookup in textTranslations
     const dict = textTranslations[language] || {};
+    const lower = trimmed.toLowerCase();
     for (const key of Object.keys(dict)) {
       if (key.toLowerCase() === lower) {
         return dict[key];
       }
     }
 
-    const genDict = translations[language] || {};
-    for (const key of Object.keys(genDict)) {
-      if (key.toLowerCase() === lower) {
-        return genDict[key];
-      }
-    }
-
-    // 4. Sub-phrase substring replacements (longest keys first)
+    // 4. Sub-phrase substring replacements (longest keys in textTranslations first)
     let result = trimmed;
-    let replaced = false;
-
-    const combinedDict = { ...genDict, ...dict };
-    const sortedKeys = Object.keys(combinedDict).sort((a, b) => b.length - a.length);
+    const sortedKeys = Object.keys(dict).sort((a, b) => b.length - a.length);
 
     for (const key of sortedKeys) {
-      if (key.length < 3) continue;
+      if (key.length < 2) continue;
       const keyLower = key.toLowerCase();
       if (result.toLowerCase().includes(keyLower)) {
         const regex = new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-        result = result.replace(regex, combinedDict[key]);
-        replaced = true;
+        result = result.replace(regex, dict[key]);
       }
     }
 
-    if (replaced) return result;
+    // 5. Fallback word-level replacement for dynamically entered or remaining English hazard text
+    const hiWords: Record<string, string> = {
+      'traffic': 'ट्रैफिक',
+      'violation': 'उल्लंघन',
+      'violations': 'उल्लंघन',
+      'violating': 'उल्लंघन',
+      'police': 'पुलिस',
+      'signal': 'सिग्नल',
+      'signals': 'सिग्नल',
+      'rule': 'नियम',
+      'rules': 'नियम',
+      'speeding': 'तेज गति',
+      'parking': 'पार्किंग',
+      'illegal': 'अवैध',
+      'wrong': 'गलत',
+      'side': 'दिशा / साइड',
+      'lane': 'लेन',
+      'lanes': 'लेन',
+      'vehicle': 'वाहन',
+      'vehicles': 'वाहन',
+      'pothole': 'गड्ढा',
+      'potholes': 'गड्ढे',
+      'water': 'पानी',
+      'leak': 'रिसाव',
+      'leakage': 'रिसाव',
+      'pipe': 'पाइप',
+      'pipes': 'पाइप',
+      'burst': 'फटना',
+      'wire': 'तार',
+      'wires': 'तार',
+      'cable': 'केबल',
+      'cables': 'केबल',
+      'open': 'खुला',
+      'exposed': 'खुला',
+      'manhole': 'मैनहोल',
+      'manholes': 'मैनहोल',
+      'sewage': 'सीवर',
+      'sewer': 'सीवर',
+      'drain': 'नाली',
+      'drainage': 'जल निकासी',
+      'garbage': 'कचरा',
+      'trash': 'कचरा',
+      'waste': 'कचरा',
+      'tree': 'पेड़',
+      'fallen': 'गिरा हुआ',
+      'broken': 'टूटा हुआ',
+      'damaged': 'क्षतिग्रस्त',
+      'light': 'लाइट',
+      'lights': 'लाइटें',
+      'lamp': 'लैंप',
+      'street': 'स्ट्रीट',
+      'road': 'सड़क',
+      'roads': 'सड़कें',
+      'surface': 'सतह',
+      'officer': 'अधिकारी',
+      'officers': 'अधिकारी',
+      'worker': 'कार्यकर्ता',
+      'workers': 'कार्यकर्ता',
+      'hazard': 'खतरा',
+      'hazards': 'खतरे',
+      'emergency': 'आपातकाल',
+      'near': 'के पास',
+      'opposite': 'के सामने',
+      'behind': 'के पीछे',
+      'front': 'के सामने',
+      'at': 'पर',
+      'on': 'पर',
+      'in': 'में',
+      'by': 'द्वारा',
+      'to': 'को',
+      'from': 'से',
+      'market': 'बाजार',
+      'school': 'स्कूल',
+      'hospital': 'अस्पताल',
+      'station': 'स्टेशन',
+      'bridge': 'पुल',
+      'park': 'पार्क',
+      'block': 'ब्लॉक',
+      'sector': 'सेक्टर',
+      'main': 'मुख्य',
+      'east': 'ईस्ट',
+      'west': 'वेस्ट',
+      'north': 'नॉर्थ',
+      'south': 'साउथ',
+      'citizen': 'नागरिक',
+      'citizens': 'नागरिक',
+      'track': 'ट्रैक',
+      'tracking': 'ट्रैकिंग',
+      'status': 'स्थिति',
+      'address': 'पता',
+      'description': 'विवरण',
+      'registered': 'पंजीकृत',
+      'register': 'पंजीकृत करें',
+      'report': 'रिपोर्ट',
+      'reported': 'रिपोर्ट किया गया',
+      'submitted': 'सबमिट किया गया',
+      'verified': 'सत्यापित',
+      'assigned': 'आवंटित',
+      'progress': 'प्रगति पर',
+      'resolved': 'हल हो गया',
+      'rejected': 'अस्वीकृत',
+      'cause': 'कारण',
+      'causing': 'वजह से',
+      'risk': 'जोखिम',
+      'danger': 'खतरा',
+      'dangerous': 'खतरनाक',
+      'area': 'क्षेत्र',
+      'zone': 'जोन',
+      'location': 'स्थान',
+      'details': 'विवरण',
+    };
 
-    return text;
+    const mrWords: Record<string, string> = {
+      'traffic': 'ट्रॅफिक',
+      'violation': 'उल्लंघन',
+      'violations': 'उल्लंघन',
+      'violating': 'उल्लंघन',
+      'police': 'पोलीस',
+      'signal': 'सिग्नल',
+      'signals': 'सिग्नल',
+      'rule': 'नियम',
+      'rules': 'नियम',
+      'speeding': 'वेगवान',
+      'parking': 'पार्किंग',
+      'illegal': 'बेकायदेशीर',
+      'wrong': 'चुकीच्या',
+      'side': 'बाजूने',
+      'lane': 'लेन',
+      'lanes': 'लेन',
+      'vehicle': 'वाहन',
+      'vehicles': 'वाहने',
+      'pothole': 'खड्डा',
+      'potholes': 'खड्डे',
+      'water': 'पाणी',
+      'leak': 'गळती',
+      'leakage': 'गळती',
+      'pipe': 'पाईप',
+      'pipes': 'पाईप्स',
+      'burst': 'फुटणे',
+      'wire': 'तार',
+      'wires': 'तारा',
+      'cable': 'केबल',
+      'cables': 'केबल्स',
+      'open': 'उघडे',
+      'exposed': 'उघडे',
+      'manhole': 'मॅनहोल',
+      'manholes': 'मॅनहोल्स',
+      'sewage': 'गटार',
+      'sewer': 'गटार',
+      'drain': 'नाली',
+      'drainage': 'निचरण्याची सोय',
+      'garbage': 'कचरा',
+      'trash': 'कचरा',
+      'waste': 'कचरा',
+      'tree': 'झाड',
+      'fallen': 'पडलेले',
+      'broken': 'तुटलेले',
+      'damaged': 'नादुरुस्त',
+      'light': 'लाईट',
+      'lights': 'दिवे',
+      'lamp': 'दिवा',
+      'street': 'रस्ता',
+      'road': 'रस्ता',
+      'roads': 'रस्ते',
+      'surface': 'भाग',
+      'officer': 'अधिकारी',
+      'officers': 'अधिकारी',
+      'worker': 'कर्मचारी',
+      'workers': 'कर्मचारी',
+      'hazard': 'धोका',
+      'hazards': 'धोके',
+      'emergency': 'आणीबाणी',
+      'near': 'जवळ',
+      'opposite': 'समोर',
+      'behind': 'मागे',
+      'front': 'समोर',
+      'at': 'येथे',
+      'on': 'वर',
+      'in': 'मध्ये',
+      'by': 'द्वारे',
+      'to': 'ला',
+      'from': 'पासून',
+      'market': 'बाजार',
+      'school': 'शाळा',
+      'hospital': 'रुग्णालय',
+      'station': 'स्टेशन',
+      'bridge': 'पूल',
+      'park': 'पार्क',
+      'block': 'ब्लॉक',
+      'sector': 'सेक्टर',
+      'main': 'मुख्य',
+      'east': 'पूर्व',
+      'west': 'पश्चिम',
+      'citizen': 'नागरिक',
+      'citizens': 'नागरिक',
+      'track': 'ट्रॅक',
+      'tracking': 'ट्रॅकिंग',
+      'status': 'स्थिती',
+      'address': 'पत्ता',
+      'description': 'वर्णन',
+      'registered': 'नोंदणीकृत',
+      'register': 'नोंदणी करा',
+      'report': 'अहवाल',
+      'reported': 'नोंदवले',
+      'submitted': 'सादर केले',
+      'verified': 'सत्यापित',
+      'assigned': 'नियुक्त',
+      'progress': 'प्रगतीवर',
+      'resolved': 'सोडवले',
+      'rejected': 'नाकारले',
+      'risk': 'धोका',
+      'danger': 'धोका',
+      'dangerous': 'धोकादायक',
+      'area': 'भाग',
+      'zone': 'झोन',
+      'location': 'स्थान',
+      'details': 'तपशील',
+    };
+
+    const wordDict = language === 'hi' ? hiWords : language === 'mr' ? mrWords : null;
+    if (wordDict) {
+      for (const [engWord, transWord] of Object.entries(wordDict)) {
+        result = result.replace(new RegExp(`\\b${engWord}\\b`, 'gi'), transWord);
+      }
+    }
+
+    return result;
   };
 
   return (

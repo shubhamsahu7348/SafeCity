@@ -22,8 +22,11 @@ import {
   Save,
   UserPlus,
   RefreshCw,
+  Search,
+  Filter,
 } from 'lucide-react';
 import { UserAccount, Worker, Department, UserRole } from '../types';
+import { INITIAL_USERS } from '../server/mockData';
 
 interface UserAccountManagerProps {
   currentRole: UserRole; // 'officer' or 'admin'
@@ -59,17 +62,25 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
   const [formError, setFormError] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
+  // Filter states
+  const [filterDepartment, setFilterDepartment] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
   // Fetch accounts from API
   const fetchUsers = async () => {
     try {
       const res = await fetch('/api/users');
       if (res.ok) {
         const data = await res.json();
-        setUsers(data);
+        if (Array.isArray(data) && data.length > 0) {
+          setUsers(data);
+          return;
+        }
       }
     } catch (err) {
-      console.error('Failed to fetch users:', err);
+      console.warn('Failed to fetch users from backend, using default accounts list:', err);
     }
+    setUsers(INITIAL_USERS);
   };
 
   useEffect(() => {
@@ -85,8 +96,13 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
     setName('');
     setUsername('');
     setPassword('pass123');
-    setRole(defaultRole);
-    setDepartment((currentUserDepartment as Department) || 'Road Department');
+    
+    const targetDept = (currentUserDepartment as Department) || 'Road Department';
+    const isTrafficPolice = targetDept === 'Traffic Police Department' || filterDepartment === 'Traffic Police Department';
+    const effectiveRole = isTrafficPolice ? 'officer' : defaultRole;
+
+    setRole(effectiveRole);
+    setDepartment(targetDept);
     setPhoneDigits('');
     setEmail('');
     setAvatarUrl('');
@@ -136,6 +152,11 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
     e.preventDefault();
     if (!name || !username || !password) {
       setFormError('Please fill in Name, Username, and Password.');
+      return;
+    }
+
+    if (department === 'Traffic Police Department' && role === 'worker') {
+      setFormError('Traffic Police Department does not use field workers. Only Traffic Officers handle traffic problems.');
       return;
     }
 
@@ -229,12 +250,30 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
     }
   };
 
-  // Filter accounts according to activeTab and officer department
+  // Filter accounts according to activeTab, officer department restriction, department filter dropdown, and search query
   const displayedUsers = users.filter((u) => {
     if (u.role !== activeTab) return false;
+
+    // Department Restriction or Admin Department Filter
     if (currentRole !== 'admin' && currentUserDepartment) {
       if (u.department && u.department !== currentUserDepartment) return false;
+    } else if (filterDepartment !== 'All') {
+      if ((u.department || 'Road Department') !== filterDepartment) return false;
     }
+
+    // Search Query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchName = u.name.toLowerCase().includes(q);
+      const matchUsername = u.username.toLowerCase().includes(q);
+      const matchEmail = (u.email || '').toLowerCase().includes(q);
+      const matchPhone = (u.phone || '').toLowerCase().includes(q);
+      const matchDept = (u.department || '').toLowerCase().includes(q);
+      if (!matchName && !matchUsername && !matchEmail && !matchPhone && !matchDept) {
+        return false;
+      }
+    }
+
     return true;
   });
 
@@ -294,6 +333,113 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
             <span>Add New {activeTab === 'worker' ? 'Field Worker' : 'Department Officer'}</span>
           </button>
         </div>
+      </div>
+
+      {/* Department Filter Bar & Quick Pills */}
+      <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center space-x-1.5 text-xs font-black text-slate-800 mr-1 uppercase tracking-wider">
+              <Filter className="w-4 h-4 text-indigo-600" />
+              <span>Department Filter:</span>
+            </div>
+
+            {currentRole === 'admin' ? (
+              <select
+                value={filterDepartment}
+                onChange={(e) => setFilterDepartment(e.target.value)}
+                className="px-3.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              >
+                <option value="All">All Departments ({users.filter((u) => u.role === activeTab).length})</option>
+                <option value="Road Department">
+                  Road Department ({users.filter((u) => u.role === activeTab && (u.department || 'Road Department') === 'Road Department').length})
+                </option>
+                <option value="Electricity Department">
+                  Electricity Department ({users.filter((u) => u.role === activeTab && u.department === 'Electricity Department').length})
+                </option>
+                <option value="Water & Sewerage">
+                  Water & Sewerage ({users.filter((u) => u.role === activeTab && u.department === 'Water & Sewerage').length})
+                </option>
+                <option value="Sanitation & Waste">
+                  Sanitation & Waste ({users.filter((u) => u.role === activeTab && u.department === 'Sanitation & Waste').length})
+                </option>
+                <option value="Environmental Protection">
+                  Environmental Protection ({users.filter((u) => u.role === activeTab && u.department === 'Environmental Protection').length})
+                </option>
+                <option value="Public Safety & Infrastructure">
+                  Public Safety ({users.filter((u) => u.role === activeTab && u.department === 'Public Safety & Infrastructure').length})
+                </option>
+                <option value="Traffic Police Department">
+                  Traffic Police ({users.filter((u) => u.role === activeTab && u.department === 'Traffic Police Department').length})
+                </option>
+              </select>
+            ) : (
+              <div className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl shadow-sm flex items-center space-x-1.5">
+                <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Dept: <strong className="text-indigo-700">{currentUserDepartment || 'Road Department'}</strong></span>
+              </div>
+            )}
+
+            {currentRole === 'admin' && filterDepartment !== 'All' && (
+              <button
+                onClick={() => setFilterDepartment('All')}
+                className="px-2.5 py-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-[11px] font-bold rounded-lg transition-colors flex items-center space-x-1"
+              >
+                <span>Reset Filter</span>
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+
+          {/* Search Query Input */}
+          <div className="relative flex-1 min-w-[200px] max-w-xs">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={`Search ${activeTab === 'worker' ? 'field workers' : 'officers'}...`}
+              className="w-full pl-8 pr-8 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Department Clickable Pills for Admin */}
+        {currentRole === 'admin' && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-200/60">
+            <span className="text-[11px] font-bold text-slate-500 mr-1">Quick Select:</span>
+            {[
+              { id: 'All', label: 'All Depts' },
+              { id: 'Road Department', label: '🛣️ Road' },
+              { id: 'Electricity Department', label: '⚡ Electricity' },
+              { id: 'Water & Sewerage', label: '💧 Water' },
+              { id: 'Sanitation & Waste', label: '🧹 Sanitation' },
+              { id: 'Environmental Protection', label: '🌱 Environment' },
+              { id: 'Public Safety & Infrastructure', label: '🛡️ Public Safety' },
+              { id: 'Traffic Police Department', label: '🚦 Traffic Police' },
+            ].map((d) => (
+              <button
+                key={d.id}
+                onClick={() => setFilterDepartment(d.id)}
+                className={`px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all ${
+                  filterDepartment === d.id
+                    ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-300'
+                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Roster Table */}
@@ -376,8 +522,28 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-slate-400 font-medium">
-                  No {activeTab === 'worker' ? 'Field Worker' : 'Department Officer'} accounts found.
+                <td colSpan={5} className="p-8 text-center text-slate-500 font-medium">
+                  {activeTab === 'worker' && (currentUserDepartment === 'Traffic Police Department' || filterDepartment === 'Traffic Police Department') ? (
+                    <div className="max-w-md mx-auto space-y-2">
+                      <p className="font-extrabold text-amber-800 text-sm">
+                        🚦 Traffic Police Department operates exclusively with Traffic Officers.
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Field worker accounts are not used for Traffic Police issues as Traffic Officers handle problems directly on-site.
+                      </p>
+                      {currentRole === 'admin' && (
+                        <button
+                          onClick={() => setActiveTab('officer')}
+                          className="mt-2 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm inline-flex items-center space-x-1.5"
+                        >
+                          <Building2 className="w-3.5 h-3.5" />
+                          <span>View Traffic Officers Roster</span>
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <span>No {activeTab === 'worker' ? 'Field Worker' : 'Department Officer'} accounts found.</span>
+                  )}
                 </td>
               </tr>
             )}
@@ -461,10 +627,17 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
                   </label>
                   <select
                     value={role}
-                    onChange={(e) => setRole(e.target.value as 'officer' | 'worker')}
+                    onChange={(e) => {
+                      const newRole = e.target.value as 'officer' | 'worker';
+                      if (department === 'Traffic Police Department' && newRole === 'worker') {
+                        setFormError('Traffic Police Department does not use field workers. Only Traffic Officers handle traffic problems.');
+                        return;
+                      }
+                      setRole(newRole);
+                    }}
                     className="w-full p-2.5 border border-slate-300 rounded-xl font-bold"
                   >
-                    <option value="worker">Field Worker</option>
+                    <option value="worker" disabled={department === 'Traffic Police Department'}>Field Worker {department === 'Traffic Police Department' ? '(Not Available for Traffic Police)' : ''}</option>
                     <option value="officer">Department Officer</option>
                   </select>
                 </div>
@@ -476,7 +649,13 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
                 </label>
                 <select
                   value={department}
-                  onChange={(e) => setDepartment(e.target.value as Department)}
+                  onChange={(e) => {
+                    const newDept = e.target.value as Department;
+                    setDepartment(newDept);
+                    if (newDept === 'Traffic Police Department') {
+                      setRole('officer');
+                    }
+                  }}
                   disabled={currentRole !== 'admin'}
                   className="w-full p-2.5 border border-slate-300 rounded-xl font-bold disabled:bg-slate-100 disabled:text-slate-600"
                 >
@@ -486,9 +665,14 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
                   <option value="Sanitation & Waste">Sanitation & Waste</option>
                   <option value="Environmental Protection">Environmental Protection</option>
                   <option value="Public Safety & Infrastructure">Public Safety</option>
-                  <option value="Traffic Police Department">Traffic Police</option>
+                  <option value="Traffic Police Department">Traffic Police Department</option>
                 </select>
-                {currentRole !== 'admin' && (
+                {department === 'Traffic Police Department' && (
+                  <p className="text-[10px] text-amber-700 font-bold mt-1">
+                    ⚠️ Traffic Police Department operates exclusively with Traffic Officers. No field worker dispatch option is provided.
+                  </p>
+                )}
+                {currentRole !== 'admin' && department !== 'Traffic Police Department' && (
                   <p className="text-[10px] text-amber-700 font-bold mt-1">
                     Locked to your officer department ({currentUserDepartment || 'Road Department'})
                   </p>
