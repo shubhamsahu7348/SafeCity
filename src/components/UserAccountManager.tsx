@@ -27,12 +27,14 @@ import { UserAccount, Worker, Department, UserRole } from '../types';
 
 interface UserAccountManagerProps {
   currentRole: UserRole; // 'officer' or 'admin'
+  currentUserDepartment?: string;
   workers: Worker[];
   onRefreshData?: () => void;
 }
 
 export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
   currentRole,
+  currentUserDepartment,
   workers,
   onRefreshData,
 }) => {
@@ -84,7 +86,7 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
     setUsername('');
     setPassword('pass123');
     setRole(defaultRole);
-    setDepartment('Road Department');
+    setDepartment((currentUserDepartment as Department) || 'Road Department');
     setPhoneDigits('');
     setEmail('');
     setAvatarUrl('');
@@ -227,8 +229,14 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
     }
   };
 
-  // Filter accounts according to activeTab
-  const displayedUsers = users.filter((u) => u.role === activeTab);
+  // Filter accounts according to activeTab and officer department
+  const displayedUsers = users.filter((u) => {
+    if (u.role !== activeTab) return false;
+    if (currentRole !== 'admin' && currentUserDepartment) {
+      if (u.department && u.department !== currentUserDepartment) return false;
+    }
+    return true;
+  });
 
   return (
     <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
@@ -469,7 +477,8 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
                 <select
                   value={department}
                   onChange={(e) => setDepartment(e.target.value as Department)}
-                  className="w-full p-2.5 border border-slate-300 rounded-xl font-bold"
+                  disabled={currentRole !== 'admin'}
+                  className="w-full p-2.5 border border-slate-300 rounded-xl font-bold disabled:bg-slate-100 disabled:text-slate-600"
                 >
                   <option value="Road Department">Road Department</option>
                   <option value="Electricity Department">Electricity Department</option>
@@ -477,7 +486,13 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
                   <option value="Sanitation & Waste">Sanitation & Waste</option>
                   <option value="Environmental Protection">Environmental Protection</option>
                   <option value="Public Safety & Infrastructure">Public Safety</option>
+                  <option value="Traffic Police Department">Traffic Police</option>
                 </select>
+                {currentRole !== 'admin' && (
+                  <p className="text-[10px] text-amber-700 font-bold mt-1">
+                    Locked to your officer department ({currentUserDepartment || 'Road Department'})
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

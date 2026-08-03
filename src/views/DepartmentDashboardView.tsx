@@ -18,7 +18,7 @@ import {
   RefreshCw,
   FileText,
 } from 'lucide-react';
-import { Complaint, Worker, Department, ComplaintStatus, TimelineEvent } from '../types';
+import { Complaint, Worker, Department, ComplaintStatus, TimelineEvent, UserAccount } from '../types';
 import { ComplaintDetailModal } from '../components/ComplaintDetailModal';
 import { UserAccountManager } from '../components/UserAccountManager';
 import { useLanguage } from '../context/LanguageContext';
@@ -26,6 +26,7 @@ import { useLanguage } from '../context/LanguageContext';
 interface DepartmentDashboardViewProps {
   complaints: Complaint[];
   workers: Worker[];
+  currentUser?: UserAccount | null;
   onUpdateComplaint: (id: string, updates: Partial<Complaint>) => void;
   onUpvoteComplaint: (id: string) => void;
   onGoHome?: () => void;
@@ -34,12 +35,32 @@ interface DepartmentDashboardViewProps {
 export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = ({
   complaints,
   workers,
+  currentUser,
   onUpdateComplaint,
   onUpvoteComplaint,
   onGoHome,
 }) => {
   const { t, translateCategory, translateDepartment, translateStatus, translateSeverity, translateText } = useLanguage();
-  const [selectedDept, setSelectedDept] = useState<string>('All');
+
+  const officerName = currentUser?.name || 'Officer Robert Chen';
+  const isAdmin = currentUser?.role === 'admin';
+
+  const [selectedDept, setSelectedDept] = React.useState<string>(() => {
+    if (currentUser?.role === 'admin') return 'All';
+    if (currentUser?.department) return currentUser.department;
+    return 'Road Department';
+  });
+
+  React.useEffect(() => {
+    if (currentUser) {
+      if (currentUser.role === 'admin') {
+        setSelectedDept('All');
+      } else if (currentUser.department) {
+        setSelectedDept(currentUser.department);
+      }
+    }
+  }, [currentUser]);
+
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [assigningComplaint, setAssigningComplaint] = useState<Complaint | null>(null);
@@ -71,13 +92,13 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
     if (reverifyDecision === 'Satisfactory') {
       const fullNote = officerNotes.trim()
         ? `OFFICER RE-VERIFICATION SATISFACTORY: ${officerNotes.trim()}`
-        : 'Work inspected onsite by Officer Sarah Jenkins and verified as Satisfactory.';
+        : `Work inspected onsite by ${officerName} and verified as Satisfactory.`;
 
       const newTimelineEvent: TimelineEvent = {
         id: `tl-${Date.now()}`,
         status: 'Resolved',
         timestamp: new Date().toISOString(),
-        actor: 'Officer Sarah Jenkins',
+        actor: officerName,
         actorRole: 'Department Officer',
         note: fullNote,
       };
@@ -85,7 +106,7 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
       onUpdateComplaint(reverifyingComplaint.id, {
         status: 'Resolved',
         officerSatisfaction: 'Satisfactory',
-        verifiedByOfficer: 'Officer Sarah Jenkins',
+        verifiedByOfficer: officerName,
         officerReviewNotes: fullNote,
         updatedAt: new Date().toISOString(),
         timeline: [...reverifyingComplaint.timeline, newTimelineEvent],
@@ -104,7 +125,7 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
         id: `tl-${Date.now()}`,
         status: 'Assigned',
         timestamp: new Date().toISOString(),
-        actor: 'Officer Sarah Jenkins',
+        actor: officerName,
         actorRole: 'Department Officer',
         note: reworkNote,
       };
@@ -114,7 +135,7 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
         officerSatisfaction: 'Unsatisfactory',
         reworkReason: reworkNote,
         officerReviewNotes: officerNotes,
-        verifiedByOfficer: 'Officer Sarah Jenkins',
+        verifiedByOfficer: officerName,
         assignedWorkerId: selectedWorker?.id,
         assignedWorkerName: selectedWorker?.name,
         updatedAt: new Date().toISOString(),
@@ -138,8 +159,8 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
   const handleVerify = (id: string) => {
     onUpdateComplaint(id, {
       status: 'Verified',
-      verifiedByOfficer: 'Officer Sarah Jenkins',
-      verificationNotes: 'Verified onsite via official patrol inspection.',
+      verifiedByOfficer: officerName,
+      verificationNotes: `Verified onsite via official patrol inspection by ${officerName}.`,
     });
   };
 
@@ -147,7 +168,7 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
   const handleConfirmReject = () => {
     if (!rejectingComplaint) return;
 
-    const fullReasonNote = `REJECTED BY OFFICER: [${rejectReasonCategory}] ${
+    const fullReasonNote = `REJECTED BY OFFICER (${officerName}): [${rejectReasonCategory}] ${
       rejectExplanation.trim() ? `- ${rejectExplanation.trim()}` : ''
     }`;
 
@@ -155,14 +176,14 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
       id: `tl-${Date.now()}`,
       status: 'Rejected' as ComplaintStatus,
       timestamp: new Date().toISOString(),
-      actor: 'Officer Sarah Jenkins',
+      actor: officerName,
       actorRole: 'Department Officer',
       note: fullReasonNote,
     };
 
     onUpdateComplaint(rejectingComplaint.id, {
       status: 'Rejected',
-      verifiedByOfficer: 'Officer Sarah Jenkins',
+      verifiedByOfficer: officerName,
       verificationNotes: fullReasonNote,
       updatedAt: new Date().toISOString(),
       timeline: [...rejectingComplaint.timeline, newTimelineEvent],
@@ -204,9 +225,23 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
             <Building2 className="w-6 h-6 text-amber-300" />
             <h1 className="text-2xl font-extrabold text-white">Department Officer Operations Portal</h1>
           </div>
-          <p className="text-xs text-amber-200 mt-1">
-            Verify citizen complaints, dispatch field workers, and review AI completion audits
-          </p>
+          
+          {/* Logged in Officer details badge */}
+          <div className="flex flex-wrap items-center gap-2 mt-2.5">
+            <div className="px-3 py-1 bg-amber-950/90 border border-amber-700/80 text-amber-200 text-xs font-bold rounded-xl flex items-center space-x-1.5 shadow-inner">
+              <UserCheck className="w-3.5 h-3.5 text-amber-400" />
+              <span>Logged In Officer: <strong className="text-white font-extrabold">{officerName}</strong></span>
+            </div>
+            <div className="px-3 py-1 bg-amber-950/90 border border-amber-700/80 text-amber-200 text-xs font-bold rounded-xl flex items-center space-x-1.5 shadow-inner">
+              <Building2 className="w-3.5 h-3.5 text-amber-400" />
+              <span>Department: <strong className="text-amber-300 font-extrabold">{currentUser?.department || selectedDept}</strong></span>
+            </div>
+            {!isAdmin && (
+              <span className="px-2.5 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase rounded-lg tracking-wider">
+                Single Dept View
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Filters & Navigation */}
@@ -222,19 +257,27 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
             </button>
           )}
 
-          <select
-            value={selectedDept}
-            onChange={(e) => setSelectedDept(e.target.value)}
-            className="px-3.5 py-2 bg-amber-950 border border-amber-800 text-white text-xs font-bold rounded-xl focus:outline-none"
-          >
-            <option value="All">All Departments</option>
-            <option value="Road Department">Road Department</option>
-            <option value="Electricity Department">Electricity Department</option>
-            <option value="Water & Sewerage">Water & Sewerage</option>
-            <option value="Sanitation & Waste">Sanitation & Waste</option>
-            <option value="Environmental Protection">Environmental Protection</option>
-            <option value="Public Safety & Infrastructure">Public Safety</option>
-          </select>
+          {isAdmin ? (
+            <select
+              value={selectedDept}
+              onChange={(e) => setSelectedDept(e.target.value)}
+              className="px-3.5 py-2 bg-amber-950 border border-amber-800 text-white text-xs font-bold rounded-xl focus:outline-none"
+            >
+              <option value="All">All Departments</option>
+              <option value="Road Department">Road Department</option>
+              <option value="Electricity Department">Electricity Department</option>
+              <option value="Water & Sewerage">Water & Sewerage</option>
+              <option value="Sanitation & Waste">Sanitation & Waste</option>
+              <option value="Environmental Protection">Environmental Protection</option>
+              <option value="Public Safety & Infrastructure">Public Safety</option>
+              <option value="Traffic Police Department">Traffic Police</option>
+            </select>
+          ) : (
+            <div className="px-3.5 py-2 bg-amber-950/90 border border-amber-800 text-amber-200 text-xs font-bold rounded-xl flex items-center space-x-1.5 shadow-inner">
+              <Building2 className="w-3.5 h-3.5 text-amber-400" />
+              <span>Dept: <strong className="text-white font-extrabold">{selectedDept}</strong></span>
+            </div>
+          )}
 
           <select
             value={statusFilter}
@@ -405,7 +448,11 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
       </div>
 
       {/* Field Worker Accounts & Credentials Management Section */}
-      <UserAccountManager currentRole="officer" workers={workers} />
+      <UserAccountManager
+        currentRole={isAdmin ? 'admin' : 'officer'}
+        currentUserDepartment={currentUser?.department || selectedDept}
+        workers={workers}
+      />
 
       {/* Worker Assignment Modal */}
       {assigningComplaint && (
@@ -427,7 +474,7 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
               >
                 <option value="">-- Choose Field Worker --</option>
                 {workers
-                  .filter((w) => w.department === assigningComplaint.assignedDepartment || true)
+                  .filter((w) => w.department === (assigningComplaint.assignedDepartment || selectedDept))
                   .map((w) => (
                     <option key={w.id} value={w.id}>
                       {w.name} ({w.status} - {w.activeTasksCount} active tasks)
@@ -708,7 +755,7 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
                       className="w-full p-2.5 border border-rose-300 rounded-xl text-xs bg-white text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-rose-500"
                     >
                       {workers
-                        .filter((w) => w.department === reverifyingComplaint.assignedDepartment || true)
+                        .filter((w) => w.department === (reverifyingComplaint.assignedDepartment || selectedDept))
                         .map((w) => (
                           <option key={w.id} value={w.id}>
                             {w.name} ({w.status}) {w.id === reverifyingComplaint.assignedWorkerId ? '(Currently Assigned)' : ''}

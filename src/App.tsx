@@ -215,6 +215,7 @@ export default function App() {
               <DepartmentDashboardView
                 complaints={complaints}
                 workers={workers}
+                currentUser={currentUser}
                 onUpdateComplaint={handleUpdateComplaint}
                 onUpvoteComplaint={handleUpvoteComplaint}
                 onGoHome={() => setActiveTab('landing')}
@@ -253,6 +254,7 @@ export default function App() {
               <WorkerDashboardView
                 complaints={complaints}
                 workers={workers}
+                currentUser={currentUser}
                 onUpdateComplaint={handleUpdateComplaint}
                 onGoHome={() => setActiveTab('landing')}
               />

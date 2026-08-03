@@ -17,12 +17,13 @@ import {
   Trash2,
   FileText,
 } from 'lucide-react';
-import { Complaint, Worker, AIVerificationResponse, ComplaintStatus } from '../types';
+import { Complaint, Worker, AIVerificationResponse, ComplaintStatus, UserAccount } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 
 interface WorkerDashboardViewProps {
   complaints: Complaint[];
   workers: Worker[];
+  currentUser?: UserAccount | null;
   onUpdateComplaint: (id: string, updates: Partial<Complaint>) => void;
   onGoHome?: () => void;
 }
@@ -30,12 +31,20 @@ interface WorkerDashboardViewProps {
 export const WorkerDashboardView: React.FC<WorkerDashboardViewProps> = ({
   complaints,
   workers,
+  currentUser,
   onUpdateComplaint,
   onGoHome,
 }) => {
   const { t, translateCategory, translateDepartment, translateStatus, translateSeverity, translateText } = useLanguage();
-  // Current active worker (Marcus Vance by default for field demo)
-  const currentWorker = workers[0];
+  
+  // Find current active worker based on logged in account or default to first worker
+  const currentWorker =
+    workers.find(
+      (w) =>
+        (currentUser?.workerId && w.id === currentUser.workerId) ||
+        (currentUser?.username && w.username === currentUser.username) ||
+        (currentUser?.name && w.name.toLowerCase() === currentUser.name.toLowerCase())
+    ) || workers[0];
 
   // Get tasks assigned to this worker or in 'Assigned' / 'In Progress' state
   const assignedTasks = complaints.filter(
