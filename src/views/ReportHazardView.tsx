@@ -59,6 +59,11 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResponse | null>(null);
   const [duplicateCheck, setDuplicateCheck] = useState<AIDuplicateCheckResponse | null>(null);
 
+  // Vehicle License Plate & Violation State
+  const [vehiclePlateNumber, setVehiclePlateNumber] = useState<string>('');
+  const [violationType, setViolationType] = useState<string>('');
+  const [isPlateDetectedByAI, setIsPlateDetectedByAI] = useState<boolean>(false);
+
   // Editable fields initialized by AI
   const [category, setCategory] = useState<HazardCategory>('Road Hazard');
   const [subCategory, setSubCategory] = useState<string>('Pothole');
@@ -231,6 +236,14 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
         setSeverity(resolvedSeverity);
         setIsEmergency(resolvedSeverity === 'Critical');
         setDepartment(data.suggestedDepartment);
+
+        if (data.detectedVehiclePlateNumber) {
+          setVehiclePlateNumber(data.detectedVehiclePlateNumber);
+          setIsPlateDetectedByAI(true);
+        }
+        if (data.violationType) {
+          setViolationType(data.violationType);
+        }
       }
 
       // 2. Check Duplicates
@@ -263,7 +276,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
     const primaryVideo = videos[0] || undefined;
 
     const payload = {
-      title: `${subCategory} Hazard at ${address.split(',')[0]}`,
+      title: `${subCategory} ${category === 'Traffic Violation' ? 'Violation' : 'Hazard'} at ${address.split(',')[0]}`,
       category,
       subCategory,
       severity,
@@ -277,6 +290,10 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
       longitude,
       address,
       assignedDepartment: department,
+      vehiclePlateNumber: vehiclePlateNumber.trim().toUpperCase() || undefined,
+      aiDetectedPlateNumber: aiAnalysis?.detectedVehiclePlateNumber || vehiclePlateNumber.trim().toUpperCase() || undefined,
+      licensePlateDetectedByAI: isPlateDetectedByAI || !!vehiclePlateNumber,
+      violationType: violationType || (category === 'Traffic Violation' ? subCategory : undefined),
     };
 
     try {
@@ -677,7 +694,13 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               </label>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value as HazardCategory)}
+                onChange={(e) => {
+                  const val = e.target.value as HazardCategory;
+                  setCategory(val);
+                  if (val === 'Traffic Violation') {
+                    setDepartment('Traffic Police Department');
+                  }
+                }}
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-800"
               >
                 <option value="Road Hazard">{t('category.road', 'Road Hazard')}</option>
@@ -686,6 +709,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                 <option value="Sanitation Hazard">{t('category.sanitation', 'Sanitation Hazard')}</option>
                 <option value="Environmental Hazard">{t('category.environmental', 'Environmental Hazard')}</option>
                 <option value="Public Safety Hazard">{t('category.safety', 'Public Safety Hazard')}</option>
+                <option value="Traffic Violation">{t('category.traffic', 'Traffic Police / Violation')}</option>
               </select>
             </div>
 
@@ -724,6 +748,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                 <option value="Sanitation & Waste">{t('dept.sanitation', 'Sanitation & Waste')}</option>
                 <option value="Environmental Protection">{t('dept.environmental', 'Environmental Protection')}</option>
                 <option value="Public Safety & Infrastructure">{t('dept.safety', 'Public Safety & Infrastructure')}</option>
+                <option value="Traffic Police Department">{t('dept.traffic', 'Traffic Police Department')}</option>
               </select>
             </div>
 
@@ -743,6 +768,40 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
               ) : (
                 <div className="hidden sm:block min-h-[46px]" />
               )}
+            </div>
+          </div>
+
+          {/* AI Vehicle License Plate Recognition & Edit Card */}
+          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center space-x-2 text-amber-900 font-extrabold text-sm">
+                <Sparkles className="w-5 h-5 text-amber-600" />
+                <span>{t('traffic.plate_title', 'AI Vehicle License Plate Recognition')}</span>
+              </div>
+              {isPlateDetectedByAI && (
+                <span className="px-2.5 py-0.5 bg-amber-200 text-amber-900 font-bold text-[10px] rounded-full uppercase tracking-wider">
+                  AI Direct Vision Extracted
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-amber-900 font-medium leading-relaxed">
+              {t('traffic.plate_desc', 'AI Vision automatically copies vehicle nameplate numbers. You can verify or edit the detected plate number below:')}
+            </p>
+            <div className="flex items-center space-x-2">
+              <div className="px-3 py-2.5 bg-yellow-400 text-black font-black text-xs font-mono rounded-xl border-2 border-slate-900 shadow-sm shrink-0 flex items-center space-x-1">
+                <span>IND</span>
+              </div>
+              <input
+                type="text"
+                value={vehiclePlateNumber}
+                onChange={(e) => setVehiclePlateNumber(e.target.value.toUpperCase())}
+                placeholder={t('traffic.plate_placeholder', 'E.g., MH 12 AB 1234')}
+                className="flex-1 px-4 py-2.5 bg-white border-2 border-amber-300 focus:border-amber-500 rounded-xl font-mono font-black text-slate-900 text-sm tracking-widest uppercase shadow-inner"
+              />
+            </div>
+            <div className="text-[11px] text-amber-900/90 font-bold flex items-center space-x-1.5 pt-1">
+              <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
+              <span>Flow: Directly routed to Traffic Police Officer. Police officer levies e-Challan fine based on plate number (no field worker needed).</span>
             </div>
           </div>
 

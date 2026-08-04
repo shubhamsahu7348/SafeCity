@@ -78,6 +78,58 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
   const [reworkWorkerId, setReworkWorkerId] = useState<string>('');
   const [reworkReasonCategory, setReworkReasonCategory] = useState<string>('Hazard repair incomplete or unsatisfactory');
 
+  // Traffic e-Challan Issuance State
+  const [challanModalComplaint, setChallanModalComplaint] = useState<Complaint | null>(null);
+  const [challanPlateNumber, setChallanPlateNumber] = useState<string>('');
+  const [challanViolationType, setChallanViolationType] = useState<string>('Obstructive Illegal Parking');
+  const [challanFineAmount, setChallanFineAmount] = useState<number>(1000);
+  const [challanRemarks, setChallanRemarks] = useState<string>('Fine levied under Motor Vehicles Act. Direct action taken based on citizen photo evidence.');
+
+  const handleStartIssueChallan = (c: Complaint) => {
+    setChallanModalComplaint(c);
+    setChallanPlateNumber(c.vehiclePlateNumber || c.aiDetectedPlateNumber || 'MH-12-TP-1024');
+    setChallanViolationType(c.violationType || c.subCategory || 'Obstructive Illegal Parking');
+    setChallanFineAmount(c.fineAmount || 1000);
+    setChallanRemarks('Traffic Officer verified vehicle plate number and issued fine under Motor Vehicles Act. Direct action completed (No field worker needed).');
+  };
+
+  const handleConfirmIssueChallan = () => {
+    if (!challanModalComplaint) return;
+
+    const generatedChallanNo = `MTP-CHAL-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const now = new Date().toISOString();
+    const plate = challanPlateNumber.trim().toUpperCase();
+
+    const note = `TRAFFIC e-CHALLAN ISSUED (#${generatedChallanNo}) to Vehicle Nameplate [${plate}] for ${challanViolationType} by Traffic Police Officer (${officerName}). Penalty Fine Amount: ₹${challanFineAmount}. Remarks: ${challanRemarks}`;
+
+    const newTimelineEvent: TimelineEvent = {
+      id: `tl-${Date.now()}`,
+      status: 'Resolved',
+      timestamp: now,
+      actor: officerName,
+      actorRole: 'Traffic Police Officer',
+      note: note,
+    };
+
+    onUpdateComplaint(challanModalComplaint.id, {
+      status: 'Resolved',
+      vehiclePlateNumber: plate,
+      violationType: challanViolationType,
+      fineAmount: challanFineAmount,
+      fineStatus: 'Issued',
+      challanNumber: generatedChallanNo,
+      challanIssuedAt: now,
+      verifiedByOfficer: officerName,
+      officerSatisfaction: 'Satisfactory',
+      officerReviewNotes: note,
+      updatedAt: now,
+      timeline: [...challanModalComplaint.timeline, newTimelineEvent],
+    });
+
+    alert(`🚔 e-Challan #${generatedChallanNo} successfully issued to Vehicle [${plate}] for ₹${challanFineAmount}! Complaint marked RESOLVED and citizen notified.`);
+    setChallanModalComplaint(null);
+  };
+
   const handleStartReverification = (complaint: Complaint) => {
     setReverifyingComplaint(complaint);
     setReverifyDecision('Satisfactory');
@@ -437,12 +489,12 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
                     {(c.status === 'Submitted' || c.status === 'Verified') && (
                       (c.assignedDepartment === 'Traffic Police Department' || selectedDept === 'Traffic Police Department') ? (
                         <button
-                          onClick={() => handleTrafficOfficerDirectResolve(c)}
-                          className="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white font-black rounded-lg shadow-sm inline-flex items-center space-x-1 transition-all"
-                          title="Traffic Police Department operates directly via Traffic Officers (No field workers)"
+                          onClick={() => handleStartIssueChallan(c)}
+                          className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-black rounded-lg shadow-md inline-flex items-center space-x-1 transition-all hover:scale-105"
+                          title="Traffic Police Officer: Direct Fine & e-Challan on Vehicle Nameplate (No field worker needed)"
                         >
-                          <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
-                          <span>Action (Traffic Officer)</span>
+                          <ShieldCheck className="w-3.5 h-3.5 text-amber-200" />
+                          <span>Issue e-Challan / Fine</span>
                         </button>
                       ) : (
                         <button
@@ -882,6 +934,169 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
                   <span>Confirm Reassign & Send for Rework</span>
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Traffic Police e-Challan Issuance Modal */}
+      {challanModalComplaint && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-xl w-full border-2 border-amber-400 shadow-2xl space-y-6 text-slate-900 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-amber-500 text-slate-950 rounded-2xl shadow-md">
+                  <ShieldCheck className="w-6 h-6 text-slate-950" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-xl text-slate-900">
+                    Issue Traffic e-Challan & Fine
+                  </h3>
+                  <p className="text-xs text-amber-800 font-bold">
+                    Traffic Police Department • Direct Officer Fine on Vehicle Nameplate (No Field Worker)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setChallanModalComplaint(null)}
+                className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 font-bold"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Complaint details preview */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="font-mono font-bold text-blue-700">Complaint ID: {challanModalComplaint.id}</span>
+                <span className="text-slate-500">{new Date(challanModalComplaint.reportedAt).toLocaleDateString()}</span>
+              </div>
+              <div><strong className="text-slate-900">Location:</strong> {challanModalComplaint.address}</div>
+              <div><strong className="text-slate-900">Report Description:</strong> {challanModalComplaint.description}</div>
+            </div>
+
+            {/* Photo / Evidence preview */}
+            {challanModalComplaint.photoUrl && (
+              <div className="relative rounded-2xl overflow-hidden border-2 border-slate-900 h-44 bg-slate-950">
+                <img
+                  src={challanModalComplaint.photoUrl}
+                  alt="Vehicle evidence"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-2 left-2 px-3 py-1 bg-black/80 text-yellow-400 font-mono text-xs font-black rounded-lg border border-yellow-500/50">
+                  📷 Vehicle Evidence Photo Attached
+                </div>
+              </div>
+            )}
+
+            {/* Form Fields */}
+            <div className="space-y-4">
+              {/* Vehicle Nameplate Input */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black text-slate-800 uppercase tracking-wider">
+                  Vehicle License / Nameplate Number (AI Extracted - Edit or Confirm)
+                </label>
+                <div className="flex items-center space-x-2">
+                  <div className="px-3 py-2.5 bg-yellow-400 text-black font-black text-xs font-mono rounded-xl border-2 border-slate-900 shadow-sm shrink-0 flex items-center space-x-1">
+                    <span>IND</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={challanPlateNumber}
+                    onChange={(e) => setChallanPlateNumber(e.target.value.toUpperCase())}
+                    placeholder="E.g., MH 12 AB 1234"
+                    className="flex-1 px-4 py-2.5 bg-white border-2 border-amber-400 focus:border-amber-600 rounded-xl font-mono font-black text-slate-900 text-base tracking-widest uppercase shadow-inner"
+                  />
+                </div>
+              </div>
+
+              {/* Violation Type */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black text-slate-800 uppercase tracking-wider">
+                  Traffic Violation Type
+                </label>
+                <select
+                  value={challanViolationType}
+                  onChange={(e) => setChallanViolationType(e.target.value)}
+                  className="w-full p-3 border-2 border-slate-300 rounded-xl text-xs font-bold bg-white text-slate-900"
+                >
+                  <option value="Red Light Signal Jumping">Red Light Signal Jumping</option>
+                  <option value="Obstructive Illegal Parking">Obstructive Illegal Parking</option>
+                  <option value="Riding Without Protective Helmet">Riding Without Protective Helmet</option>
+                  <option value="Triple Riding on Two-Wheeler">Triple Riding on Two-Wheeler</option>
+                  <option value="Driving Against One-Way Traffic">Driving Against One-Way Traffic</option>
+                  <option value="Over-speeding & Rash Driving">Over-speeding & Rash Driving</option>
+                  <option value="Using Mobile Phone While Driving">Using Mobile Phone While Driving</option>
+                  <option value="Fancy / Defective License Nameplate">Fancy / Defective License Nameplate</option>
+                </select>
+              </div>
+
+              {/* Fine Amount */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black text-slate-800 uppercase tracking-wider">
+                  Penalty Fine Amount (₹)
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[500, 1000, 1500, 2000].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setChallanFineAmount(amt)}
+                      className={`py-2 rounded-xl text-xs font-black transition-all ${
+                        challanFineAmount === amt
+                          ? 'bg-amber-600 text-white ring-2 ring-amber-400 shadow-md'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      ₹{amt}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  value={challanFineAmount}
+                  onChange={(e) => setChallanFineAmount(Number(e.target.value))}
+                  className="w-full mt-2 p-2.5 border border-slate-300 rounded-xl text-xs font-bold"
+                  placeholder="Or enter custom fine amount in ₹"
+                />
+              </div>
+
+              {/* Officer Remarks */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black text-slate-800 uppercase tracking-wider">
+                  Official Officer Remarks & Rule Section
+                </label>
+                <textarea
+                  value={challanRemarks}
+                  onChange={(e) => setChallanRemarks(e.target.value)}
+                  rows={2}
+                  className="w-full p-3 border border-slate-300 rounded-xl text-xs font-medium bg-white text-slate-900"
+                  placeholder="Enter official traffic enforcement notes..."
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 font-medium">
+              ⚡ <strong>Direct Action Flow:</strong> Clicking confirm will generate an official e-Challan receipt, resolve the complaint, and notify the reporting citizen instantly.
+            </div>
+
+            {/* Actions */}
+            <div className="pt-2 flex justify-end space-x-2">
+              <button
+                onClick={() => setChallanModalComplaint(null)}
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 font-bold text-xs text-slate-700 rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmIssueChallan}
+                disabled={!challanPlateNumber.trim()}
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-black text-xs rounded-xl shadow-lg flex items-center space-x-2 disabled:opacity-50"
+              >
+                <ShieldCheck className="w-4 h-4 text-amber-200" />
+                <span>Issue e-Challan & Levy Fine</span>
+              </button>
             </div>
           </div>
         </div>

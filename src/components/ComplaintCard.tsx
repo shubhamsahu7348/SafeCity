@@ -163,6 +163,19 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
             {translateText(complaint.description)}
           </p>
 
+          {/* Vehicle License Nameplate Badge */}
+          {(complaint.vehiclePlateNumber || complaint.aiDetectedPlateNumber) && (
+            <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-amber-100/80 text-amber-950 rounded-lg border border-amber-300 font-mono text-[11px] font-black w-fit mt-1">
+              <span className="px-1 py-0.2 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded">IND</span>
+              <span>{complaint.vehiclePlateNumber || complaint.aiDetectedPlateNumber}</span>
+              {complaint.challanNumber && (
+                <span className="ml-1 text-[9px] bg-emerald-700 text-white font-sans font-bold px-1.5 py-0.2 rounded-full">
+                  e-Challan ₹{complaint.fineAmount || 1000}
+                </span>
+              )}
+            </div>
+          )}
+
           <div className="pt-2 flex items-center text-xs text-slate-500 font-semibold">
             <MapPin className="w-3.5 h-3.5 text-indigo-500 mr-1 flex-shrink-0" />
             <span className="truncate">{translateText(complaint.address)}</span>

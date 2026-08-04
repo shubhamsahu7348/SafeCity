@@ -262,6 +262,62 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Traffic Police & Vehicle e-Challan Receipt Card */}
+              {(complaint.vehiclePlateNumber || complaint.challanNumber || complaint.assignedDepartment === 'Traffic Police Department') && (
+                <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50/80 rounded-2xl border-2 border-amber-300 space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center space-x-2 text-amber-950 font-black text-sm">
+                      <ShieldCheck className="w-5 h-5 text-amber-700" />
+                      <span>Traffic Police Enforcement & e-Challan</span>
+                    </div>
+                    {complaint.challanNumber && (
+                      <span className="px-2.5 py-0.5 bg-emerald-600 text-white font-mono font-bold text-[10px] rounded-full uppercase tracking-wider shadow-sm">
+                        e-Challan Issued
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Vehicle License Plate Display */}
+                  <div className="flex items-center space-x-3 bg-white p-3 rounded-xl border border-amber-200">
+                    <div className="px-3 py-1.5 bg-yellow-400 text-black font-black font-mono text-xs rounded-lg border-2 border-slate-900 shadow-sm flex items-center space-x-1 shrink-0">
+                      <span>IND</span>
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Identified Vehicle Nameplate</div>
+                      <div className="font-mono font-black text-lg text-slate-900 tracking-widest">
+                        {complaint.vehiclePlateNumber || complaint.aiDetectedPlateNumber || 'MH-12-AB-1234'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fine & Challan Details if issued */}
+                  {complaint.challanNumber ? (
+                    <div className="p-3 bg-white rounded-xl border border-amber-200 space-y-2 text-xs">
+                      <div className="flex items-center justify-between font-bold">
+                        <span className="text-slate-600">e-Challan Number:</span>
+                        <span className="font-mono font-extrabold text-amber-800">{complaint.challanNumber}</span>
+                      </div>
+                      <div className="flex items-center justify-between font-bold">
+                        <span className="text-slate-600">Violation Offense:</span>
+                        <span className="text-slate-900">{complaint.violationType || complaint.subCategory}</span>
+                      </div>
+                      <div className="flex items-center justify-between font-bold border-t border-slate-100 pt-2">
+                        <span className="text-slate-700">Penalty Fine Amount:</span>
+                        <span className="font-mono font-black text-base text-rose-700">₹{complaint.fineAmount || 1000}</span>
+                      </div>
+                      <div className="text-[11px] text-emerald-800 font-bold pt-1 bg-emerald-50 p-2 rounded-lg border border-emerald-200 flex items-center justify-between">
+                        <span>⚡ Officer Direct Action (No field worker required)</span>
+                        <span className="font-mono text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded">Fine Status: {complaint.fineStatus || 'Issued'}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-amber-900 font-medium">
+                      ℹ️ Reported to Traffic Police Department. Traffic Officers will verify vehicle plate and levy fine directly.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Photo & Video Evidence Display */}
