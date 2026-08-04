@@ -490,13 +490,11 @@ export const INITIAL_COMPLAINTS: Complaint[] = [
     assignedWorkerId: 'W-106',
     assignedWorkerName: 'Rohan Patil (Traffic Patrol)',
     verifiedByOfficer: 'Inspector Vikram Sharma',
-    verificationNotes: 'AI license plate camera identified vehicle plate MH-12-TR-8899. Official challan issued.',
+    verificationNotes: 'AI license plate camera identified vehicle plate MH-12-TR-8899. Awaiting officer e-Challan review.',
     vehiclePlateNumber: 'MH-12-TR-8899',
     violationType: 'Red Light Signal Jumping & Reckless Speeding',
     fineAmount: 1500,
-    fineStatus: 'Issued',
-    challanNumber: 'CH-2026-7711',
-    challanIssuedAt: new Date(Date.now() - 3600000 * 1).toISOString(),
+    fineStatus: 'Pending',
     licensePlateDetectedByAI: true,
     aiDetectedPlateNumber: 'MH-12-TR-8899',
     timeline: [
@@ -514,7 +512,7 @@ export const INITIAL_COMPLAINTS: Complaint[] = [
         timestamp: new Date(Date.now() - 3600000 * 1).toISOString(),
         actor: 'Inspector Vikram Sharma',
         actorRole: 'Traffic Police Officer',
-        note: 'Violation confirmed. Official Challan CH-2026-7711 issued for $1,500 fine.'
+        note: 'Vehicle plate MH-12-TR-8899 verified by officer. Pending official e-Challan issuance.'
       }
     ],
     upvotes: 35,

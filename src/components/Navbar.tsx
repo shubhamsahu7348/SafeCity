@@ -46,6 +46,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { language, setLanguage, t } = useLanguage();
 
+  const isStaffLoggedIn = currentUser !== null && (
+    currentUser.role === 'officer' ||
+    currentUser.role === 'admin' ||
+    currentUser.role === 'worker' ||
+    userRole !== 'citizen'
+  );
+
   const handleRoleClick = (targetRole: UserRole) => {
     if (targetRole === 'citizen') {
       setUserRole('citizen');
@@ -239,8 +246,10 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center justify-between h-16">
           {/* Logo Brand */}
           <div
-            onClick={() => setActiveTab('landing')}
-            className="flex items-center space-x-3 cursor-pointer group"
+            onClick={() => {
+              if (!isStaffLoggedIn) setActiveTab('landing');
+            }}
+            className={`flex items-center space-x-3 group ${!isStaffLoggedIn ? 'cursor-pointer' : ''}`}
           >
             <div className="p-2 bg-gradient-to-tr from-indigo-600 via-violet-600 to-cyan-500 rounded-xl shadow-md group-hover:scale-105 transition-transform">
               <ShieldAlert className="w-6 h-6 text-white" />
@@ -262,29 +271,33 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Navigation Links */}
           <nav className="hidden lg:flex items-center space-x-1.5 overflow-x-auto py-2">
-            <button
-              onClick={() => setActiveTab('landing')}
-              className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center space-x-1.5 ${
-                activeTab === 'landing'
-                  ? 'bg-gradient-to-r from-indigo-600/30 to-violet-600/30 text-indigo-300 border border-indigo-500/40 shadow-sm'
-                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
-              }`}
-            >
-              <Home className="w-4 h-4 text-cyan-400" />
-              <span>{t('nav.tab.home', 'Home')}</span>
-            </button>
+            {!isStaffLoggedIn && (
+              <button
+                onClick={() => setActiveTab('landing')}
+                className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center space-x-1.5 ${
+                  activeTab === 'landing'
+                    ? 'bg-gradient-to-r from-indigo-600/30 to-violet-600/30 text-indigo-300 border border-indigo-500/40 shadow-sm'
+                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                }`}
+              >
+                <Home className="w-4 h-4 text-cyan-400" />
+                <span>{t('nav.tab.home', 'Home')}</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => setActiveTab('report')}
-              className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center space-x-1.5 ${
-                activeTab === 'report'
-                  ? 'bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500 text-white shadow-md shadow-indigo-500/20'
-                  : 'bg-indigo-600/15 text-indigo-300 hover:bg-indigo-600/25 border border-indigo-500/30'
-              }`}
-            >
-              <PlusCircle className="w-4 h-4 text-cyan-300" />
-              <span>{t('nav.tab.report', 'Report Hazard')}</span>
-            </button>
+            {!isStaffLoggedIn && (
+              <button
+                onClick={() => setActiveTab('report')}
+                className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center space-x-1.5 ${
+                  activeTab === 'report'
+                    ? 'bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500 text-white shadow-md shadow-indigo-500/20'
+                    : 'bg-indigo-600/15 text-indigo-300 hover:bg-indigo-600/25 border border-indigo-500/30'
+                }`}
+              >
+                <PlusCircle className="w-4 h-4 text-cyan-300" />
+                <span>{t('nav.tab.report', 'Report Hazard')}</span>
+              </button>
+            )}
 
             <button
               onClick={() => setActiveTab('live-map')}
@@ -310,17 +323,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>{t('nav.tab.risk_heatmap', 'Risk Heatmap')}</span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('track')}
-              className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center space-x-1.5 ${
-                activeTab === 'track'
-                  ? 'bg-gradient-to-r from-indigo-600/30 to-violet-600/30 text-indigo-300 border border-indigo-500/40 shadow-sm'
-                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
-              }`}
-            >
-              <Search className="w-4 h-4 text-indigo-400" />
-              <span>{t('nav.tab.track', 'Track Report')}</span>
-            </button>
+            {!isStaffLoggedIn && (
+              <button
+                onClick={() => setActiveTab('track')}
+                className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center space-x-1.5 ${
+                  activeTab === 'track'
+                    ? 'bg-gradient-to-r from-indigo-600/30 to-violet-600/30 text-indigo-300 border border-indigo-500/40 shadow-sm'
+                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                }`}
+              >
+                <Search className="w-4 h-4 text-indigo-400" />
+                <span>{t('nav.tab.track', 'Track Report')}</span>
+              </button>
+            )}
 
             {(userRole === 'officer' || currentUser?.role === 'officer') && (
               <button
@@ -375,43 +390,35 @@ export const Navbar: React.FC<NavbarProps> = ({
               <BarChart3 className="w-4 h-4 text-cyan-400" />
               <span>{t('nav.tab.analytics', 'Analytics')}</span>
             </button>
-
-            <button
-              onClick={() => setActiveTab('about')}
-              className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center space-x-1.5 ${
-                activeTab === 'about'
-                  ? 'bg-gradient-to-r from-indigo-600/30 to-violet-600/30 text-indigo-300 border border-indigo-500/40 shadow-sm'
-                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
-              }`}
-            >
-              <Info className="w-4 h-4 text-slate-400" />
-              <span>{t('nav.tab.architecture', 'Architecture')}</span>
-            </button>
           </nav>
 
           {/* Quick Primary Action Button */}
           <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setActiveTab('report')}
-              className="lg:hidden px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-cyan-500 text-white flex items-center space-x-1 shadow-md"
-            >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>{t('nav.tab.report', 'Report')}</span>
-            </button>
+            {!isStaffLoggedIn && (
+              <button
+                onClick={() => setActiveTab('report')}
+                className="lg:hidden px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-cyan-500 text-white flex items-center space-x-1 shadow-md"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>{t('nav.tab.report', 'Report')}</span>
+              </button>
+            )}
           </div>
         </div>
 
         {/* Secondary Mobile Tabs */}
         <div className="lg:hidden flex items-center space-x-1 overflow-x-auto py-2.5 border-t border-slate-800/80 text-xs no-scrollbar">
-          <button
-            onClick={() => setActiveTab('landing')}
-            className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium flex items-center space-x-1 ${
-              activeTab === 'landing' ? 'bg-blue-600 text-white' : 'text-slate-300'
-            }`}
-          >
-            <Home className="w-3.5 h-3.5" />
-            <span>{t('nav.tab.home', 'Home')}</span>
-          </button>
+          {!isStaffLoggedIn && (
+            <button
+              onClick={() => setActiveTab('landing')}
+              className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium flex items-center space-x-1 ${
+                activeTab === 'landing' ? 'bg-blue-600 text-white' : 'text-slate-300'
+              }`}
+            >
+              <Home className="w-3.5 h-3.5" />
+              <span>{t('nav.tab.home', 'Home')}</span>
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('live-map')}
             className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium flex items-center space-x-1 ${
@@ -430,15 +437,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Layers className="w-3.5 h-3.5" />
             <span>{t('nav.tab.risk_heatmap', 'Risk Heatmap')}</span>
           </button>
-          <button
-            onClick={() => setActiveTab('track')}
-            className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium flex items-center space-x-1 ${
-              activeTab === 'track' ? 'bg-blue-600 text-white' : 'text-slate-300'
-            }`}
-          >
-            <Search className="w-3.5 h-3.5" />
-            <span>{t('nav.tab.track', 'Track Report')}</span>
-          </button>
+          {!isStaffLoggedIn && (
+            <button
+              onClick={() => setActiveTab('track')}
+              className={`px-2.5 py-1.5 rounded-md whitespace-nowrap font-medium flex items-center space-x-1 ${
+                activeTab === 'track' ? 'bg-blue-600 text-white' : 'text-slate-300'
+              }`}
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span>{t('nav.tab.track', 'Track Report')}</span>
+            </button>
+          )}
           {(userRole === 'officer' || currentUser?.role === 'officer') && (
             <button
               onClick={() => setActiveTab('department')}
@@ -447,7 +456,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Building2 className="w-3.5 h-3.5" />
-              <span>{t('nav.tab.department', 'Dept View')}</span>
+              <span>{t('nav.tab.department', 'Dept Dashboard')}</span>
             </button>
           )}
           {(userRole === 'worker' || currentUser?.role === 'worker') && (

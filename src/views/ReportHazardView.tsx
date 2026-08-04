@@ -341,6 +341,14 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
 
   // Final Submit
   const handleSubmitReport = async () => {
+    const isTraffic = category === 'Traffic Violation' || department === 'Traffic Police Department';
+    const plate = vehiclePlateNumber.trim();
+
+    if (isTraffic && !plate) {
+      alert('⚠️ Cannot Submit Complaint: A valid vehicle number plate is required for Traffic Violation complaints. The AI could not detect a number plate from the photo, and no number plate was entered. Please enter a valid number plate or upload a clearer photo.');
+      return;
+    }
+
     const primaryPhoto = photos[0] || photoUrl || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80';
     const primaryVideo = videos[0] || undefined;
 
@@ -841,57 +849,109 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
           </div>
 
           {/* AI Vehicle License Plate Recognition & Edit Card */}
-          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl space-y-3">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center space-x-2 text-amber-900 font-extrabold text-sm">
-                <Sparkles className="w-5 h-5 text-amber-600" />
-                <span>{t('traffic.plate_title', 'AI Vehicle License Plate Recognition')}</span>
+          {(() => {
+            const isTraffic = category === 'Traffic Violation' || department === 'Traffic Police Department';
+            if (!isTraffic) return null;
+
+            const isMissingPlate = !vehiclePlateNumber.trim();
+
+            return (
+              <div className={`p-4 rounded-2xl space-y-3 transition-all ${
+                isMissingPlate
+                  ? 'bg-rose-50 border-2 border-rose-300 shadow-sm'
+                  : 'bg-amber-50 border-2 border-amber-300'
+              }`}>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center space-x-2 text-amber-900 font-extrabold text-sm">
+                    <Sparkles className="w-5 h-5 text-amber-600" />
+                    <span>{t('traffic.plate_title', 'AI Vehicle License Plate Recognition')}</span>
+                  </div>
+                  {isPlateDetectedByAI && (
+                    <span className="px-2.5 py-0.5 bg-amber-200 text-amber-900 font-bold text-[10px] rounded-full uppercase tracking-wider">
+                      AI Direct Vision Extracted
+                    </span>
+                  )}
+                  {isMissingPlate && (
+                    <span className="px-2.5 py-0.5 bg-rose-600 text-white font-extrabold text-[10px] rounded-full uppercase tracking-wider animate-pulse">
+                      Submission Blocked: Plate Missing
+                    </span>
+                  )}
+                </div>
+
+                {isMissingPlate ? (
+                  <div className="p-2.5 bg-rose-100/90 border border-rose-300 text-rose-950 font-bold text-xs rounded-xl flex items-start space-x-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span><strong>AI / Photo Notice:</strong> No vehicle number plate was detected by AI. A valid vehicle number plate is <strong>mandatory</strong> to submit a Traffic Violation report and issue e-Challan. Please enter the number plate manually below:</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-amber-900 font-medium leading-relaxed">
+                    {t('traffic.plate_desc', 'AI Vision automatically copies vehicle nameplate numbers. You can verify or edit the detected plate number below:')}
+                  </p>
+                )}
+
+                <div className="flex items-center space-x-2">
+                  <div className="px-3 py-2.5 bg-yellow-400 text-black font-black text-xs font-mono rounded-xl border-2 border-slate-900 shadow-sm shrink-0 flex items-center space-x-1">
+                    <span>IND</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={vehiclePlateNumber}
+                    onChange={(e) => setVehiclePlateNumber(e.target.value.toUpperCase())}
+                    placeholder={t('traffic.plate_placeholder', 'E.g., MH 12 AB 1234')}
+                    className={`flex-1 px-4 py-2.5 bg-white border-2 rounded-xl font-mono font-black text-slate-900 text-sm tracking-widest uppercase shadow-inner transition-all ${
+                      isMissingPlate
+                        ? 'border-rose-400 focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                        : 'border-amber-300 focus:border-amber-500'
+                    }`}
+                  />
+                </div>
+                <div className="text-[11px] text-amber-900/90 font-bold flex items-center space-x-1.5 pt-1">
+                  <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
+                  <span>Flow: Directly routed to Traffic Police Officer. Police officer levies e-Challan fine based on plate number (no field worker needed).</span>
+                </div>
               </div>
-              {isPlateDetectedByAI && (
-                <span className="px-2.5 py-0.5 bg-amber-200 text-amber-900 font-bold text-[10px] rounded-full uppercase tracking-wider">
-                  AI Direct Vision Extracted
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-amber-900 font-medium leading-relaxed">
-              {t('traffic.plate_desc', 'AI Vision automatically copies vehicle nameplate numbers. You can verify or edit the detected plate number below:')}
-            </p>
-            <div className="flex items-center space-x-2">
-              <div className="px-3 py-2.5 bg-yellow-400 text-black font-black text-xs font-mono rounded-xl border-2 border-slate-900 shadow-sm shrink-0 flex items-center space-x-1">
-                <span>IND</span>
-              </div>
-              <input
-                type="text"
-                value={vehiclePlateNumber}
-                onChange={(e) => setVehiclePlateNumber(e.target.value.toUpperCase())}
-                placeholder={t('traffic.plate_placeholder', 'E.g., MH 12 AB 1234')}
-                className="flex-1 px-4 py-2.5 bg-white border-2 border-amber-300 focus:border-amber-500 rounded-xl font-mono font-black text-slate-900 text-sm tracking-widest uppercase shadow-inner"
-              />
-            </div>
-            <div className="text-[11px] text-amber-900/90 font-bold flex items-center space-x-1.5 pt-1">
-              <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
-              <span>Flow: Directly routed to Traffic Police Officer. Police officer levies e-Challan fine based on plate number (no field worker needed).</span>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Action Buttons */}
-          <div className="pt-4 flex items-center justify-between">
-            <button
-              onClick={() => setStep(2)}
-              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center space-x-1.5"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>{t('report.back', 'Back')}</span>
-            </button>
+          {(() => {
+            const isTraffic = category === 'Traffic Violation' || department === 'Traffic Police Department';
+            const isMissingPlate = isTraffic && !vehiclePlateNumber.trim();
 
-            <button
-              onClick={handleSubmitReport}
-              className="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-600/30 flex items-center space-x-2 transition-all hover:scale-105"
-            >
-              <CheckCircle2 className="w-5 h-5" />
-              <span>{t('btn.submit_report', 'Submit Report')}</span>
-            </button>
-          </div>
+            return (
+              <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <button
+                  onClick={() => setStep(2)}
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center space-x-1.5 w-full sm:w-auto justify-center"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>{t('report.back', 'Back')}</span>
+                </button>
+
+                <div className="flex flex-col items-center sm:items-end w-full sm:w-auto space-y-1">
+                  <button
+                    onClick={handleSubmitReport}
+                    disabled={isMissingPlate}
+                    className={`px-8 py-3.5 font-extrabold text-sm rounded-xl shadow-lg flex items-center space-x-2 transition-all w-full sm:w-auto justify-center ${
+                      isMissingPlate
+                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30 hover:scale-105'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span>{t('btn.submit_report', 'Submit Report')}</span>
+                  </button>
+                  {isMissingPlate && (
+                    <span className="text-[11px] font-extrabold text-rose-600 animate-pulse">
+                      ⚠️ Vehicle number plate required to enable submission
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 

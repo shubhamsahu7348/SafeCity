@@ -311,11 +311,6 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
               <Building2 className="w-3.5 h-3.5 text-amber-400" />
               <span>Department: <strong className="text-amber-300 font-extrabold">{currentUser?.department || selectedDept}</strong></span>
             </div>
-            {!isAdmin && (
-              <span className="px-2.5 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase rounded-lg tracking-wider">
-                Single Dept View
-              </span>
-            )}
           </div>
         </div>
 
@@ -347,12 +342,7 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
               <option value="Public Safety & Infrastructure">Public Safety</option>
               <option value="Traffic Police Department">Traffic Police</option>
             </select>
-          ) : (
-            <div className="px-3.5 py-2 bg-amber-950/90 border border-amber-800 text-amber-200 text-xs font-bold rounded-xl flex items-center space-x-1.5 shadow-inner">
-              <Building2 className="w-3.5 h-3.5 text-amber-400" />
-              <span>Dept: <strong className="text-white font-extrabold">{selectedDept}</strong></span>
-            </div>
-          )}
+          ) : null}
 
           <select
             value={statusFilter}
@@ -361,10 +351,16 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
           >
             <option value="All">All Statuses</option>
             <option value="Submitted">Needs Verification</option>
-            <option value="Verified">Verified (Needs Worker)</option>
-            <option value="Assigned">Assigned</option>
+            {(currentUser?.department || selectedDept) !== 'Traffic Police Department' && (
+              <option value="Verified">Verified (Needs Worker)</option>
+            )}
+            {(currentUser?.department || selectedDept) !== 'Traffic Police Department' && (
+              <option value="Assigned">Assigned</option>
+            )}
             <option value="In Progress">In Progress</option>
-            <option value="Work Submitted">Pending Re-Verification</option>
+            {(currentUser?.department || selectedDept) !== 'Traffic Police Department' && (
+              <option value="Work Submitted">Pending Re-Verification</option>
+            )}
             <option value="Resolved">Resolved</option>
             <option value="Rejected">Rejected / Fake Reports</option>
           </select>
@@ -536,12 +532,14 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
         </div>
       </div>
 
-      {/* Field Worker Accounts & Credentials Management Section */}
-      <UserAccountManager
-        currentRole={isAdmin ? 'admin' : 'officer'}
-        currentUserDepartment={currentUser?.department || selectedDept}
-        workers={workers}
-      />
+      {/* Field Worker Accounts & Credentials Management Section (Excluded for Traffic Police Department as Traffic Officers handle enforcement directly) */}
+      {(currentUser?.department || selectedDept) !== 'Traffic Police Department' && (
+        <UserAccountManager
+          currentRole={isAdmin ? 'admin' : 'officer'}
+          currentUserDepartment={currentUser?.department || selectedDept}
+          workers={workers}
+        />
+      )}
 
       {/* Worker Assignment Modal */}
       {assigningComplaint && (

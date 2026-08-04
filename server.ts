@@ -132,6 +132,14 @@ app.post("/api/complaints", (req, res) => {
   const category: HazardCategory = data.category || 'Road Hazard';
   const assignedDept = data.assignedDepartment || mapCategoryToDepartment(category);
 
+  // Validate number plate requirement for Traffic Violation
+  const plate = (data.vehiclePlateNumber || data.aiDetectedPlateNumber || '').trim();
+  if ((category === 'Traffic Violation' || assignedDept === 'Traffic Police Department') && !plate) {
+    return res.status(400).json({
+      error: "Vehicle number plate is required for Traffic Violation complaints. Photo must clearly show a license plate or a valid plate number must be provided."
+    });
+  }
+
   const newComplaint: Complaint = {
     id: newId,
     title: data.title || `${data.subCategory || 'Public Hazard'} Reported`,

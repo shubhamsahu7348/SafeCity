@@ -46,12 +46,6 @@ export const ComplaintTrackingView: React.FC<ComplaintTrackingViewProps> = ({
       : null
   );
 
-  // SMS & Email notification state
-  const [notifyMobile, setNotifyMobile] = useState<string>('');
-  const [notifyEmail, setNotifyEmail] = useState<string>('');
-  const [smsSentStatus, setSmsSentStatus] = useState<string | null>(null);
-  const [emailSentStatus, setEmailSentStatus] = useState<string | null>(null);
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchId) return;
@@ -60,68 +54,6 @@ export const ComplaintTrackingView: React.FC<ComplaintTrackingViewProps> = ({
       (c) => c.id.toLowerCase() === searchId.trim().toLowerCase()
     );
     setSearchedComplaint(found || null);
-    setSmsSentStatus(null);
-    setEmailSentStatus(null);
-  };
-
-  const handleSendSms = async () => {
-    const mobileTrimmed = notifyMobile.trim();
-    if (!mobileTrimmed || mobileTrimmed.length < 8) {
-      alert('Please enter a valid mobile number (e.g. +91 9876543210)');
-      return;
-    }
-    if (searchedComplaint) {
-      const cleanNumber = mobileTrimmed.replace(/[^\d+]/g, '');
-      const smsMessage = `SafeCity Portal: Complaint ID #${searchedComplaint.id} (${searchedComplaint.title}). Track status: ${window.location.origin}/?id=${searchedComplaint.id}`;
-      
-      // Open native device SMS composer with prefilled message
-      const smsUrl = `sms:${cleanNumber}?body=${encodeURIComponent(smsMessage)}`;
-      window.location.href = smsUrl;
-
-      try {
-        await fetch('/api/complaints/sms-receipt', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phone: cleanNumber,
-            complaintId: searchedComplaint.id,
-            message: smsMessage,
-          }),
-        });
-      } catch (err) {
-        console.warn('SMS API log:', err);
-      }
-
-      setSmsSentStatus(`📱 Native SMS app launched! Message dispatched to ${mobileTrimmed} for Complaint #${searchedComplaint.id}!`);
-    }
-  };
-
-  const handleSendEmail = async () => {
-    const emailTrimmed = notifyEmail.trim();
-    if (!emailTrimmed || !emailTrimmed.includes('@')) {
-      alert('Please enter a valid email address (e.g. citizen@gmail.com)');
-      return;
-    }
-    if (searchedComplaint) {
-      const subject = `[SafeCity] Tracking Details for Complaint ID: ${searchedComplaint.id}`;
-      const body = `SafeCity Citizen Portal Complaint Report\n\nComplaint ID: ${searchedComplaint.id}\nTitle: ${searchedComplaint.title}\nCategory: ${searchedComplaint.category}\nDepartment: ${searchedComplaint.assignedDepartment}\nStatus: ${searchedComplaint.status}\nLocation: ${searchedComplaint.address}\n\nTrack Online: ${window.location.origin}/?id=${searchedComplaint.id}`;
-      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${encodeURIComponent(emailTrimmed)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.open(gmailUrl, '_blank');
-
-      try {
-        await fetch('/api/complaints/email-receipt', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: emailTrimmed,
-            complaintId: searchedComplaint.id,
-          }),
-        });
-      } catch (err) {
-        console.warn('API notification log:', err);
-      }
-      setEmailSentStatus(`📧 Complaint ID #${searchedComplaint.id} emailed to ${emailTrimmed}!`);
-    }
   };
 
   const isTrafficComplaint =
@@ -198,8 +130,6 @@ export const ComplaintTrackingView: React.FC<ComplaintTrackingViewProps> = ({
               onClick={() => {
                 setSearchId(c.id);
                 setSearchedComplaint(c);
-                setSmsSentStatus(null);
-                setEmailSentStatus(null);
               }}
               className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-mono font-medium transition-colors flex items-center space-x-1"
             >
@@ -649,85 +579,6 @@ export const ComplaintTrackingView: React.FC<ComplaintTrackingViewProps> = ({
               </div>
             </div>
           )}
-
-          {/* Receive Complaint ID via SMS & Email Notification Box */}
-          <div className="bg-gradient-to-br from-indigo-50/90 via-white to-blue-50/90 p-5 rounded-3xl border border-indigo-200 shadow-md space-y-4">
-            <div className="flex items-center justify-between border-b border-indigo-100 pb-2.5">
-              <div className="flex items-center space-x-2 text-indigo-950 font-extrabold text-xs uppercase tracking-wider">
-                <Send className="w-4 h-4 text-indigo-600" />
-                <span>Receive Complaint Details directly via SMS & Email</span>
-              </div>
-              <span className="px-2.5 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-mono font-bold rounded-full">
-                Notification Hub
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* SMS Input */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center space-x-1">
-                  <Smartphone className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Mobile Phone Number (SMS Alert):</span>
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="tel"
-                    value={notifyMobile}
-                    onChange={(e) => setNotifyMobile(e.target.value)}
-                    placeholder="E.g. +91 9876543210"
-                    className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 shadow-inner"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSendSms}
-                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-sm flex items-center space-x-1 whitespace-nowrap active:scale-95 transition-all"
-                  >
-                    <Send className="w-3 h-3" />
-                    <span>Send SMS</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Email Input */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center space-x-1">
-                  <Mail className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Email Address (Email Receipt):</span>
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="email"
-                    value={notifyEmail}
-                    onChange={(e) => setNotifyEmail(e.target.value)}
-                    placeholder="E.g. citizen@gmail.com"
-                    className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 shadow-inner"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSendEmail}
-                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-sm flex items-center space-x-1 whitespace-nowrap active:scale-95 transition-all"
-                  >
-                    <Mail className="w-3 h-3" />
-                    <span>Send Email</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {smsSentStatus && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold rounded-xl flex items-center space-x-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{smsSentStatus}</span>
-              </div>
-            )}
-
-            {emailSentStatus && (
-              <div className="p-3 bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold rounded-xl flex items-center space-x-2">
-                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                <span>{emailSentStatus}</span>
-              </div>
-            )}
-          </div>
         </div>
       ) : searchId ? (
         <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center space-y-3 shadow-sm">
@@ -746,8 +597,6 @@ export const ComplaintTrackingView: React.FC<ComplaintTrackingViewProps> = ({
                 onClick={() => {
                   setSearchId(c.id);
                   setSearchedComplaint(c);
-                  setSmsSentStatus(null);
-                  setEmailSentStatus(null);
                 }}
                 className="p-4 bg-slate-50 hover:bg-slate-100/90 rounded-2xl border border-slate-200 transition-all cursor-pointer flex items-center justify-between shadow-sm hover:shadow-md"
               >

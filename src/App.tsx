@@ -14,7 +14,6 @@ import { DepartmentDashboardView } from './views/DepartmentDashboardView';
 import { WorkerDashboardView } from './views/WorkerDashboardView';
 import { AnalyticsView } from './views/AnalyticsView';
 import { AdminView } from './views/AdminView';
-import { AboutView } from './views/AboutView';
 import { ComplaintDetailModal } from './components/ComplaintDetailModal';
 
 export default function App() {
@@ -85,6 +84,17 @@ export default function App() {
     fetchWorkers();
     fetchAnalytics();
   }, []);
+
+  // Redirect staff users away from citizen views (landing, report, track)
+  useEffect(() => {
+    if (currentUser && currentUser.role !== 'citizen') {
+      if (activeTab === 'landing' || activeTab === 'report' || activeTab === 'track') {
+        if (currentUser.role === 'officer') setActiveTab('department');
+        else if (currentUser.role === 'worker') setActiveTab('worker');
+        else if (currentUser.role === 'admin') setActiveTab('admin');
+      }
+    }
+  }, [currentUser, activeTab]);
 
   // Upvote complaint
   const handleUpvoteComplaint = async (id: string) => {
@@ -231,7 +241,7 @@ export default function App() {
                 currentUser={currentUser}
                 onUpdateComplaint={handleUpdateComplaint}
                 onUpvoteComplaint={handleUpvoteComplaint}
-                onGoHome={() => setActiveTab('landing')}
+                onGoHome={currentUser ? undefined : () => setActiveTab('landing')}
               />
             ) : (
               <div className="max-w-xl mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200 shadow-xl text-center space-y-6">
@@ -269,7 +279,7 @@ export default function App() {
                 workers={workers}
                 currentUser={currentUser}
                 onUpdateComplaint={handleUpdateComplaint}
-                onGoHome={() => setActiveTab('landing')}
+                onGoHome={currentUser ? undefined : () => setActiveTab('landing')}
               />
             ) : (
               <div className="max-w-xl mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200 shadow-xl text-center space-y-6">
@@ -309,7 +319,7 @@ export default function App() {
               <AdminView
                 workers={workers}
                 onAddWorker={handleAddWorker}
-                onGoHome={() => setActiveTab('landing')}
+                onGoHome={currentUser ? undefined : () => setActiveTab('landing')}
               />
             ) : (
               <div className="max-w-xl mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200 shadow-xl text-center space-y-6">
@@ -339,8 +349,6 @@ export default function App() {
               </div>
             )
           )}
-
-          {activeTab === 'about' && <AboutView />}
         </main>
       </div>
 
