@@ -10,7 +10,6 @@ import {
   Sparkles,
   Building2,
   Calendar,
-  Share2,
   ThumbsUp,
   ArrowRight,
   ExternalLink,
@@ -22,7 +21,6 @@ import {
 } from 'lucide-react';
 import { Complaint, ComplaintStatus } from '../types';
 import { useLanguage } from '../context/LanguageContext';
-import { ShareComplaintCard } from './ShareComplaintCard';
 
 interface ComplaintDetailModalProps {
   complaint: Complaint | null;
@@ -39,16 +37,22 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
 
   if (!complaint) return null;
 
-  const STATUS_STEPS: ComplaintStatus[] = [
-    'Submitted',
-    'Verified',
-    'Assigned',
-    'In Progress',
-    'Resolved',
-  ];
+  const isTrafficComplaint =
+    complaint.assignedDepartment === 'Traffic Police Department' ||
+    complaint.category === 'Traffic Violation' ||
+    !!complaint.challanNumber;
+
+  const STATUS_STEPS: ComplaintStatus[] = isTrafficComplaint
+    ? ['Submitted', 'Verified', 'Resolved']
+    : ['Submitted', 'Verified', 'Assigned', 'In Progress', 'Resolved'];
 
   const getCurrentStepIndex = () => {
     if (complaint.status === 'Rejected') return 0;
+    if (isTrafficComplaint) {
+      if (complaint.status === 'Submitted') return 0;
+      if (complaint.status === 'Verified' || complaint.status === 'Assigned' || complaint.status === 'In Progress') return 1;
+      if (complaint.status === 'Resolved') return 2;
+    }
     return STATUS_STEPS.indexOf(complaint.status);
   };
 
@@ -133,8 +137,8 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
             </div>
           )}
 
-          {/* Officer Re-Verification Verdict Banner (Unsatisfactory / Rework) */}
-          {complaint.officerSatisfaction === 'Unsatisfactory' && (
+          {/* Officer Re-Verification Verdict Banner (Unsatisfactory / Rework - Only for Municipal Field Complaints) */}
+          {!isTrafficComplaint && complaint.officerSatisfaction === 'Unsatisfactory' && (
             <div className="bg-rose-50 border-2 border-rose-300 p-4 rounded-3xl space-y-1.5 shadow-sm">
               <div className="flex items-center space-x-2 text-rose-900 font-extrabold text-sm">
                 <AlertTriangle className="w-5 h-5 text-rose-600" />
@@ -254,7 +258,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                     {translateDepartment(complaint.assignedDepartment)}
                   </span>
                 </div>
-                {complaint.assignedWorkerName && (
+                {!isTrafficComplaint && complaint.assignedWorkerName && (
                   <div className="flex items-center space-x-2 text-xs text-slate-700">
                     <HardHat className="w-4 h-4 text-amber-600" />
                     <span>{t('modal.dispatched_worker', 'Dispatched Worker:')}</span>
@@ -263,13 +267,13 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                 )}
               </div>
 
-              {/* Traffic Police & Vehicle e-Challan Receipt Card */}
-              {(complaint.vehiclePlateNumber || complaint.challanNumber || complaint.assignedDepartment === 'Traffic Police Department') && (
+              {/* Traffic Police & Vehicle e-Challan Enforcement Audit Card */}
+              {(complaint.vehiclePlateNumber || complaint.challanNumber || isTrafficComplaint) && (
                 <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50/80 rounded-2xl border-2 border-amber-300 space-y-3 shadow-sm">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center space-x-2 text-amber-950 font-black text-sm">
                       <ShieldCheck className="w-5 h-5 text-amber-700" />
-                      <span>Traffic Police Enforcement & e-Challan</span>
+                      <span>Traffic Officer Audit & Fine Receipt</span>
                     </div>
                     {complaint.challanNumber && (
                       <span className="px-2.5 py-0.5 bg-emerald-600 text-white font-mono font-bold text-[10px] rounded-full uppercase tracking-wider shadow-sm">
@@ -278,44 +282,53 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                     )}
                   </div>
 
-                  {/* Vehicle License Plate Display */}
-                  <div className="flex items-center space-x-3 bg-white p-3 rounded-xl border border-amber-200">
-                    <div className="px-3 py-1.5 bg-yellow-400 text-black font-black font-mono text-xs rounded-lg border-2 border-slate-900 shadow-sm flex items-center space-x-1 shrink-0">
-                      <span>IND</span>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Identified Vehicle Nameplate</div>
-                      <div className="font-mono font-black text-lg text-slate-900 tracking-widest">
-                        {complaint.vehiclePlateNumber || complaint.aiDetectedPlateNumber || 'MH-12-AB-1234'}
+                  {/* Audit Details: Vehicle Nameplate, Officer Person, and Fine */}
+                  <div className="p-3 bg-white rounded-xl border border-amber-200 space-y-2.5 text-xs">
+                    {/* Vehicle License Nameplate */}
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                      <span className="text-slate-500 font-extrabold uppercase text-[10px]">Identified Vehicle Nameplate:</span>
+                      <div className="flex items-center space-x-1.5">
+                        <span className="px-2 py-0.5 bg-yellow-400 text-black font-mono font-black text-[10px] rounded border border-slate-900">IND</span>
+                        <span className="font-mono font-black text-base text-slate-900 tracking-widest">
+                          {complaint.vehiclePlateNumber || complaint.aiDetectedPlateNumber || 'MH-12-TP-1024'}
+                        </span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Fine & Challan Details if issued */}
-                  {complaint.challanNumber ? (
-                    <div className="p-3 bg-white rounded-xl border border-amber-200 space-y-2 text-xs">
-                      <div className="flex items-center justify-between font-bold">
-                        <span className="text-slate-600">e-Challan Number:</span>
-                        <span className="font-mono font-extrabold text-amber-800">{complaint.challanNumber}</span>
-                      </div>
-                      <div className="flex items-center justify-between font-bold">
-                        <span className="text-slate-600">Violation Offense:</span>
-                        <span className="text-slate-900">{complaint.violationType || complaint.subCategory}</span>
-                      </div>
-                      <div className="flex items-center justify-between font-bold border-t border-slate-100 pt-2">
-                        <span className="text-slate-700">Penalty Fine Amount:</span>
-                        <span className="font-mono font-black text-base text-rose-700">₹{complaint.fineAmount || 1000}</span>
-                      </div>
-                      <div className="text-[11px] text-emerald-800 font-bold pt-1 bg-emerald-50 p-2 rounded-lg border border-emerald-200 flex items-center justify-between">
-                        <span>⚡ Officer Direct Action (No field worker required)</span>
-                        <span className="font-mono text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded">Fine Status: {complaint.fineStatus || 'Issued'}</span>
-                      </div>
+                    {/* Officer / Person Who Acted */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-extrabold uppercase text-[10px]">Officer / Enforcement Person:</span>
+                      <span className="font-extrabold text-blue-950 text-xs">
+                        {complaint.verifiedByOfficer || 'Traffic Police Officer'}
+                      </span>
                     </div>
-                  ) : (
-                    <div className="text-xs text-amber-900 font-medium">
-                      ℹ️ Reported to Traffic Police Department. Traffic Officers will verify vehicle plate and levy fine directly.
-                    </div>
-                  )}
+
+                    {/* Fine & Offense Details */}
+                    {complaint.challanNumber ? (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500 font-extrabold uppercase text-[10px]">Official e-Challan Number:</span>
+                          <span className="font-mono font-black text-amber-900">{complaint.challanNumber}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500 font-extrabold uppercase text-[10px]">Traffic Violation Offense:</span>
+                          <span className="font-bold text-slate-900">{complaint.violationType || complaint.subCategory}</span>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-amber-100 pt-2">
+                          <span className="text-slate-800 font-black text-xs uppercase">Penalty Fine Issued:</span>
+                          <span className="font-mono font-black text-lg text-rose-700">₹{complaint.fineAmount || 1000}</span>
+                        </div>
+                        <div className="text-[11px] text-emerald-800 font-bold pt-1 bg-emerald-50 p-2 rounded-lg border border-emerald-200 flex items-center justify-between">
+                          <span>⚡ Traffic Officer Direct Action</span>
+                          <span className="font-mono text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-black">Status: {complaint.fineStatus || 'Issued'}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-[11px] text-amber-900 font-medium pt-1">
+                        ⏳ Pending Officer Verification: Traffic Officer will verify vehicle nameplate and issue fine directly (No field worker required).
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -389,14 +402,15 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Before & After Completion Evidence (if in progress or resolved) */}
-          {(complaint.afterPhotoUrl ||
-            complaint.beforePhotoUrl ||
-            (complaint.beforePhotos && complaint.beforePhotos.length > 0) ||
-            (complaint.afterPhotos && complaint.afterPhotos.length > 0) ||
-            complaint.workRemarks ||
-            complaint.status === 'In Progress' ||
-            complaint.status === 'Resolved') && (
+          {/* Before & After Completion Evidence (Only for municipal field hazards, NOT for Traffic Police / e-Challan) */}
+          {!isTrafficComplaint &&
+            (complaint.afterPhotoUrl ||
+              complaint.beforePhotoUrl ||
+              (complaint.beforePhotos && complaint.beforePhotos.length > 0) ||
+              (complaint.afterPhotos && complaint.afterPhotos.length > 0) ||
+              complaint.workRemarks ||
+              complaint.status === 'In Progress' ||
+              complaint.status === 'Resolved') && (
             <div className="bg-slate-900 text-white p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-5 shadow-lg">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
                 <div className="flex items-center space-x-2 text-emerald-400 font-extrabold text-sm">
@@ -570,9 +584,6 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
               ))}
             </div>
           </div>
-
-          {/* Send Complaint ID to Gmail & Sharing Options Card */}
-          <ShareComplaintCard complaint={complaint} />
         </div>
 
         {/* Modal Footer Actions */}
@@ -586,19 +597,6 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
           </button>
 
           <div className="flex items-center space-x-2">
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(
-                  `${window.location.origin}/?id=${complaint.id}`
-                );
-                alert(`Tracking link copied for ID: ${complaint.id}`);
-              }}
-              className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-xl font-semibold text-xs flex items-center space-x-1.5 transition-colors"
-            >
-              <Share2 className="w-4 h-4" />
-              <span>{t('modal.share_link', 'Share Tracking Link')}</span>
-            </button>
-
             <button
               onClick={onClose}
               className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl transition-colors flex items-center space-x-1.5"

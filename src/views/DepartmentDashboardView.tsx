@@ -466,15 +466,18 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
                       </button>
                     )}
 
-                    {(c.status === 'In Progress' || c.status === 'Resolved') && (
-                      <button
-                        onClick={() => handleStartReverification(c)}
-                        className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold border border-indigo-200 rounded-lg shadow-sm text-[11px] inline-flex items-center space-x-1"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>Audit / Reassign</span>
-                      </button>
-                    )}
+                    {(c.status === 'In Progress' || c.status === 'Resolved') &&
+                      c.assignedDepartment !== 'Traffic Police Department' &&
+                      !c.challanNumber &&
+                      c.category !== 'Traffic Violation' && (
+                        <button
+                          onClick={() => handleStartReverification(c)}
+                          className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold border border-indigo-200 rounded-lg shadow-sm text-[11px] inline-flex items-center space-x-1"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Audit / Reassign</span>
+                        </button>
+                      )}
 
                     {c.status === 'Submitted' && (
                       <button

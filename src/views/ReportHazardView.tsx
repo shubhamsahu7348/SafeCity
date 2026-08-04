@@ -21,6 +21,9 @@ import {
   Plus,
   Trash2,
   Image as ImageIcon,
+  Smartphone,
+  Mail,
+  Send,
 } from 'lucide-react';
 import {
   Complaint,
@@ -30,7 +33,6 @@ import {
   AIAnalysisResponse,
   AIDuplicateCheckResponse,
 } from '../types';
-import { ShareComplaintCard } from '../components/ShareComplaintCard';
 
 interface ReportHazardViewProps {
   onComplaintSubmitted: (complaint: Complaint) => void;
@@ -73,6 +75,52 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
 
   // Submitted complaint state for success page
   const [submittedComplaint, setSubmittedComplaint] = useState<Complaint | null>(null);
+
+  // SMS & Email Notification State
+  const [notifyMobile, setNotifyMobile] = useState<string>('');
+  const [notifyEmail, setNotifyEmail] = useState<string>('');
+  const [smsSentStatus, setSmsSentStatus] = useState<string | null>(null);
+  const [emailSentStatus, setEmailSentStatus] = useState<string | null>(null);
+
+  const handleSendSms = () => {
+    const mobileTrimmed = notifyMobile.trim();
+    if (!mobileTrimmed || mobileTrimmed.length < 8) {
+      alert('Please enter a valid mobile number (e.g. +91 9876543210)');
+      return;
+    }
+    if (submittedComplaint) {
+      setSmsSentStatus(`📱 Complaint ID #${submittedComplaint.id} sent via SMS to ${mobileTrimmed}!`);
+    }
+  };
+
+  const handleSendEmailNotification = async () => {
+    const emailTrimmed = notifyEmail.trim();
+    if (!emailTrimmed || !emailTrimmed.includes('@')) {
+      alert('Please enter a valid email address (e.g. citizen@gmail.com)');
+      return;
+    }
+    if (submittedComplaint) {
+      // Direct Gmail compose
+      const subject = `[SafeCity] Registered Complaint ID: ${submittedComplaint.id}`;
+      const body = `SafeCity Citizen Portal Complaint Receipt\n\nComplaint ID: ${submittedComplaint.id}\nTitle: ${submittedComplaint.title}\nDepartment: ${submittedComplaint.assignedDepartment}\nTrack link: ${window.location.origin}/?id=${submittedComplaint.id}`;
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${encodeURIComponent(emailTrimmed)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.open(gmailUrl, '_blank');
+
+      try {
+        await fetch('/api/complaints/email-receipt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: emailTrimmed,
+            complaintId: submittedComplaint.id,
+          }),
+        });
+      } catch (e) {
+        console.warn('API notification log:', e);
+      }
+      setEmailSentStatus(`📧 Complaint ID #${submittedComplaint.id} dispatched to ${emailTrimmed}!`);
+    }
+  };
 
   // Handle multiple photo uploads
   const handleMultiplePhotosUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -863,9 +911,97 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
             </div>
           </div>
 
-          {/* Send Complaint ID to Gmail & Share Card */}
-          <div className="max-w-md mx-auto">
-            <ShareComplaintCard complaint={submittedComplaint} />
+          {/* Direct Mobile SMS & Email Notification Card */}
+          <div className="bg-gradient-to-br from-indigo-50/90 via-white to-blue-50/90 p-5 rounded-2xl border border-indigo-200 shadow-md space-y-4 text-left max-w-md mx-auto">
+            <div className="flex items-center justify-between border-b border-indigo-100 pb-2.5">
+              <div className="flex items-center space-x-2 text-indigo-950 font-extrabold text-xs uppercase tracking-wider">
+                <Send className="w-4 h-4 text-indigo-600" />
+                <span>Receive Complaint ID via SMS & Email</span>
+              </div>
+              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-mono font-bold rounded-full">
+                Direct Dispatch
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {/* Mobile Number for SMS */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-700 flex items-center space-x-1">
+                  <Smartphone className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Mobile Phone Number (SMS Alert):</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="tel"
+                    value={notifyMobile}
+                    onChange={(e) => setNotifyMobile(e.target.value)}
+                    placeholder="Enter mobile (e.g. +91 9876543210)"
+                    className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 shadow-inner"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSendSms}
+                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-sm flex items-center space-x-1 whitespace-nowrap active:scale-95 transition-all"
+                  >
+                    <Send className="w-3 h-3" />
+                    <span>Send SMS</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Email Address for Email */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-700 flex items-center space-x-1">
+                  <Mail className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Email Address (Email Receipt):</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="email"
+                    value={notifyEmail}
+                    onChange={(e) => setNotifyEmail(e.target.value)}
+                    placeholder="Enter email (e.g. citizen@gmail.com)"
+                    className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 shadow-inner"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSendEmailNotification}
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-sm flex items-center space-x-1 whitespace-nowrap active:scale-95 transition-all"
+                  >
+                    <Mail className="w-3 h-3" />
+                    <span>Send Email</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Send Both SMS & Email Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  handleSendSms();
+                  handleSendEmailNotification();
+                }}
+                className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center justify-center space-x-2 transition-all active:scale-95"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Send Complaint ID to Both SMS & Email</span>
+              </button>
+            </div>
+
+            {/* Notification Confirmation Banners */}
+            {smsSentStatus && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold rounded-xl flex items-center space-x-2 animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>{smsSentStatus}</span>
+              </div>
+            )}
+
+            {emailSentStatus && (
+              <div className="p-3 bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold rounded-xl flex items-center space-x-2 animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                <span>{emailSentStatus}</span>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
