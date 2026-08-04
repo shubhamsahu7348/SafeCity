@@ -267,8 +267,8 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                 )}
               </div>
 
-              {/* Traffic Police & Vehicle e-Challan Enforcement Audit Card */}
-              {(complaint.vehiclePlateNumber || complaint.challanNumber || isTrafficComplaint) && (
+              {/* Traffic Police & Vehicle e-Challan Enforcement Audit Card - Only show when e-Challan is actually issued by officer and NOT rejected */}
+              {complaint.status !== 'Rejected' && !!complaint.challanNumber && (
                 <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50/80 rounded-2xl border-2 border-amber-300 space-y-3 shadow-sm">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center space-x-2 text-amber-950 font-black text-sm">

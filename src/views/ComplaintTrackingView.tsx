@@ -64,14 +64,35 @@ export const ComplaintTrackingView: React.FC<ComplaintTrackingViewProps> = ({
     setEmailSentStatus(null);
   };
 
-  const handleSendSms = () => {
+  const handleSendSms = async () => {
     const mobileTrimmed = notifyMobile.trim();
     if (!mobileTrimmed || mobileTrimmed.length < 8) {
       alert('Please enter a valid mobile number (e.g. +91 9876543210)');
       return;
     }
     if (searchedComplaint) {
-      setSmsSentStatus(`📱 Complaint ID #${searchedComplaint.id} details sent via SMS to ${mobileTrimmed}!`);
+      const cleanNumber = mobileTrimmed.replace(/[^\d+]/g, '');
+      const smsMessage = `SafeCity Portal: Complaint ID #${searchedComplaint.id} (${searchedComplaint.title}). Track status: ${window.location.origin}/?id=${searchedComplaint.id}`;
+      
+      // Open native device SMS composer with prefilled message
+      const smsUrl = `sms:${cleanNumber}?body=${encodeURIComponent(smsMessage)}`;
+      window.location.href = smsUrl;
+
+      try {
+        await fetch('/api/complaints/sms-receipt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: cleanNumber,
+            complaintId: searchedComplaint.id,
+            message: smsMessage,
+          }),
+        });
+      } catch (err) {
+        console.warn('SMS API log:', err);
+      }
+
+      setSmsSentStatus(`📱 Native SMS app launched! Message dispatched to ${mobileTrimmed} for Complaint #${searchedComplaint.id}!`);
     }
   };
 
@@ -350,8 +371,8 @@ export const ComplaintTrackingView: React.FC<ComplaintTrackingViewProps> = ({
             </div>
           )}
 
-          {/* Traffic Police & Vehicle e-Challan Enforcement Audit Card */}
-          {(searchedComplaint.vehiclePlateNumber || searchedComplaint.challanNumber || isTrafficComplaint) && (
+          {/* Traffic Police & Vehicle e-Challan Enforcement Audit Card - Only show when e-Challan is generated and NOT rejected */}
+          {searchedComplaint.status !== 'Rejected' && !!searchedComplaint.challanNumber && (
             <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50/80 rounded-3xl border-2 border-amber-300 space-y-4 shadow-sm">
               <div className="flex items-center justify-between flex-wrap gap-2 border-b border-amber-200/80 pb-2.5">
                 <div className="flex items-center space-x-2 text-amber-950 font-black text-sm">
