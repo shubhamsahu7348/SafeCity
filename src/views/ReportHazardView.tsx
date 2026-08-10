@@ -33,6 +33,7 @@ import {
   AIAnalysisResponse,
   AIDuplicateCheckResponse,
 } from '../types';
+import { formatLicensePlate } from '../utils/plateUtils';
 
 interface ReportHazardViewProps {
   onComplaintSubmitted: (complaint: Complaint) => void;
@@ -307,7 +308,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
         setDepartment(data.suggestedDepartment);
 
         if (data.detectedVehiclePlateNumber) {
-          setVehiclePlateNumber(data.detectedVehiclePlateNumber);
+          setVehiclePlateNumber(formatLicensePlate(data.detectedVehiclePlateNumber));
           setIsPlateDetectedByAI(true);
         }
         if (data.violationType) {
@@ -898,7 +899,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                   <input
                     type="text"
                     value={vehiclePlateNumber}
-                    onChange={(e) => setVehiclePlateNumber(e.target.value.toUpperCase())}
+                    onChange={(e) => setVehiclePlateNumber(formatLicensePlate(e.target.value))}
                     placeholder={t('traffic.plate_placeholder', 'E.g., MH 12 AB 1234')}
                     className={`flex-1 px-4 py-2.5 bg-white border-2 rounded-xl font-mono font-black text-slate-900 text-sm tracking-widest uppercase shadow-inner transition-all ${
                       isMissingPlate
@@ -909,7 +910,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                 </div>
                 <div className="text-[11px] text-amber-900/90 font-bold flex items-center space-x-1.5 pt-1">
                   <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
-                  <span>Flow: Directly routed to Traffic Police Officer. Police officer levies e-Challan fine based on plate number (no field worker needed).</span>
+                  <span>AI Smart Target: When multiple bikes/riders are in frame, AI extracts ONLY the plate of the rider NOT wearing a helmet (compliant riders wearing helmets are ignored). Direct e-Challan route to Traffic Police.</span>
                 </div>
               </div>
             );

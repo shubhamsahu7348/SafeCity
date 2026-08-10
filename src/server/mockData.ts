@@ -490,13 +490,13 @@ export const INITIAL_COMPLAINTS: Complaint[] = [
     assignedWorkerId: 'W-106',
     assignedWorkerName: 'Rohan Patil (Traffic Patrol)',
     verifiedByOfficer: 'Inspector Vikram Sharma',
-    verificationNotes: 'AI license plate camera identified vehicle plate MH-12-TR-8899. Awaiting officer e-Challan review.',
-    vehiclePlateNumber: 'MH-12-TR-8899',
+    verificationNotes: 'AI license plate camera identified vehicle plate MH 12 TR 8899. Awaiting officer e-Challan review.',
+    vehiclePlateNumber: 'MH 12 TR 8899',
     violationType: 'Red Light Signal Jumping & Reckless Speeding',
     fineAmount: 1500,
     fineStatus: 'Pending',
     licensePlateDetectedByAI: true,
-    aiDetectedPlateNumber: 'MH-12-TR-8899',
+    aiDetectedPlateNumber: 'MH 12 TR 8899',
     timeline: [
       {
         id: 'tl-tr1',
@@ -512,7 +512,7 @@ export const INITIAL_COMPLAINTS: Complaint[] = [
         timestamp: new Date(Date.now() - 3600000 * 1).toISOString(),
         actor: 'Inspector Vikram Sharma',
         actorRole: 'Traffic Police Officer',
-        note: 'Vehicle plate MH-12-TR-8899 verified by officer. Pending official e-Challan issuance.'
+        note: 'Vehicle plate MH 12 TR 8899 verified by officer. Pending official e-Challan issuance.'
       }
     ],
     upvotes: 35,
@@ -534,12 +534,12 @@ export const INITIAL_COMPLAINTS: Complaint[] = [
     updatedAt: new Date(Date.now() - 3600000 * 0.5).toISOString(),
     status: 'Submitted',
     assignedDepartment: 'Traffic Police Department',
-    vehiclePlateNumber: 'MH-14-AB-4321',
+    vehiclePlateNumber: 'MH 14 AB 4321',
     violationType: 'No Helmet & Triple Riding',
     fineAmount: 1000,
     fineStatus: 'Pending',
     licensePlateDetectedByAI: true,
-    aiDetectedPlateNumber: 'MH-14-AB-4321',
+    aiDetectedPlateNumber: 'MH 14 AB 4321',
     timeline: [
       {
         id: 'tl-tr3',
@@ -547,7 +547,7 @@ export const INITIAL_COMPLAINTS: Complaint[] = [
         timestamp: new Date(Date.now() - 3600000 * 0.5).toISOString(),
         actor: 'Citizen Anonymous',
         actorRole: 'Citizen',
-        note: 'Traffic violation logged. Plate MH-14-AB-4321 detected by AI vision.'
+        note: 'Traffic violation logged. Plate MH 14 AB 4321 detected by AI vision.'
       }
     ],
     upvotes: 18,

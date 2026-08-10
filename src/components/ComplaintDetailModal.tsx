@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Complaint, ComplaintStatus } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { formatLicensePlate } from '../utils/plateUtils';
 
 interface ComplaintDetailModalProps {
   complaint: Complaint | null;
@@ -290,7 +291,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                       <div className="flex items-center space-x-1.5">
                         <span className="px-2 py-0.5 bg-yellow-400 text-black font-mono font-black text-[10px] rounded border border-slate-900">IND</span>
                         <span className="font-mono font-black text-base text-slate-900 tracking-widest">
-                          {complaint.vehiclePlateNumber || complaint.aiDetectedPlateNumber || 'MH-12-TP-1024'}
+                          {formatLicensePlate(complaint.vehiclePlateNumber || complaint.aiDetectedPlateNumber || 'MH 12 TP 1024')}
                         </span>
                       </div>
                     </div>

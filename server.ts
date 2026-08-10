@@ -16,6 +16,24 @@ let workersStore = [...INITIAL_WORKERS];
 let departmentMetricsStore = [...INITIAL_DEPARTMENT_METRICS];
 let usersStore: UserAccount[] = [...INITIAL_USERS];
 
+// Helper to format vehicle plate numbers strictly in AA 00 AA 0000 format
+function formatLicensePlate(raw?: string): string {
+  if (!raw) return '';
+  const clean = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  if (clean.length === 0) return '';
+  const p1 = clean.substring(0, 2);
+  const p2 = clean.substring(2, 4);
+  const p3 = clean.substring(4, 6);
+  const p4 = clean.substring(6, 10);
+
+  let formatted = p1;
+  if (p2) formatted += ' ' + p2;
+  if (p3) formatted += ' ' + p3;
+  if (p4) formatted += ' ' + p4;
+
+  return formatted;
+}
+
 // Initialize Gemini Client safely
 let aiInstance: GoogleGenAI | null = null;
 function getAiClient(): GoogleGenAI | null {
@@ -175,13 +193,13 @@ app.post("/api/complaints", (req, res) => {
     upvotes: 1,
     estimatedResolutionHours: data.estimatedResolutionHours || (data.severity === 'Critical' ? 3 : 24),
     // Traffic specific fields
-    vehiclePlateNumber: data.vehiclePlateNumber || data.aiDetectedPlateNumber,
+    vehiclePlateNumber: formatLicensePlate(data.vehiclePlateNumber || data.aiDetectedPlateNumber),
     violationType: data.violationType || (category === 'Traffic Violation' ? data.subCategory : undefined),
     fineAmount: data.fineAmount,
     fineStatus: data.fineStatus || (category === 'Traffic Violation' ? 'Pending' : undefined),
     challanNumber: data.challanNumber,
     licensePlateDetectedByAI: data.licensePlateDetectedByAI,
-    aiDetectedPlateNumber: data.aiDetectedPlateNumber,
+    aiDetectedPlateNumber: formatLicensePlate(data.aiDetectedPlateNumber),
   };
 
   complaintsStore.unshift(newComplaint);
@@ -295,6 +313,15 @@ app.post("/api/ai/analyze-hazard", async (req, res) => {
     try {
       const prompt = `You are SafeCity AI, an expert Public Hazard Intelligence & Traffic Violation Classifier for Smart Cities.
 Analyze the given hazard report (description and/or photo).
+
+CRITICAL MULTI-VEHICLE & HELMET COMPLIANCE RULES:
+- When analyzing images containing multiple motorcycles, scooters, or bicycles:
+  1. Inspect each rider and passenger individually for safety compliance (helmet usage).
+  2. Riders wearing helmets are compliant with the law and MUST NOT be penalized. Do NOT extract license plate numbers of law-abiding riders.
+  3. Identify ONLY the rider(s) or driver(s) committing a violation (e.g., NOT wearing a helmet, triple riding, red light jumping, wrong-way driving).
+  4. Extract ONLY the license plate number of the specific vehicle/motorcycle belonging to the non-compliant offender NOT wearing a helmet.
+  5. Format the extracted license plate strictly as 'AA 00 AA 0000' (2 letters, 2 digits, 2 letters, 4 digits separated by single spaces).
+
 Return a structured JSON object describing:
 1. "category": Must be strictly one of ['Road Hazard', 'Electrical Hazard', 'Water Hazard', 'Sanitation Hazard', 'Environmental Hazard', 'Public Safety Hazard', 'Traffic Violation'].
 2. "subCategory": Specific hazard name (e.g., 'Pothole', 'Open Wire', 'Pipe Burst', 'Garbage Accumulation', 'Fallen Tree', 'Open Manhole', 'Damaged Streetlight', 'Red Light Violation', 'No Helmet', 'Triple Riding', 'Wrong Way Driving', 'Illegal Parking', 'Speeding').
@@ -302,11 +329,11 @@ Return a structured JSON object describing:
 4. "isEmergency": boolean (true if severity is Critical, false otherwise).
 5. "confidenceScore": integer 0-100 representing AI certainty.
 6. "suggestedDepartment": Must be strictly one of ['Road Department', 'Electricity Department', 'Water & Sewerage', 'Sanitation & Waste', 'Environmental Protection', 'Public Safety & Infrastructure', 'Traffic Police Department'].
-7. "aiSummary": Short concise 2-sentence summary of the safety risk or traffic violation. IMPORTANT: Write the summary text in ${targetLang}.
+7. "aiSummary": Short concise 2-sentence summary of the safety risk or traffic violation. (Explicitly mention if AI detected rider(s) without helmets among multiple bikes and isolated the violator's plate number). IMPORTANT: Write the summary text in ${targetLang}.
 8. "safetyAdvice": Short 1-sentence instruction for citizens or traffic police nearby. IMPORTANT: Write the safety advice text in ${targetLang}.
 9. "estimatedFixHours": Estimated repair or processing time in hours (integer).
-10. "detectedVehiclePlateNumber": If an image or text contains a vehicle license plate number (e.g., 'MH-12-AB-1234', 'CA-7X982'), extract or detect it. Otherwise return empty string.
-11. "violationType": Specific name of traffic offense if applicable, or empty string.
+10. "detectedVehiclePlateNumber": License plate number of the OFFENDING vehicle (e.g., rider without helmet) strictly in 'AA 00 AA 0000' format. Otherwise return empty string.
+11. "violationType": Specific name of traffic offense if applicable (e.g., 'Riding Without Protective Helmet'), or empty string.
 12. "suggestedFineAmount": Suggested penalty fine amount in currency if traffic violation (e.g. 500, 1000, 1500), else 0.
 
 Description: "${description || 'Public hazard or traffic violation photo attached for analysis'}"`;
@@ -355,6 +382,9 @@ Description: "${description || 'Public hazard or traffic violation photo attache
 
       if (response.text) {
         const parsed = JSON.parse(response.text);
+        if (parsed.detectedVehiclePlateNumber) {
+          parsed.detectedVehiclePlateNumber = formatLicensePlate(parsed.detectedVehiclePlateNumber);
+        }
         return res.json(parsed);
       }
     } catch (err) {
@@ -373,10 +403,10 @@ Description: "${description || 'Public hazard or traffic violation photo attache
   let violationType = '';
   let suggestedFineAmount = 0;
 
-  // Extract license plate pattern from text if present (e.g. MH-12-AB-1234 or CA-7X982)
+  // Extract license plate pattern from text if present (e.g. MH 12 AB 1234 or MH12AB1234)
   const plateMatch = (description || '').match(/([A-Z]{2}[-\s]?[0-9]{2}[-\s]?[A-Z]{1,2}[-\s]?[0-9]{4}|[A-Z]{1,3}[-\s]?[0-9]{3,4}[A-Z]{0,2})/i);
   if (plateMatch) {
-    detectedVehiclePlateNumber = plateMatch[0].toUpperCase();
+    detectedVehiclePlateNumber = formatLicensePlate(plateMatch[0]);
   }
 
   if (descLower.includes('traffic') || descLower.includes('signal') || descLower.includes('helmet') || descLower.includes('plate') || descLower.includes('wrong way') || descLower.includes('parking') || descLower.includes('speed') || descLower.includes('challan') || descLower.includes('triple') || descLower.includes('police')) {
@@ -409,7 +439,7 @@ Description: "${description || 'Public hazard or traffic violation photo attache
     severity = descLower.includes('wrong way') || descLower.includes('signal') ? 'High' : 'Medium';
     suggestedDept = 'Traffic Police Department';
     if (!detectedVehiclePlateNumber) {
-      detectedVehiclePlateNumber = `MH-12-TP-${Math.floor(1000 + Math.random() * 9000)}`;
+      detectedVehiclePlateNumber = `MH 12 TP ${Math.floor(1000 + Math.random() * 9000)}`;
     }
   } else if (descLower.includes('wire') || descLower.includes('electric') || descLower.includes('shock') || descLower.includes('pole') || descLower.includes('transformer')) {
     category = 'Electrical Hazard';

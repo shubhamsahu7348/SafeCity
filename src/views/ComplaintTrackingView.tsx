@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Complaint, ComplaintStatus } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { formatLicensePlate } from '../utils/plateUtils';
 
 interface ComplaintTrackingViewProps {
   complaints: Complaint[];
@@ -323,7 +324,7 @@ export const ComplaintTrackingView: React.FC<ComplaintTrackingViewProps> = ({
                   <div className="flex items-center space-x-2">
                     <span className="px-2.5 py-1 bg-yellow-400 text-black font-mono font-black text-xs rounded border-2 border-slate-900 shadow-sm">IND</span>
                     <span className="font-mono font-black text-xl text-slate-900 tracking-widest">
-                      {searchedComplaint.vehiclePlateNumber || searchedComplaint.aiDetectedPlateNumber || 'MH-12-TP-1024'}
+                      {formatLicensePlate(searchedComplaint.vehiclePlateNumber || searchedComplaint.aiDetectedPlateNumber || 'MH 12 TP 1024')}
                     </span>
                   </div>
                 </div>

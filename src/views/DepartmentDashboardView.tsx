@@ -19,6 +19,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { Complaint, Worker, Department, ComplaintStatus, TimelineEvent, UserAccount } from '../types';
+import { formatLicensePlate } from '../utils/plateUtils';
 import { ComplaintDetailModal } from '../components/ComplaintDetailModal';
 import { UserAccountManager } from '../components/UserAccountManager';
 import { useLanguage } from '../context/LanguageContext';
@@ -87,7 +88,7 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
 
   const handleStartIssueChallan = (c: Complaint) => {
     setChallanModalComplaint(c);
-    setChallanPlateNumber(c.vehiclePlateNumber || c.aiDetectedPlateNumber || 'MH-12-TP-1024');
+    setChallanPlateNumber(formatLicensePlate(c.vehiclePlateNumber || c.aiDetectedPlateNumber || 'MH 12 TP 1024'));
     setChallanViolationType(c.violationType || c.subCategory || 'Obstructive Illegal Parking');
     setChallanFineAmount(c.fineAmount || 1000);
     setChallanRemarks('Traffic Officer verified vehicle plate number and issued fine under Motor Vehicles Act. Direct action completed (No field worker needed).');
@@ -1005,7 +1006,7 @@ export const DepartmentDashboardView: React.FC<DepartmentDashboardViewProps> = (
                   <input
                     type="text"
                     value={challanPlateNumber}
-                    onChange={(e) => setChallanPlateNumber(e.target.value.toUpperCase())}
+                    onChange={(e) => setChallanPlateNumber(formatLicensePlate(e.target.value))}
                     placeholder="E.g., MH 12 AB 1234"
                     className="flex-1 px-4 py-2.5 bg-white border-2 border-amber-400 focus:border-amber-600 rounded-xl font-mono font-black text-slate-900 text-base tracking-widest uppercase shadow-inner"
                   />

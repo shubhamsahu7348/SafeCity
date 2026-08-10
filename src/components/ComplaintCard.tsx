@@ -14,6 +14,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Complaint } from '../types';
+import { formatLicensePlate } from '../utils/plateUtils';
 
 interface ComplaintCardProps {
   complaint: Complaint;
@@ -167,7 +168,7 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
           {(complaint.vehiclePlateNumber || complaint.aiDetectedPlateNumber) && (
             <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-amber-100/80 text-amber-950 rounded-lg border border-amber-300 font-mono text-[11px] font-black w-fit mt-1">
               <span className="px-1 py-0.2 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded">IND</span>
-              <span>{complaint.vehiclePlateNumber || complaint.aiDetectedPlateNumber}</span>
+              <span>{formatLicensePlate(complaint.vehiclePlateNumber || complaint.aiDetectedPlateNumber)}</span>
               {complaint.challanNumber && (
                 <span className="ml-1 text-[9px] bg-emerald-700 text-white font-sans font-bold px-1.5 py-0.2 rounded-full">
                   e-Challan ₹{complaint.fineAmount || 1000}
