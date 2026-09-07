@@ -56,6 +56,43 @@ function getAiClient(): GoogleGenAI | null {
   return aiInstance;
 }
 
+// Resilient Gemini caller that defaults to gemini-3.8-flash and gracefully handles 503 high-demand / 429 spikes
+async function callGeminiWithFallback(
+  ai: GoogleGenAI,
+  options: Omit<Parameters<GoogleGenAI['models']['generateContent']>[0], 'model'> & { model?: string },
+  primaryModel = "gemini-3.8-flash",
+  fallbackModel = "gemini-3.1-flash-lite"
+) {
+  try {
+    return await ai.models.generateContent({
+      ...options,
+      model: options.model || primaryModel,
+    });
+  } catch (err: any) {
+    const activePrimary = options.model || primaryModel;
+    const errMsg = String(err?.message || err);
+    const errCode = err?.status || err?.error?.code;
+    const isTransient =
+      errCode === 503 ||
+      errCode === 429 ||
+      errMsg.includes("503") ||
+      errMsg.includes("429") ||
+      errMsg.includes("high demand") ||
+      errMsg.includes("UNAVAILABLE") ||
+      errMsg.includes("ResourceExhausted");
+
+    if (isTransient) {
+      console.warn(`Gemini model ${activePrimary} busy/unavailable (${errCode || 'temporary spike'}). Retrying with ${fallbackModel}...`);
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      return await ai.models.generateContent({
+        ...options,
+        model: fallbackModel,
+      });
+    }
+    throw err;
+  }
+}
+
 // Helper to calculate distance between two coordinates in meters (Haversine formula)
 function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371e3; // Earth radius in meters
@@ -146,6 +183,13 @@ app.post("/api/complaints", (req, res) => {
   const data = req.body;
   const newId = `SC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
   const now = new Date().toISOString();
+
+  // Reject irrelevant media / non-hazard submissions
+  if (data.isValidHazard === false) {
+    return res.status(400).json({
+      error: "Cannot submit report: The uploaded media or report does not depict a genuine municipal department problem, civic hazard, or traffic violation."
+    });
+  }
 
   const category: HazardCategory = data.category || 'Road Hazard';
   const assignedDept = data.assignedDepartment || mapCategoryToDepartment(category);
@@ -311,8 +355,39 @@ app.post("/api/ai/analyze-hazard", async (req, res) => {
   const ai = getAiClient();
   if (ai) {
     try {
-      const prompt = `You are SafeCity AI, an expert Public Hazard Intelligence & Traffic Violation Classifier for Smart Cities.
-Analyze the given hazard report (description and/or photo).
+      const prompt = `You are SafeCity AI, an expert Public Hazard Intelligence, Municipal Triage & Traffic Violation Classifier for Smart Cities.
+Analyze the given hazard report (description and/or photo or video evidence).
+
+CRITICAL RELEVANCE & CIVIC HAZARD VERIFICATION RULE:
+1. You MUST first inspect whether the submitted photo/video or report depicts an ACTUAL, REAL civic infrastructure defect, public safety hazard, environmental municipal breakdown, or traffic violation governed by city departments:
+   - Road hazards (e.g. potholes, broken asphalt, sunken roads, cave-ins, broken footpaths)
+   - Electrical hazards (e.g. open high-voltage cables, hanging wires, sparking transformers, broken electric poles)
+   - Water & sewerage hazards (e.g. ruptured water mains, water leakage, overflowing open drains, raw sewage)
+   - Sanitation hazards (e.g. garbage dumps, uncollected trash heaps, decomposing waste, dead animal on road)
+   - Environmental hazards (e.g. fallen trees blocking roads, hazardous tree branches, oil/chemical spill on road, industrial smoke/pollution)
+   - Public safety hazards (e.g. open/missing manhole covers, collapsing retaining walls, dangerous structural debris)
+   - Traffic violations (e.g. riders without helmet, triple riding, jumping red signals, driving on the wrong side, obstructive illegal parking)
+
+2. REJECTION OF RANDOM / IRRELEVANT MEDIA:
+   If the image/video shows ANY of the following with NO genuine civic hazard or traffic violation:
+   - Brand logos, company emblems, trademarks, digital graphics, icons, software screenshots, or abstract art
+   - Clean, natural scenic rivers, lakes, oceans, mountains, forests, skies, or sunsets with NO visible garbage, pollution, or civic hazard
+   - Human portraits, personal selfies, faces, family pictures, fashion photos, group photos
+   - Indoor household photos, domestic furniture, beds, appliances, living rooms, food, personal belongings, toys, pets/animals (unless an active dangerous stray animal pack)
+   - Normal vehicles driving safely or parked legally with NO traffic violations
+   THEN you MUST set:
+   - "isValidHazard": false
+   - "rejectionReason": "Specific clear explanation of why this photo is unrelated (e.g. 'Uploaded photo depicts a corporate logo / scenic natural river / personal human selfie with no civic defect, hazard, or traffic violation')."
+   - "category": "Road Hazard"
+   - "suggestedDepartment": "Road Department"
+   - "confidenceScore": 15
+   - "aiSummary": "No municipal department problem or traffic violation detected. The uploaded media appears to be an unrelated image (e.g., logo, landscape, or portrait)."
+   - "safetyAdvice": "Please capture and upload media depicting an actual civic defect such as potholes, exposed wires, garbage, or traffic offenses to enable report submission."
+
+3. VALID CIVIC HAZARDS:
+   If and ONLY if the media/text shows an actual civic issue or traffic violation:
+   - "isValidHazard": true
+   - "rejectionReason": ""
 
 CRITICAL MULTI-VEHICLE & HELMET COMPLIANCE RULES:
 - When analyzing images containing multiple motorcycles, scooters, or bicycles:
@@ -323,18 +398,20 @@ CRITICAL MULTI-VEHICLE & HELMET COMPLIANCE RULES:
   5. Format the extracted license plate strictly as 'AA 00 AA 0000' (2 letters, 2 digits, 2 letters, 4 digits separated by single spaces).
 
 Return a structured JSON object describing:
-1. "category": Must be strictly one of ['Road Hazard', 'Electrical Hazard', 'Water Hazard', 'Sanitation Hazard', 'Environmental Hazard', 'Public Safety Hazard', 'Traffic Violation'].
-2. "subCategory": Specific hazard name (e.g., 'Pothole', 'Open Wire', 'Pipe Burst', 'Garbage Accumulation', 'Fallen Tree', 'Open Manhole', 'Damaged Streetlight', 'Red Light Violation', 'No Helmet', 'Triple Riding', 'Wrong Way Driving', 'Illegal Parking', 'Speeding').
-3. "severity": Must be strictly one of ['Low', 'Medium', 'High', 'Critical']. (Set to 'Critical' if there is immediate threat to human life like exposed high-voltage cables, major pipe burst, deep open manhole, road collapse, or high-speed collision risk).
-4. "isEmergency": boolean (true if severity is Critical, false otherwise).
-5. "confidenceScore": integer 0-100 representing AI certainty.
-6. "suggestedDepartment": Must be strictly one of ['Road Department', 'Electricity Department', 'Water & Sewerage', 'Sanitation & Waste', 'Environmental Protection', 'Public Safety & Infrastructure', 'Traffic Police Department'].
-7. "aiSummary": Short concise 2-sentence summary of the safety risk or traffic violation. (Explicitly mention if AI detected rider(s) without helmets among multiple bikes and isolated the violator's plate number). IMPORTANT: Write the summary text in ${targetLang}.
-8. "safetyAdvice": Short 1-sentence instruction for citizens or traffic police nearby. IMPORTANT: Write the safety advice text in ${targetLang}.
-9. "estimatedFixHours": Estimated repair or processing time in hours (integer).
-10. "detectedVehiclePlateNumber": License plate number of the OFFENDING vehicle (e.g., rider without helmet) strictly in 'AA 00 AA 0000' format. Otherwise return empty string.
-11. "violationType": Specific name of traffic offense if applicable (e.g., 'Riding Without Protective Helmet'), or empty string.
-12. "suggestedFineAmount": Suggested penalty fine amount in currency if traffic violation (e.g. 500, 1000, 1500), else 0.
+1. "isValidHazard": boolean (true if genuine civic hazard or traffic violation; false if random, logo, river, selfie, human portrait, furniture, meme, etc.).
+2. "rejectionReason": string (empty string if valid; otherwise clear explanation why the photo is unrelated).
+3. "category": Must be strictly one of ['Road Hazard', 'Electrical Hazard', 'Water Hazard', 'Sanitation Hazard', 'Environmental Hazard', 'Public Safety Hazard', 'Traffic Violation'].
+4. "subCategory": Specific hazard name (e.g., 'Pothole', 'Open Wire', 'Pipe Burst', 'Garbage Accumulation', 'Fallen Tree', 'Open Manhole', 'Damaged Streetlight', 'Red Light Violation', 'No Helmet', 'Triple Riding', 'Wrong Way Driving', 'Illegal Parking', 'Speeding').
+5. "severity": Must be strictly one of ['Low', 'Medium', 'High', 'Critical']. (Set to 'Critical' if there is immediate threat to human life like exposed high-voltage cables, major pipe burst, deep open manhole, road collapse, or high-speed collision risk).
+6. "isEmergency": boolean (true if severity is Critical, false otherwise).
+7. "confidenceScore": integer 0-100 representing AI certainty.
+8. "suggestedDepartment": Must be strictly one of ['Road Department', 'Electricity Department', 'Water & Sewerage', 'Sanitation & Waste', 'Environmental Protection', 'Public Safety & Infrastructure', 'Traffic Police Department'].
+9. "aiSummary": Short concise 2-sentence summary of the safety risk or traffic violation. (If invalid hazard, explain that no problem was found). IMPORTANT: Write the summary text in ${targetLang}.
+10. "safetyAdvice": Short 1-sentence instruction for citizens or traffic police nearby. IMPORTANT: Write the safety advice text in ${targetLang}.
+11. "estimatedFixHours": Estimated repair or processing time in hours (integer, 0 if invalid).
+12. "detectedVehiclePlateNumber": License plate number of the OFFENDING vehicle (e.g., rider without helmet) strictly in 'AA 00 AA 0000' format. Otherwise return empty string.
+13. "violationType": Specific name of traffic offense if applicable (e.g., 'Riding Without Protective Helmet'), or empty string.
+14. "suggestedFineAmount": Suggested penalty fine amount in currency if traffic violation (e.g. 500, 1000, 1500), else 0.
 
 Description: "${description || 'Public hazard or traffic violation photo attached for analysis'}"`;
 
@@ -354,14 +431,15 @@ Description: "${description || 'Public hazard or traffic violation photo attache
         }
       }
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+      const response = await callGeminiWithFallback(ai, {
         contents,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
             properties: {
+              isValidHazard: { type: Type.BOOLEAN },
+              rejectionReason: { type: Type.STRING },
               category: { type: Type.STRING },
               subCategory: { type: Type.STRING },
               severity: { type: Type.STRING },
@@ -375,7 +453,7 @@ Description: "${description || 'Public hazard or traffic violation photo attache
               violationType: { type: Type.STRING },
               suggestedFineAmount: { type: Type.INTEGER },
             },
-            required: ["category", "subCategory", "severity", "isEmergency", "confidenceScore", "suggestedDepartment", "aiSummary", "safetyAdvice", "estimatedFixHours"],
+            required: ["isValidHazard", "rejectionReason", "category", "subCategory", "severity", "isEmergency", "confidenceScore", "suggestedDepartment", "aiSummary", "safetyAdvice", "estimatedFixHours"],
           },
         },
       });
@@ -384,6 +462,9 @@ Description: "${description || 'Public hazard or traffic violation photo attache
         const parsed = JSON.parse(response.text);
         if (parsed.detectedVehiclePlateNumber) {
           parsed.detectedVehiclePlateNumber = formatLicensePlate(parsed.detectedVehiclePlateNumber);
+        }
+        if (typeof parsed.isValidHazard !== 'boolean') {
+          parsed.isValidHazard = true;
         }
         return res.json(parsed);
       }
@@ -394,6 +475,72 @@ Description: "${description || 'Public hazard or traffic violation photo attache
 
   // Smart fallback heuristic if AI key is unavailable or fails
   const descLower = (description || "").toLowerCase();
+
+  const irrelevantKeywords = [
+    'logo', 'brand', 'emblem', 'icon', 'graphic', 'diagram', 'screenshot',
+    'river', 'lake', 'mountain', 'nature', 'scenery', 'landscape', 'sunset', 'forest', 'beach', 'sky',
+    'human', 'portrait', 'selfie', 'face', 'person', 'people', 'friend', 'photo', 'profile',
+    'cat', 'dog', 'pet', 'animal', 'bird', 'food', 'cake', 'plate', 'car', 'room', 'bed', 'desk',
+    'test', 'random', 'sample', 'meme'
+  ];
+
+  const hasIrrelevantWord = irrelevantKeywords.some(kw => {
+    const regex = new RegExp(`\\b${kw}\\b`, 'i');
+    return regex.test(descLower);
+  });
+
+  const civicHazardKeywords = [
+    'pothole', 'road', 'asphalt', 'pavement', 'crack', 'ditch', 'crater', 'bridge',
+    'wire', 'electric', 'shock', 'pole', 'transformer', 'cable', 'spark', 'short circuit',
+    'water', 'pipe', 'leak', 'flood', 'drain', 'sewage', 'burst', 'drainage', 'gutter',
+    'garbage', 'trash', 'waste', 'dump', 'smell', 'filth', 'debris', 'litter',
+    'tree', 'branch', 'fallen', 'spill',
+    'manhole', 'hole', 'shaft', 'collapse',
+    'traffic', 'signal', 'helmet', 'wrong way', 'parking', 'speed', 'challan', 'triple', 'police', 'violation', 'motorcycle', 'bike'
+  ];
+
+  const hasCivicHazardWord = civicHazardKeywords.some(kw => descLower.includes(kw));
+
+  let isValidHazard = true;
+  let rejectionReason = '';
+
+  if (hasIrrelevantWord && !hasCivicHazardWord) {
+    isValidHazard = false;
+    rejectionReason = `The uploaded description or media appears to be unrelated to any municipal department (detected terms: ${descLower.slice(0, 40)}...). Please upload a photo/video showing a real civic defect or traffic violation.`;
+  } else if (!hasCivicHazardWord && !description) {
+    isValidHazard = false;
+    rejectionReason = 'No visible municipal hazard or civic infrastructure defect detected. Please upload media depicting a genuine public problem.';
+  }
+
+  if (!isValidHazard) {
+    let aiSummary = 'No municipal department problem or traffic violation detected. The uploaded media is unrelated to public safety or civic infrastructure.';
+    let safetyAdvice = 'Please upload a photo or video showing a real civic problem (such as potholes, open wires, garbage dumps, water leaks, or traffic violations) to activate report submission.';
+    if (language === 'hi') {
+      aiSummary = 'कोई नगरपालिका विभाग की समस्या या यातायात उल्लंघन नहीं पाया गया। अपलोड किया गया मीडिया नागरिक बुनियादी ढांचे या जन सुरक्षा से संबंधित नहीं है।';
+      safetyAdvice = 'रिपोर्ट सबमिट करने के लिए कृपया वास्तविक नागरिक समस्या (जैसे गड्ढे, खुले तार, कचरा डंप, पानी का रिसाव, या यातायात उल्लंघन) की फोटो या वीडियो अपलोड करें।';
+    } else if (language === 'mr') {
+      aiSummary = 'कोणतीही महानगरपालिका समस्या किंवा वाहतूक उल्लंघन आढळले नाही. अपलोड केलेला फोटो सार्वजनिक समस्येशी संबंधित नाही.';
+      safetyAdvice = 'तक्रार दाखल करण्यासाठी कृपया खरोखरच्या नागरी समस्येचा (उदा. खड्डे, उघड्या तारा, कचरा, पाणी गळती, वाहतूक उल्लंघन) फोटो किंवा व्हिडिओ अपलोड करा.';
+    }
+
+    return res.json({
+      isValidHazard: false,
+      rejectionReason,
+      category: 'Road Hazard',
+      subCategory: 'Unrelated Media',
+      severity: 'Low',
+      isEmergency: false,
+      confidenceScore: 20,
+      suggestedDepartment: 'Road Department',
+      aiSummary,
+      safetyAdvice,
+      estimatedFixHours: 0,
+      detectedVehiclePlateNumber: '',
+      violationType: '',
+      suggestedFineAmount: 0,
+    });
+  }
+
   let category: HazardCategory = 'Road Hazard';
   let subCategory = 'Pothole';
   let severity: SeverityLevel = 'Medium';
@@ -544,8 +691,7 @@ Return JSON with:
 3. "matchedComplaintId": string (e.g. "${closest.id}")
 4. "reasoning": 1-sentence explanation of why it is or is not a duplicate.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+      const response = await callGeminiWithFallback(ai, {
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -616,8 +762,7 @@ Return JSON:
         if (m2) parts.push({ inlineData: { mimeType: m2[1], data: m2[2] } });
       }
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+      const response = await callGeminiWithFallback(ai, {
         contents: { parts },
         config: {
           responseMimeType: "application/json",

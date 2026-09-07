@@ -7,6 +7,9 @@ import {
   MapPin,
   Sparkles,
   AlertTriangle,
+  AlertOctagon,
+  XCircle,
+  ShieldAlert,
   CheckCircle2,
   Upload,
   RefreshCw,
@@ -274,15 +277,68 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
     );
   };
 
+  // Helper to extract a representative frame from video for AI visual analysis
+  const extractVideoFrame = (videoSrc: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      try {
+        const video = document.createElement('video');
+        video.src = videoSrc;
+        video.crossOrigin = 'anonymous';
+        video.muted = true;
+        video.playsInline = true;
+        video.currentTime = 0.5;
+        video.onloadeddata = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const maxDim = 800;
+            const w = video.videoWidth || 640;
+            const h = video.videoHeight || 480;
+            const scale = Math.min(maxDim / w, maxDim / h, 1);
+            canvas.width = Math.round(w * scale);
+            canvas.height = Math.round(h * scale);
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+              resolve(dataUrl);
+              return;
+            }
+          } catch {
+            // fallback
+          }
+          resolve(null);
+        };
+        video.onerror = () => resolve(null);
+        setTimeout(() => resolve(null), 3000);
+      } catch {
+        resolve(null);
+      }
+    });
+  };
+
   // Step 3: Run AI Hazard Analysis
   const handleRunAIAnalysis = async () => {
-    const activePhoto = photos[0] || photoUrl;
-    if (!description && !activePhoto) {
-      alert('Please provide at least one photo or description for AI analysis.');
+    let activePhoto = photos[0] || photoUrl;
+    const activeVideo = videos[0];
+    if (!description && !activePhoto && !activeVideo) {
+      alert('Please provide at least one photo, video, or description for AI analysis.');
       return;
     }
 
     setIsAnalyzing(true);
+
+    // If no photo was uploaded but video is present, extract a frame for AI visual assessment
+    if (!activePhoto && activeVideo) {
+      try {
+        const frame = await extractVideoFrame(activeVideo);
+        if (frame) {
+          activePhoto = frame;
+        }
+      } catch (e) {
+        console.warn('Video frame capture failed:', e);
+      }
+    }
+
     try {
       // 1. Analyze Hazard
       const res = await fetch('/api/ai/analyze-hazard', {
@@ -290,6 +346,8 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           image: activePhoto,
+          video: activeVideo,
+          hasVideo: videos.length > 0,
           description,
           latitude,
           longitude,
@@ -300,23 +358,27 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
       if (res.ok) {
         const data: AIAnalysisResponse = await res.json();
         setAiAnalysis(data);
-        setCategory(data.category);
-        setSubCategory(data.subCategory);
-        const resolvedSeverity = data.severity === 'Critical' || data.isEmergency ? 'Critical' : data.severity;
-        setSeverity(resolvedSeverity);
-        setIsEmergency(resolvedSeverity === 'Critical');
-        setDepartment(data.suggestedDepartment);
 
-        if (data.detectedVehiclePlateNumber) {
-          setVehiclePlateNumber(formatLicensePlate(data.detectedVehiclePlateNumber));
-          setIsPlateDetectedByAI(true);
-        }
-        if (data.violationType) {
-          setViolationType(data.violationType);
+        // Only assign department and classification if it is a genuine hazard
+        if (data.isValidHazard) {
+          setCategory(data.category);
+          setSubCategory(data.subCategory);
+          const resolvedSeverity = data.severity === 'Critical' || data.isEmergency ? 'Critical' : data.severity;
+          setSeverity(resolvedSeverity);
+          setIsEmergency(resolvedSeverity === 'Critical');
+          setDepartment(data.suggestedDepartment);
+
+          if (data.detectedVehiclePlateNumber) {
+            setVehiclePlateNumber(formatLicensePlate(data.detectedVehiclePlateNumber));
+            setIsPlateDetectedByAI(true);
+          }
+          if (data.violationType) {
+            setViolationType(data.violationType);
+          }
         }
       }
 
-      // 2. Check Duplicates
+      // 2. Check Duplicates (only if description or location available)
       const dupRes = await fetch('/api/ai/check-duplicate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -342,6 +404,12 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
 
   // Final Submit
   const handleSubmitReport = async () => {
+    // 1. Block submission if media was flagged as unrelated / not a genuine hazard
+    if (aiAnalysis && !aiAnalysis.isValidHazard) {
+      alert('🚫 Submission Blocked: The uploaded photo or video does not show a genuine municipal department problem or traffic violation (e.g., corporate logo, landscape, selfie, or unrelated image detected). Please upload a photo/video showing a real civic problem.');
+      return;
+    }
+
     const isTraffic = category === 'Traffic Violation' || department === 'Traffic Police Department';
     const plate = vehiclePlateNumber.trim();
 
@@ -354,6 +422,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
     const primaryVideo = videos[0] || undefined;
 
     const payload = {
+      isValidHazard: aiAnalysis ? aiAnalysis.isValidHazard : true,
       title: `${subCategory} ${category === 'Traffic Violation' ? 'Violation' : 'Hazard'} at ${address.split(',')[0]}`,
       category,
       subCategory,
@@ -386,6 +455,9 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
         setSubmittedComplaint(newComplaint);
         onComplaintSubmitted(newComplaint);
         setStep(4); // Success screen
+      } else {
+        const errData = await res.json();
+        alert(`❌ Report submission rejected:\n${errData.error || 'Server rejected submission.'}`);
       }
     } catch (err) {
       console.error('Submit complaint error:', err);
@@ -447,6 +519,17 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
             <p className="text-xs text-slate-500 font-medium">
               {t('report.upload_subtitle', 'Combine high-resolution photos and video recordings of the hazard site in one place for AI verification.')}
             </p>
+          </div>
+
+          {/* AI Civic Hazard Relevance Notice */}
+          <div className="p-3.5 bg-sky-50 border border-sky-200 rounded-2xl flex items-start space-x-3 text-xs text-sky-950">
+            <ShieldAlert className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <span className="font-extrabold text-sky-900">AI Civic Relevance Filter:</span>
+              <p className="text-sky-800 text-[11px] leading-relaxed">
+                Only photos and videos depicting <strong>real civic problems or traffic violations</strong> (potholes, open electric wires, water leakage, garbage piles, open manholes, red light jumping, riding without a helmet) can be routed to municipal departments. Random images (such as brand logos, scenic rivers, personal selfies, or portraits) will be detected and blocked from submission.
+              </p>
+            </div>
           </div>
 
           {/* Unified Media Uploader Box */}
@@ -741,8 +824,53 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
             </div>
           )}
 
-          {/* AI Analysis Findings Card */}
-          {aiAnalysis && (
+          {/* AI Analysis Findings Card or Rejection Warning */}
+          {aiAnalysis && !aiAnalysis.isValidHazard ? (
+            <div className="bg-gradient-to-br from-rose-950 via-slate-900 to-rose-900 text-white p-5 rounded-2xl border-2 border-rose-500/60 space-y-3 shadow-xl">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-wider text-rose-300 flex items-center">
+                  <XCircle className="w-4 h-4 mr-1.5 text-rose-400" />
+                  Unrelated Media Detected — No Department Problem Found
+                </span>
+                <span className="px-3 py-0.5 text-xs font-black bg-rose-500/20 text-rose-300 rounded-full border border-rose-500/40">
+                  Submission Inactive
+                </span>
+              </div>
+
+              <div className="p-3.5 bg-slate-950/80 rounded-xl border border-rose-500/30 text-xs font-medium text-rose-100 space-y-1.5">
+                <p className="font-black text-rose-300 text-sm">
+                  {aiAnalysis.rejectionReason || 'The uploaded photo or video does not show any civic infrastructure problem, municipal hazard, or traffic violation.'}
+                </p>
+                <p className="text-[12px] text-slate-300 leading-relaxed">
+                  {aiAnalysis.aiSummary}
+                </p>
+              </div>
+
+              <div className="p-3 bg-amber-950/60 rounded-xl text-xs text-amber-200 border border-amber-500/40 flex items-start space-x-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <strong className="text-amber-300">Why was report submission disabled?</strong>
+                  <p className="text-[11px] text-amber-100/90 leading-relaxed">
+                    SafeCity AI ensures municipal field teams (Roads, Electricity, Water, Waste, Traffic Police) only receive actionable public hazard reports. Images depicting company logos, clean rivers or nature, human portraits, selfies, or domestic items without civic damage cannot be routed to any department.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-1 flex items-center justify-between flex-wrap gap-2">
+                <span className="text-[11px] text-rose-200/80 font-medium">
+                  {aiAnalysis.safetyAdvice}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs rounded-xl shadow-md flex items-center space-x-1.5 transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Upload Real Problem Photo/Video</span>
+                </button>
+              </div>
+            </div>
+          ) : aiAnalysis ? (
             <div className="bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white p-5 rounded-2xl border border-indigo-800 space-y-3 shadow-xl">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black uppercase tracking-wider text-cyan-300 flex items-center">
@@ -762,95 +890,115 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                 <strong>{t('report.safety_guidance', 'Safety Guidance:')}</strong> {aiAnalysis.safetyAdvice}
               </div>
             </div>
+          ) : null}
+
+          {/* Department Routing Status or Classification Grid */}
+          {aiAnalysis && !aiAnalysis.isValidHazard ? (
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-300 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Building2 className="w-4 h-4 text-slate-500" />
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-700">Department Routing Status</span>
+                </div>
+                <span className="px-2.5 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-black rounded-full uppercase border border-rose-200">
+                  No Department Selected
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Because no genuine municipal defect or traffic violation was found, <strong>no department has been selected</strong>. City departments (Road Department, Electricity, Water & Sewerage, Sanitation, Environmental Protection, Traffic Police) only receive real problems.
+              </p>
+            </div>
+          ) : (
+            /* Editable AI Classification Fields */
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  {t('report.category_label', 'Hazard Category')}
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => {
+                    const val = e.target.value as HazardCategory;
+                    setCategory(val);
+                    if (val === 'Traffic Violation') {
+                      setDepartment('Traffic Police Department');
+                    }
+                  }}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-800"
+                >
+                  <option value="Road Hazard">{t('category.road', 'Road Hazard')}</option>
+                  <option value="Electrical Hazard">{t('category.electrical', 'Electrical Hazard')}</option>
+                  <option value="Water Hazard">{t('category.water', 'Water Hazard')}</option>
+                  <option value="Sanitation Hazard">{t('category.sanitation', 'Sanitation Hazard')}</option>
+                  <option value="Environmental Hazard">{t('category.environmental', 'Environmental Hazard')}</option>
+                  <option value="Public Safety Hazard">{t('category.safety', 'Public Safety Hazard')}</option>
+                  <option value="Traffic Violation">{t('category.traffic', 'Traffic Police / Violation')}</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  {t('report.severity_label', 'Severity Level')}
+                </label>
+                <select
+                  value={severity}
+                  onChange={(e) => {
+                    const val = e.target.value as SeverityLevel;
+                    setSeverity(val);
+                    setIsEmergency(val === 'Critical');
+                  }}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-800"
+                >
+                  <option value="Low">{t('severity.low', 'Low')}</option>
+                  <option value="Medium">{t('severity.medium', 'Medium')}</option>
+                  <option value="High">{t('severity.high', 'High')}</option>
+                  <option value="Critical">{t('severity.critical', 'Critical (Emergency)')}</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  {t('report.dept_label', 'Assigned Department')}
+                </label>
+                <select
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value as Department)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-800"
+                >
+                  <option value="Road Department">{t('dept.road', 'Road Department')}</option>
+                  <option value="Electricity Department">{t('dept.electricity', 'Electricity Department')}</option>
+                  <option value="Water & Sewerage">{t('dept.water', 'Water & Sewerage')}</option>
+                  <option value="Sanitation & Waste">{t('dept.sanitation', 'Sanitation & Waste')}</option>
+                  <option value="Environmental Protection">{t('dept.environmental', 'Environmental Protection')}</option>
+                  <option value="Public Safety & Infrastructure">{t('dept.safety', 'Public Safety & Infrastructure')}</option>
+                  <option value="Traffic Police Department">{t('dept.traffic', 'Traffic Police Department')}</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5 flex flex-col justify-end">
+                {severity === 'Critical' ? (
+                  <label className="flex items-center space-x-2 p-3 bg-red-50 rounded-xl border border-red-200 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isEmergency}
+                      onChange={(e) => setIsEmergency(e.target.checked)}
+                      className="w-4 h-4 text-red-600 rounded"
+                    />
+                    <span className="text-xs font-extrabold text-red-700 uppercase tracking-wider">
+                      {t('btn.flag_emergency', 'Flag as Emergency Priority')}
+                    </span>
+                  </label>
+                ) : (
+                  <div className="hidden sm:block min-h-[46px]" />
+                )}
+              </div>
+            </div>
           )}
 
-          {/* Editable AI Classification Fields */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                {t('report.category_label', 'Hazard Category')}
-              </label>
-              <select
-                value={category}
-                onChange={(e) => {
-                  const val = e.target.value as HazardCategory;
-                  setCategory(val);
-                  if (val === 'Traffic Violation') {
-                    setDepartment('Traffic Police Department');
-                  }
-                }}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-800"
-              >
-                <option value="Road Hazard">{t('category.road', 'Road Hazard')}</option>
-                <option value="Electrical Hazard">{t('category.electrical', 'Electrical Hazard')}</option>
-                <option value="Water Hazard">{t('category.water', 'Water Hazard')}</option>
-                <option value="Sanitation Hazard">{t('category.sanitation', 'Sanitation Hazard')}</option>
-                <option value="Environmental Hazard">{t('category.environmental', 'Environmental Hazard')}</option>
-                <option value="Public Safety Hazard">{t('category.safety', 'Public Safety Hazard')}</option>
-                <option value="Traffic Violation">{t('category.traffic', 'Traffic Police / Violation')}</option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                {t('report.severity_label', 'Severity Level')}
-              </label>
-              <select
-                value={severity}
-                onChange={(e) => {
-                  const val = e.target.value as SeverityLevel;
-                  setSeverity(val);
-                  setIsEmergency(val === 'Critical');
-                }}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-800"
-              >
-                <option value="Low">{t('severity.low', 'Low')}</option>
-                <option value="Medium">{t('severity.medium', 'Medium')}</option>
-                <option value="High">{t('severity.high', 'High')}</option>
-                <option value="Critical">{t('severity.critical', 'Critical (Emergency)')}</option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                {t('report.dept_label', 'Assigned Department')}
-              </label>
-              <select
-                value={department}
-                onChange={(e) => setDepartment(e.target.value as Department)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-800"
-              >
-                <option value="Road Department">{t('dept.road', 'Road Department')}</option>
-                <option value="Electricity Department">{t('dept.electricity', 'Electricity Department')}</option>
-                <option value="Water & Sewerage">{t('dept.water', 'Water & Sewerage')}</option>
-                <option value="Sanitation & Waste">{t('dept.sanitation', 'Sanitation & Waste')}</option>
-                <option value="Environmental Protection">{t('dept.environmental', 'Environmental Protection')}</option>
-                <option value="Public Safety & Infrastructure">{t('dept.safety', 'Public Safety & Infrastructure')}</option>
-                <option value="Traffic Police Department">{t('dept.traffic', 'Traffic Police Department')}</option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5 flex flex-col justify-end">
-              {severity === 'Critical' ? (
-                <label className="flex items-center space-x-2 p-3 bg-red-50 rounded-xl border border-red-200 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isEmergency}
-                    onChange={(e) => setIsEmergency(e.target.checked)}
-                    className="w-4 h-4 text-red-600 rounded"
-                  />
-                  <span className="text-xs font-extrabold text-red-700 uppercase tracking-wider">
-                    {t('btn.flag_emergency', 'Flag as Emergency Priority')}
-                  </span>
-                </label>
-              ) : (
-                <div className="hidden sm:block min-h-[46px]" />
-              )}
-            </div>
-          </div>
-
-          {/* AI Vehicle License Plate Recognition & Edit Card */}
+          {/* AI Vehicle License Plate Recognition & Edit Card (Only if Valid Hazard) */}
           {(() => {
+            if (aiAnalysis && !aiAnalysis.isValidHazard) return null;
+
             const isTraffic = category === 'Traffic Violation' || department === 'Traffic Police Department';
             if (!isTraffic) return null;
 
@@ -918,8 +1066,10 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
 
           {/* Action Buttons */}
           {(() => {
+            const isInvalidHazard = Boolean(aiAnalysis && !aiAnalysis.isValidHazard);
             const isTraffic = category === 'Traffic Violation' || department === 'Traffic Police Department';
-            const isMissingPlate = isTraffic && !vehiclePlateNumber.trim();
+            const isMissingPlate = !isInvalidHazard && isTraffic && !vehiclePlateNumber.trim();
+            const isSubmitDisabled = isInvalidHazard || isMissingPlate;
 
             return (
               <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -934,21 +1084,25 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                 <div className="flex flex-col items-center sm:items-end w-full sm:w-auto space-y-1">
                   <button
                     onClick={handleSubmitReport}
-                    disabled={isMissingPlate}
+                    disabled={isSubmitDisabled}
                     className={`px-8 py-3.5 font-extrabold text-sm rounded-xl shadow-lg flex items-center space-x-2 transition-all w-full sm:w-auto justify-center ${
-                      isMissingPlate
-                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                      isSubmitDisabled
+                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none border border-slate-300'
                         : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30 hover:scale-105'
                     }`}
                   >
                     <CheckCircle2 className="w-5 h-5" />
                     <span>{t('btn.submit_report', 'Submit Report')}</span>
                   </button>
-                  {isMissingPlate && (
+                  {isInvalidHazard ? (
+                    <span className="text-[11px] font-extrabold text-rose-600">
+                      🚫 Submit Disabled: No municipal or traffic problem detected in uploaded media
+                    </span>
+                  ) : isMissingPlate ? (
                     <span className="text-[11px] font-extrabold text-rose-600 animate-pulse">
                       ⚠️ Vehicle number plate required to enable submission
                     </span>
-                  )}
+                  ) : null}
                 </div>
               </div>
             );

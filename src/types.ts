@@ -138,12 +138,16 @@ export interface DepartmentMetric {
 
 export interface AIAnalysisRequest {
   image?: string; // base64 or image URL
+  video?: string; // base64 or video URL
+  hasVideo?: boolean;
   description?: string;
   latitude?: number;
   longitude?: number;
 }
 
 export interface AIAnalysisResponse {
+  isValidHazard: boolean;
+  rejectionReason?: string;
   category: HazardCategory;
   subCategory: string;
   severity: SeverityLevel;
