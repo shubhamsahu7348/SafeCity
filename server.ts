@@ -4,14 +4,28 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import { INITIAL_COMPLAINTS, INITIAL_WORKERS, INITIAL_DEPARTMENT_METRICS, INITIAL_USERS } from "./src/server/mockData";
 import { Complaint, AIAnalysisRequest, AIVerificationRequest, Department, HazardCategory, SeverityLevel, UserAccount } from "./src/types";
+import {
+  checkSupabaseHealth,
+  saveComplaintToSupabase,
+  updateComplaintInSupabase,
+  fetchComplaintsFromSupabase,
+  saveUserToSupabase,
+  updateUserInSupabase,
+  deleteUserFromSupabase,
+  fetchUsersFromSupabase,
+  seedInitialUsersToSupabase,
+  findUserInSupabase,
+  SUPABASE_PROJECT_ID,
+  SUPABASE_URL,
+} from "./src/server/supabase";
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: "50mb" }));
 
-// In-memory DB store for local state during runtime
-let complaintsStore: Complaint[] = [...INITIAL_COMPLAINTS];
+// In-memory DB store for local state during runtime (only holds citizen-submitted hazards)
+let complaintsStore: Complaint[] = [];
 let workersStore = [...INITIAL_WORKERS];
 let departmentMetricsStore = [...INITIAL_DEPARTMENT_METRICS];
 let usersStore: UserAccount[] = [...INITIAL_USERS];
@@ -132,9 +146,27 @@ function mapCategoryToDepartment(category: HazardCategory): Department {
 }
 
 // API ROUTE: Health check
-app.get("/api/health", (_req, res) => {
+app.get("/api/health", async (_req, res) => {
   const ai = getAiClient();
-  res.json({ status: "ok", geminiConfigured: !!ai });
+  const supabase = await checkSupabaseHealth();
+  res.json({
+    status: "ok",
+    geminiConfigured: !!ai,
+    supabase: {
+      connected: supabase.connected,
+      projectId: supabase.projectId,
+      url: supabase.url,
+      tableExists: supabase.tableExists,
+      totalRecords: supabase.totalRecords,
+      message: supabase.message,
+    },
+  });
+});
+
+// API ROUTE: Supabase Health & Connection Status
+app.get("/api/supabase/status", async (_req, res) => {
+  const status = await checkSupabaseHealth();
+  res.json(status);
 });
 
 // API ROUTE: Get all complaints (with optional filters)
@@ -178,8 +210,14 @@ app.get("/api/complaints/:id", (req, res) => {
   res.json(complaint);
 });
 
-// API ROUTE: Create new complaint
-app.post("/api/complaints", (req, res) => {
+// API ROUTE: Clear all complaints (reset to only fresh citizen submissions)
+app.post("/api/complaints/clear", (_req, res) => {
+  complaintsStore = [];
+  res.json({ success: true, message: "Cleared all hazards. Only citizen-submitted hazards will be shown." });
+});
+
+// API ROUTE: Create new complaint (Stores in memory and persists to Supabase)
+app.post("/api/complaints", async (req, res) => {
   const data = req.body;
   const newId = `SC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
   const now = new Date().toISOString();
@@ -247,11 +285,31 @@ app.post("/api/complaints", (req, res) => {
   };
 
   complaintsStore.unshift(newComplaint);
-  res.status(201).json(newComplaint);
+
+  // Store in Supabase PostgreSQL database
+  let supabaseResult: { success: boolean; error?: string } = { success: false };
+  try {
+    supabaseResult = await saveComplaintToSupabase(newComplaint);
+    if (supabaseResult.success) {
+      console.log(`✅ [Supabase] Stored public hazard complaint ${newId} in Supabase project ${SUPABASE_PROJECT_ID}`);
+    } else {
+      console.warn(`⚠️ [Supabase] Note on Supabase insert for ${newId}:`, supabaseResult.error);
+    }
+  } catch (err: any) {
+    console.warn(`⚠️ [Supabase] Sync error for ${newId}:`, err?.message || err);
+  }
+
+  res.status(201).json({
+    ...newComplaint,
+    supabaseSynced: supabaseResult.success,
+    supabaseMessage: supabaseResult.success
+      ? 'Public hazard data saved to Supabase'
+      : supabaseResult.error,
+  });
 });
 
-// API ROUTE: Update complaint status / details
-app.patch("/api/complaints/:id", (req, res) => {
+// API ROUTE: Update complaint status / details (Syncs to Supabase)
+app.patch("/api/complaints/:id", async (req, res) => {
   const { id } = req.params;
   const complaintIndex = complaintsStore.findIndex((c) => c.id.toLowerCase() === id.toLowerCase());
 
@@ -305,6 +363,12 @@ app.patch("/api/complaints/:id", (req, res) => {
   }
 
   complaintsStore[complaintIndex] = updatedComplaint;
+
+  // Asynchronously update in Supabase
+  updateComplaintInSupabase(id, updates).catch((err) => {
+    console.warn(`[Supabase] Background update note for ${id}:`, err);
+  });
+
   res.json(updatedComplaint);
 });
 
@@ -806,17 +870,40 @@ Return JSON:
 });
 
 // API ROUTE: User Authentication / Login
-app.post("/api/users/login", (req, res) => {
+app.post("/api/users/login", async (req, res) => {
   const { username, password, targetRole } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ error: "Username and password are required." });
   }
 
-  // Find matching user in store (case-insensitive username)
-  const user = usersStore.find(
-    (u) => u.username.toLowerCase() === username.trim().toLowerCase() && u.password === password
+  const cleanUsername = username.trim().toLowerCase();
+
+  // 1. Check local usersStore first
+  let user = usersStore.find(
+    (u) => u.username.toLowerCase() === cleanUsername && u.password === password
   );
+
+  // 2. If not matched in memory, check Supabase directly (ensures fresh credentials or newly created accounts in Supabase work)
+  if (!user) {
+    try {
+      const supaUser = await findUserInSupabase(cleanUsername, password);
+      if (supaUser) {
+        user = supaUser;
+        // Sync into usersStore
+        const existingIdx = usersStore.findIndex(
+          (u) => u.username.toLowerCase() === cleanUsername
+        );
+        if (existingIdx !== -1) {
+          usersStore[existingIdx] = supaUser;
+        } else {
+          usersStore.push(supaUser);
+        }
+      }
+    } catch (err) {
+      console.warn('[Supabase] Auth lookup fallback:', err);
+    }
+  }
 
   if (!user) {
     return res.status(401).json({ error: "Invalid username or password. Please check your credentials." });
@@ -850,8 +937,27 @@ app.get("/api/users", (_req, res) => {
   res.json(usersStore);
 });
 
-// API ROUTE: Add new user account (Officer or Worker)
-app.post("/api/users", (req, res) => {
+// API ROUTE: Sync all users to and from Supabase
+app.post("/api/users/sync-supabase", async (_req, res) => {
+  try {
+    const seedRes = await seedInitialUsersToSupabase(usersStore);
+    const dbUsers = await fetchUsersFromSupabase();
+    if (dbUsers && dbUsers.length > 0) {
+      usersStore = [...dbUsers];
+    }
+    res.json({
+      success: true,
+      syncedCount: usersStore.length,
+      supabaseResult: seedRes,
+      message: `Successfully synchronized ${usersStore.length} officer, field worker, and admin accounts with Supabase.`
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || String(err) });
+  }
+});
+
+// API ROUTE: Add new user account (Officer, Worker, or Admin)
+app.post("/api/users", async (req, res) => {
   const { name, username, password, role, department, phone, email, avatarUrl } = req.body;
 
   if (!name || !username || !password || !role) {
@@ -874,7 +980,7 @@ app.post("/api/users", (req, res) => {
       name,
       department: department || 'Road Department',
       phone: phone || '+1 (555) 000-1122',
-      email: email || `${username}@safecity.gov`,
+      email: email || `${username.trim().toLowerCase()}@safecity.gov`,
       username: username.trim(),
       password,
       avatarUrl: avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
@@ -894,18 +1000,26 @@ app.post("/api/users", (req, res) => {
     role,
     department: department || 'Road Department',
     phone: phone || '+1 (555) 000-1122',
-    email: email || `${username}@safecity.gov`,
+    email: email || `${username.trim().toLowerCase()}@safecity.gov`,
     avatarUrl: avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
     workerId,
     createdAt: new Date().toISOString(),
   };
 
   usersStore.push(newUser);
+
+  // Persist user to Supabase
+  try {
+    await saveUserToSupabase(newUser);
+  } catch (err) {
+    console.warn(`[Supabase] Note saving user ${newUser.username}:`, err);
+  }
+
   res.status(201).json(newUser);
 });
 
 // API ROUTE: Update user credentials / details
-app.patch("/api/users/:id", (req, res) => {
+app.patch("/api/users/:id", async (req, res) => {
   const { id } = req.params;
   const userIdx = usersStore.findIndex((u) => u.id === id || u.workerId === id);
 
@@ -942,11 +1056,18 @@ app.patch("/api/users/:id", (req, res) => {
     ...updates,
   };
 
+  // Sync update to Supabase
+  try {
+    await updateUserInSupabase(existing.id, updates);
+  } catch (err) {
+    console.warn(`[Supabase] Note updating user ${existing.username}:`, err);
+  }
+
   res.json(usersStore[userIdx]);
 });
 
 // API ROUTE: Delete user account
-app.delete("/api/users/:id", (req, res) => {
+app.delete("/api/users/:id", async (req, res) => {
   const { id } = req.params;
   const targetUser = usersStore.find((u) => u.id === id || u.workerId === id);
 
@@ -962,6 +1083,13 @@ app.delete("/api/users/:id", (req, res) => {
     workersStore = workersStore.filter((w) => w.id !== targetUser.workerId);
   }
 
+  // Delete from Supabase
+  try {
+    await deleteUserFromSupabase(targetUser.id);
+  } catch (err) {
+    console.warn(`[Supabase] Note deleting user ${targetUser.username}:`, err);
+  }
+
   res.json({ success: true, deletedId: targetUser.id });
 });
 
@@ -971,7 +1099,7 @@ app.get("/api/workers", (_req, res) => {
 });
 
 // API ROUTE: Add worker
-app.post("/api/workers", (req, res) => {
+app.post("/api/workers", async (req, res) => {
   const workerData = req.body;
   const workerId = `W-${Math.floor(100 + Math.random() * 900)}`;
   const username = workerData.username || workerData.name.toLowerCase().replace(/\s+/g, '.');
@@ -1010,14 +1138,28 @@ app.post("/api/workers", (req, res) => {
   };
   usersStore.push(newUser);
 
+  // Save to Supabase
+  try {
+    await saveUserToSupabase(newUser);
+  } catch (err) {
+    console.warn(`[Supabase] Note saving worker user ${newUser.username}:`, err);
+  }
+
   res.status(201).json(newWorker);
 });
 
 // API ROUTE: Delete worker
-app.delete("/api/workers/:id", (req, res) => {
+app.delete("/api/workers/:id", async (req, res) => {
   const { id } = req.params;
   workersStore = workersStore.filter((w) => w.id !== id);
   usersStore = usersStore.filter((u) => u.workerId !== id && u.id !== id);
+
+  try {
+    await deleteUserFromSupabase(id);
+  } catch (err) {
+    console.warn(`[Supabase] Note deleting worker ${id}:`, err);
+  }
+
   res.json({ success: true, deletedId: id });
 });
 
@@ -1055,6 +1197,61 @@ app.get("/api/analytics", (_req, res) => {
 });
 
 async function startServer() {
+  // Check Supabase connectivity
+  try {
+    const supabaseStatus = await checkSupabaseHealth();
+    if (supabaseStatus.connected) {
+      console.log(`🔌 [Supabase] Connected to project: ${supabaseStatus.projectId} (${supabaseStatus.url})`);
+      if (supabaseStatus.tableExists) {
+        console.log(`🗄️ [Supabase] "complaints" table ready (${supabaseStatus.totalRecords} records found).`);
+        const dbComplaints = await fetchComplaintsFromSupabase();
+        if (dbComplaints && dbComplaints.length > 0) {
+          complaintsStore = [...dbComplaints];
+          console.log(`📥 [Supabase] Synced ${dbComplaints.length} citizen complaints into active store.`);
+        } else {
+          complaintsStore = [];
+        }
+      } else {
+        console.log(`ℹ️ [Supabase] Note: "complaints" table not yet created in Supabase project ${supabaseStatus.projectId}.`);
+        console.log(`👉 Run the provided "supabase-schema.sql" in your Supabase SQL Editor to enable persistent storage.`);
+      }
+
+      // Sync and seed Officer, Field Worker & Administrator User Accounts in Supabase
+      if (supabaseStatus.usersTableExists) {
+        console.log(`👤 [Supabase] "users" table ready (${supabaseStatus.totalUsers} accounts found).`);
+        // Seed default officer, worker, and admin accounts if not already present
+        await seedInitialUsersToSupabase(INITIAL_USERS);
+
+        // Load all users from Supabase to ensure active store has latest synced accounts
+        const dbUsers = await fetchUsersFromSupabase();
+        if (dbUsers && dbUsers.length > 0) {
+          usersStore = [...dbUsers];
+          console.log(`📥 [Supabase] Synced ${dbUsers.length} officer, field worker, and admin accounts into active store.`);
+        }
+      } else {
+        // Attempt seed in case table was created or is accessible
+        try {
+          const seedResult = await seedInitialUsersToSupabase(INITIAL_USERS);
+          if (seedResult.success) {
+            const dbUsers = await fetchUsersFromSupabase();
+            if (dbUsers && dbUsers.length > 0) {
+              usersStore = [...dbUsers];
+              console.log(`📥 [Supabase] Synced ${dbUsers.length} accounts from Supabase.`);
+            }
+          } else {
+            console.log(`ℹ️ [Supabase] Note: "users" table not yet initialized. Run "supabase-schema.sql" in your Supabase SQL Editor to enable credentials persistence.`);
+          }
+        } catch {
+          // Graceful fallback to memory store
+        }
+      }
+    } else {
+      console.warn(`⚠️ [Supabase] Could not reach Supabase: ${supabaseStatus.error}`);
+    }
+  } catch (err) {
+    console.warn(`⚠️ [Supabase] Initialization note:`, err);
+  }
+
   // Vite middleware for dev mode
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

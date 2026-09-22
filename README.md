@@ -340,9 +340,26 @@ http://localhost:3000
 | Variable | Required | Description |
 | :--- | :--- | :--- |
 | `GEMINI_API_KEY` | **Yes** | Google Gemini API key used server-side for multimodal vision hazard triage. |
+| `SUPABASE_URL` | Optional | Supabase project URL (defaults to `https://hflpnvixueffwbjbmnzh.supabase.co`). |
+| `SUPABASE_ANON_KEY` | Optional | Supabase publishable anonymous key for persistent data storage. |
 | `PORT` | Optional | Server port (defaults to `3000`). |
 
-> **Security Note**: All Gemini API requests are executed strictly server-side in `server.ts`. No API keys or secrets are ever exposed to the client-side browser bundle.
+> **Security Note**: All Gemini API requests and database queries are executed strictly server-side in `server.ts`.
+
+---
+
+## 🗄️ Supabase PostgreSQL Database Setup
+
+SafeCity automatically synchronizes citizen public hazard reports directly with a cloud-hosted Supabase PostgreSQL database.
+
+- **Supabase Project ID**: `hflpnvixueffwbjbmnzh`
+- **Database Endpoint**: `https://hflpnvixueffwbjbmnzh.supabase.co`
+
+### Quick Database Schema Setup:
+1. Open your [Supabase Dashboard](https://supabase.com/dashboard/project/hflpnvixueffwbjbmnzh).
+2. Navigate to **SQL Editor** on the left navigation bar.
+3. Click **New Query**, paste the contents of `supabase-schema.sql`, and click **Run**.
+4. The `complaints` table will be created with Row-Level Security (RLS) policies allowing public hazard submissions from citizens and real-time department updates.
 
 ---
 

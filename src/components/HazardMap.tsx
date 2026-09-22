@@ -133,6 +133,18 @@ export const HazardMap: React.FC<HazardMapProps> = ({
       userMarkerRef.current = userMarker;
       markersGroupRef.current = L.layerGroup().addTo(map);
       mapInstanceRef.current = map;
+
+      // Invalidate size shortly after mount to ensure container dimensions are properly registered
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 150);
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 500);
     }
 
     return () => {

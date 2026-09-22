@@ -3,6 +3,7 @@ import { Layers, Flame, ShieldAlert, Navigation, RefreshCw, Search, MapPin } fro
 import { Complaint } from '../types';
 import { RiskHeatmap } from '../components/RiskHeatmap';
 import { useLanguage } from '../context/LanguageContext';
+import { getCachedUserLocation, saveCachedUserLocation } from '../utils/locationUtils';
 
 interface PublicRiskMapViewProps {
   complaints: Complaint[];
@@ -13,23 +14,49 @@ export const PublicRiskMapView: React.FC<PublicRiskMapViewProps> = ({ complaints
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   // Live Geolocation State
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>({
-    lat: 37.774929,
-    lng: -122.419416,
-  });
-  const [userAddress, setUserAddress] = useState<string>('Detecting your live GPS location...');
+  const cached = getCachedUserLocation();
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>(
+    cached ? { lat: cached.lat, lng: cached.lng } : { lat: 37.774929, lng: -122.419416 }
+  );
+  const [userAddress, setUserAddress] = useState<string>(
+    cached?.address || 'Detecting your live GPS location...'
+  );
   const [isLocating, setIsLocating] = useState<boolean>(false);
-  const [locationStatusMessage, setLocationStatusMessage] = useState<string>('');
+  const [locationStatusMessage, setLocationStatusMessage] = useState<string>(
+    cached ? '📍 Centered at your detected location' : ''
+  );
 
   // Address search query state
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearching, setIsSearching] = useState<boolean>(false);
 
+  // Quick IP fallback
+  const fallbackToIPLocation = async () => {
+    try {
+      const res = await fetch('https://ipapi.co/json/');
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+          const lat = data.latitude;
+          const lng = data.longitude;
+          const cityRegion = `${data.city || ''}, ${data.region || ''} ${data.country_name || ''}`.trim();
+          const addr = cityRegion || 'Estimated City Location';
+          setUserCoords({ lat, lng });
+          setUserAddress(addr);
+          setLocationStatusMessage(`📍 Located via Network: ${addr}`);
+          saveCachedUserLocation({ lat, lng, address: addr });
+        }
+      }
+    } catch {
+      // Ignore IP fallback error
+    }
+  };
+
   // Detect live browser GPS location
   const handleDetectLiveLocation = () => {
     if (!navigator.geolocation) {
       setLocationStatusMessage('Geolocation is not supported by your browser.');
-      setUserAddress('San Francisco, CA (Default View)');
+      fallbackToIPLocation();
       return;
     }
 
@@ -55,42 +82,39 @@ export const PublicRiskMapView: React.FC<PublicRiskMapViewProps> = ({ complaints
                 : data.display_name;
               setUserAddress(shortAddr);
               setLocationStatusMessage(`✅ Live Location: ${shortAddr}`);
+              saveCachedUserLocation({ lat, lng, address: shortAddr });
             } else {
               const fallback = `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
               setUserAddress(fallback);
               setLocationStatusMessage(`✅ Live Location: ${fallback}`);
+              saveCachedUserLocation({ lat, lng, address: fallback });
             }
           } else {
             const fallback = `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
             setUserAddress(fallback);
             setLocationStatusMessage(`✅ Live Location: ${fallback}`);
+            saveCachedUserLocation({ lat, lng, address: fallback });
           }
         } catch (e) {
           const fallback = `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
           setUserAddress(fallback);
           setLocationStatusMessage(`✅ Live Location: ${fallback}`);
+          saveCachedUserLocation({ lat, lng, address: fallback });
         } finally {
           setIsLocating(false);
         }
       },
-      (err) => {
+      async (err) => {
         console.warn('Live location error:', err);
         setIsLocating(false);
-        let msg = 'Unable to fetch device GPS location.';
-        if (err.code === err.PERMISSION_DENIED) {
-          msg = 'Location access denied. Please enable location permissions in browser settings.';
-        } else if (err.code === err.POSITION_UNAVAILABLE) {
-          msg = 'GPS signal unavailable. Using default location.';
-        } else if (err.code === err.TIMEOUT) {
-          msg = 'Location request timed out. Retrying recommended.';
-        }
+        let msg = 'Unable to fetch GPS. Trying network location...';
         setLocationStatusMessage(`⚠️ ${msg}`);
-        setUserAddress('San Francisco, CA (Default View)');
+        await fallbackToIPLocation();
       },
       {
         enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0,
+        timeout: 10000,
+        maximumAge: 60000,
       }
     );
   };

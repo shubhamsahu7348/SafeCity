@@ -451,7 +451,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
       });
 
       if (res.ok) {
-        const newComplaint: Complaint = await res.json();
+        const newComplaint: any = await res.json();
         setSubmittedComplaint(newComplaint);
         onComplaintSubmitted(newComplaint);
         setStep(4); // Success screen

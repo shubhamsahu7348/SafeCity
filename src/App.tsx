@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock } from 'lucide-react';
 import { Complaint, Worker, DepartmentMetric, UserRole, UserAccount } from './types';
-import { INITIAL_COMPLAINTS, INITIAL_WORKERS, INITIAL_DEPARTMENT_METRICS } from './server/mockData';
+import { INITIAL_WORKERS, INITIAL_DEPARTMENT_METRICS } from './server/mockData';
 import { Navbar } from './components/Navbar';
 import { LoginModal } from './components/LoginModal';
 import { EditProfileModal } from './components/EditProfileModal';
@@ -30,21 +30,21 @@ export default function App() {
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [trackedId, setTrackedId] = useState<string>('');
 
-  // Fetch initial data from server with fallback to initial mock data
+  // Fetch citizen-reported hazards from server / database
   const fetchComplaints = async () => {
     try {
       const res = await fetch('/api/complaints');
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setComplaints(data);
           return;
         }
       }
     } catch (err) {
-      console.warn('Error fetching complaints, using fallback:', err);
+      console.warn('Error fetching citizen complaints:', err);
     }
-    setComplaints((prev) => (prev.length > 0 ? prev : INITIAL_COMPLAINTS));
+    setComplaints([]);
   };
 
   const fetchWorkers = async () => {

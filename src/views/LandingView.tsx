@@ -189,16 +189,39 @@ export const LandingView: React.FC<LandingViewProps> = ({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {complaints.slice(0, 6).map((complaint) => (
-            <ComplaintCard
-              key={complaint.id}
-              complaint={complaint}
-              onSelect={onSelectComplaint}
-              onUpvote={onUpvoteComplaint}
-            />
-          ))}
-        </div>
+        {complaints.length === 0 ? (
+          <div className="text-center py-12 px-6 bg-white rounded-3xl border border-slate-200/80 shadow-sm space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <h3 className="font-extrabold text-slate-800 text-base">
+              {t('landing.no_hazards_title', 'No Citizen Hazards Reported Yet')}
+            </h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              {t('landing.no_hazards_sub', 'Only genuine public reports submitted by citizens are shown here. Spot an open pothole, exposed wire, or water leak in your area? Report it to dispatch municipal workers!')}
+            </p>
+            <div className="pt-2">
+              <button
+                onClick={() => setActiveTab('report')}
+                className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all inline-flex items-center space-x-1.5 active:scale-95"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>{t('landing.report_btn', 'Report Public Hazard')}</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {complaints.slice(0, 6).map((complaint) => (
+              <ComplaintCard
+                key={complaint.id}
+                complaint={complaint}
+                onSelect={onSelectComplaint}
+                onUpvote={onUpvoteComplaint}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* How SafeCity AI Workflow Works */}
