@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock } from 'lucide-react';
 import { Complaint, Worker, DepartmentMetric, UserRole, UserAccount } from './types';
-import { INITIAL_WORKERS, INITIAL_DEPARTMENT_METRICS } from './server/mockData';
+import { INITIAL_COMPLAINTS, INITIAL_WORKERS, INITIAL_DEPARTMENT_METRICS } from './server/mockData';
 import { Navbar } from './components/Navbar';
 import { LoginModal } from './components/LoginModal';
 import { EditProfileModal } from './components/EditProfileModal';
@@ -23,8 +23,8 @@ export default function App() {
   const [loginModalTargetRole, setLoginModalTargetRole] = useState<UserRole | null>(null);
   const [showEditProfileModal, setShowEditProfileModal] = useState<boolean>(false);
 
-  // State loaded from API
-  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  // State loaded from API - initialized with active hazard seed so hazards display immediately
+  const [complaints, setComplaints] = useState<Complaint[]>(INITIAL_COMPLAINTS);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [departmentMetrics, setDepartmentMetrics] = useState<DepartmentMetric[]>([]);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
@@ -36,7 +36,7 @@ export default function App() {
       const res = await fetch('/api/complaints');
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           setComplaints(data);
           return;
         }
@@ -44,7 +44,7 @@ export default function App() {
     } catch (err) {
       console.warn('Error fetching citizen complaints:', err);
     }
-    setComplaints([]);
+    setComplaints((prev) => (prev.length > 0 ? prev : INITIAL_COMPLAINTS));
   };
 
   const fetchWorkers = async () => {
@@ -210,6 +210,11 @@ export default function App() {
                 setTrackedId(id);
                 setActiveTab('track');
               }}
+              complaints={complaints}
+              onViewOnMap={(c) => {
+                setSelectedComplaint(c);
+                setActiveTab('live-map');
+              }}
             />
           )}
 
@@ -218,6 +223,8 @@ export default function App() {
               complaints={complaints}
               setActiveTab={setActiveTab}
               onUpvoteComplaint={handleUpvoteComplaint}
+              selectedComplaintId={selectedComplaint?.id}
+              onSelectComplaint={(c) => setSelectedComplaint(c)}
             />
           )}
 

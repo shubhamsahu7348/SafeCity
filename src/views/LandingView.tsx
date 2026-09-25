@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import {
   ShieldAlert,
@@ -15,9 +15,13 @@ import {
   ArrowRight,
   ShieldCheck,
   Radio,
+  Filter,
+  Eye,
+  Layers,
 } from 'lucide-react';
 import { Complaint } from '../types';
 import { ComplaintCard } from '../components/ComplaintCard';
+import { HazardMap } from '../components/HazardMap';
 
 interface LandingViewProps {
   complaints: Complaint[];
@@ -32,7 +36,11 @@ export const LandingView: React.FC<LandingViewProps> = ({
   onSelectComplaint,
   onUpvoteComplaint,
 }) => {
-  const { t, translateDepartment, translateText } = useLanguage();
+  const { t, translateDepartment, translateText, translateCategory } = useLanguage();
+  const [selectedFilter, setSelectedFilter] = useState<string>('All');
+  const [hazardSearch, setHazardSearch] = useState<string>('');
+  const [showAllHazards, setShowAllHazards] = useState<boolean>(true);
+
   const activeComplaints = complaints.filter(
     (c) => c.status !== 'Resolved' && c.status !== 'Rejected'
   );
@@ -40,6 +48,37 @@ export const LandingView: React.FC<LandingViewProps> = ({
     (c) => c.isEmergency && c.status !== 'Resolved'
   );
   const resolvedCount = complaints.filter((c) => c.status === 'Resolved').length;
+
+  // Filtered active hazards based on category pill and search query
+  const displayedHazards = activeComplaints.filter((c) => {
+    if (selectedFilter === 'Emergency') {
+      if (!c.isEmergency && c.severity !== 'Critical') return false;
+    } else if (selectedFilter !== 'All') {
+      if (c.category !== selectedFilter) return false;
+    }
+
+    if (hazardSearch.trim()) {
+      const q = hazardSearch.toLowerCase().trim();
+      const matchTitle = (c.title || '').toLowerCase().includes(q);
+      const matchAddr = (c.address || '').toLowerCase().includes(q);
+      const matchCat = (c.category || '').toLowerCase().includes(q);
+      const matchSub = (c.subCategory || '').toLowerCase().includes(q);
+      const matchId = (c.id || '').toLowerCase().includes(q);
+      if (!matchTitle && !matchAddr && !matchCat && !matchSub && !matchId) return false;
+    }
+
+    return true;
+  });
+
+  const visibleHazards = showAllHazards ? displayedHazards : displayedHazards.slice(0, 6);
+
+  const scrollToHazards = (filter: string = 'All') => {
+    setSelectedFilter(filter);
+    const elem = document.getElementById('active-hazards-section');
+    if (elem) {
+      elem.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="space-y-10 pb-12">
@@ -101,18 +140,41 @@ export const LandingView: React.FC<LandingViewProps> = ({
 
           {/* Key Metrics Strip */}
           <div className="pt-6 border-t border-indigo-900/60 grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-slate-950/80 p-4 rounded-2xl border border-indigo-900/50 shadow-inner">
-              <span className="text-2xl sm:text-3xl font-black text-white">{activeComplaints.length}</span>
+            <button
+              onClick={() => scrollToHazards('All')}
+              className="text-left bg-slate-950/80 hover:bg-slate-900 p-4 rounded-2xl border border-indigo-900/50 hover:border-indigo-500 shadow-inner transition-all group cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-2xl sm:text-3xl font-black text-white group-hover:text-cyan-300 transition-colors">{activeComplaints.length}</span>
+                <Eye className="w-4 h-4 text-indigo-400 group-hover:text-cyan-300 transition-colors" />
+              </div>
               <span className="block text-xs font-bold text-indigo-300/80 mt-1">{t('landing.active_hazards', 'Active Hazards')}</span>
-            </div>
+              <span className="text-[10px] text-cyan-400 font-semibold flex items-center space-x-1 mt-0.5">
+                <span>View all below</span>
+                <ArrowRight className="w-2.5 h-2.5" />
+              </span>
+            </button>
+
             <div className="bg-slate-950/80 p-4 rounded-2xl border border-indigo-900/50 shadow-inner">
               <span className="text-2xl sm:text-3xl font-black text-emerald-400">{resolvedCount}</span>
               <span className="block text-xs font-bold text-indigo-300/80 mt-1">{t('landing.resolved_hazards', 'Resolved Hazards')}</span>
             </div>
-            <div className="bg-slate-950/80 p-4 rounded-2xl border border-indigo-900/50 shadow-inner">
-              <span className="text-2xl sm:text-3xl font-black text-rose-400">{emergencyComplaints.length}</span>
+
+            <button
+              onClick={() => scrollToHazards('Emergency')}
+              className="text-left bg-slate-950/80 hover:bg-slate-900 p-4 rounded-2xl border border-indigo-900/50 hover:border-red-500 shadow-inner transition-all group cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-2xl sm:text-3xl font-black text-rose-400 group-hover:text-rose-300 transition-colors">{emergencyComplaints.length}</span>
+                <Flame className="w-4 h-4 text-rose-500 animate-pulse" />
+              </div>
               <span className="block text-xs font-bold text-indigo-300/80 mt-1">{t('landing.emergency_hotspots', 'Emergency Hotspots')}</span>
-            </div>
+              <span className="text-[10px] text-rose-400 font-semibold flex items-center space-x-1 mt-0.5">
+                <span>Filter critical</span>
+                <ArrowRight className="w-2.5 h-2.5" />
+              </span>
+            </button>
+
             <div className="bg-slate-950/80 p-4 rounded-2xl border border-indigo-900/50 shadow-inner">
               <span className="text-2xl sm:text-3xl font-black text-cyan-400">4.8 hrs</span>
               <span className="block text-xs font-bold text-indigo-300/80 mt-1">{t('landing.avg_response', 'Avg Response Velocity')}</span>
@@ -172,38 +234,164 @@ export const LandingView: React.FC<LandingViewProps> = ({
         </section>
       )}
 
-      {/* Recent Public Hazards Grid */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
+      {/* Live Geospatial Hazard Map on Landing Page */}
+      <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-extrabold text-slate-900">{t('landing.recent_title', 'Recent Public Hazards Reported')}</h2>
-            <p className="text-xs text-slate-500">{t('landing.recent_subtitle', 'Live citizen submissions across smart city sectors')}</p>
+            <div className="flex items-center space-x-2">
+              <div className="p-1.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+                <MapPin className="w-5 h-5 text-blue-600" />
+              </div>
+              <h2 className="text-xl font-extrabold text-slate-900">
+                {t('landing.map_title', 'Live Geospatial Public Hazard Map')}
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-100 text-blue-800 border border-blue-200">
+                {activeComplaints.length} Live Pins
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Interactive smart city GIS map. Click any pin to inspect citizen photo evidence, AI analysis, and dispatch status.
+            </p>
           </div>
 
-          <button
-            onClick={() => setActiveTab('live-map')}
-            className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center space-x-1"
-          >
-            <span>{t('landing.view_all_map', 'View All On Interactive Map')}</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setActiveTab('live-map')}
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-sm transition-all flex items-center space-x-1.5"
+            >
+              <span>Explore Live Map Tab</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
-        {complaints.length === 0 ? (
+        <HazardMap
+          complaints={activeComplaints}
+          onSelectComplaint={onSelectComplaint}
+          radiusKm={0}
+          height="450px"
+        />
+      </section>
+
+      {/* Comprehensive Active Public Hazards Intelligence Hub */}
+      <section id="active-hazards-section" className="space-y-5 scroll-mt-20">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+              <h2 className="text-2xl font-black text-slate-900">
+                {t('landing.recent_title', 'All Active Public Hazards')}
+              </h2>
+              <span className="px-3 py-1 rounded-full text-xs font-black bg-blue-100 text-blue-700 border border-blue-200">
+                {activeComplaints.length} Live
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              {t('landing.recent_subtitle', 'Live citizen submissions across smart city sectors')}
+              {selectedFilter !== 'All' && ` • Filtering by ${selectedFilter}`}
+              {displayedHazards.length !== activeComplaints.length && ` (${displayedHazards.length} shown)`}
+            </p>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowAllHazards(!showAllHazards)}
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs rounded-xl transition-all flex items-center space-x-1.5 border border-slate-300"
+            >
+              <Eye className="w-3.5 h-3.5 text-slate-600" />
+              <span>{showAllHazards ? `Showing All (${displayedHazards.length})` : `Show All (${displayedHazards.length})`}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('live-map')}
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center space-x-1.5"
+            >
+              <MapPin className="w-3.5 h-3.5 text-cyan-200" />
+              <span>{t('landing.view_all_map', 'View All On Interactive Map')}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Search & Category Filter Pills */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[240px]">
+              <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+              <input
+                type="text"
+                value={hazardSearch}
+                onChange={(e) => setHazardSearch(e.target.value)}
+                placeholder="Search active hazards by location, issue, vehicle plate, or ID..."
+                className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {hazardSearch && (
+                <button
+                  onClick={() => setHazardSearch('')}
+                  className="absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-slate-600 font-bold"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <div className="text-xs text-slate-500 font-bold flex items-center space-x-1">
+              <Filter className="w-3.5 h-3.5 text-blue-600" />
+              <span>Category Filter:</span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            {[
+              { id: 'All', label: `All Active (${activeComplaints.length})`, icon: '🌐' },
+              { id: 'Emergency', label: `🚨 Critical Emergencies (${emergencyComplaints.length})`, icon: '🚨' },
+              { id: 'Road Hazard', label: `🛣️ Road (${activeComplaints.filter(c => c.category === 'Road Hazard').length})`, icon: '🛣️' },
+              { id: 'Traffic Violation', label: `🚗 Traffic (${activeComplaints.filter(c => c.category === 'Traffic Violation').length})`, icon: '🚗' },
+              { id: 'Electrical Hazard', label: `⚡ Electrical (${activeComplaints.filter(c => c.category === 'Electrical Hazard').length})`, icon: '⚡' },
+              { id: 'Water Hazard', label: `💧 Water & Sewerage (${activeComplaints.filter(c => c.category === 'Water Hazard').length})`, icon: '💧' },
+              { id: 'Sanitation Hazard', label: `🗑️ Sanitation (${activeComplaints.filter(c => c.category === 'Sanitation Hazard').length})`, icon: '🗑️' },
+              { id: 'Environmental Hazard', label: `🌳 Environmental (${activeComplaints.filter(c => c.category === 'Environmental Hazard').length})`, icon: '🌳' },
+              { id: 'Public Safety Hazard', label: `🛡️ Public Safety (${activeComplaints.filter(c => c.category === 'Public Safety Hazard').length})`, icon: '🛡️' },
+            ].map((pill) => (
+              <button
+                key={pill.id}
+                onClick={() => setSelectedFilter(pill.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+                  selectedFilter === pill.id
+                    ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-400/30'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+              >
+                {pill.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {visibleHazards.length === 0 ? (
           <div className="text-center py-12 px-6 bg-white rounded-3xl border border-slate-200/80 shadow-sm space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
               <ShieldAlert className="w-6 h-6" />
             </div>
             <h3 className="font-extrabold text-slate-800 text-base">
-              {t('landing.no_hazards_title', 'No Citizen Hazards Reported Yet')}
+              No matching active hazards found
             </h3>
             <p className="text-xs text-slate-500 max-w-md mx-auto">
-              {t('landing.no_hazards_sub', 'Only genuine public reports submitted by citizens are shown here. Spot an open pothole, exposed wire, or water leak in your area? Report it to dispatch municipal workers!')}
+              No active hazards match the selected category filter or search query. Reset your filter to see all {activeComplaints.length} active public hazards.
             </p>
-            <div className="pt-2">
+            <div className="pt-2 flex items-center justify-center space-x-2">
+              <button
+                onClick={() => {
+                  setSelectedFilter('All');
+                  setHazardSearch('');
+                }}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-xs rounded-xl shadow-md transition-all"
+              >
+                Reset Filters & View All
+              </button>
               <button
                 onClick={() => setActiveTab('report')}
-                className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all inline-flex items-center space-x-1.5 active:scale-95"
+                className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all inline-flex items-center space-x-1.5"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>{t('landing.report_btn', 'Report Public Hazard')}</span>
@@ -212,7 +400,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {complaints.slice(0, 6).map((complaint) => (
+            {visibleHazards.map((complaint) => (
               <ComplaintCard
                 key={complaint.id}
                 complaint={complaint}
@@ -220,6 +408,17 @@ export const LandingView: React.FC<LandingViewProps> = ({
                 onUpvote={onUpvoteComplaint}
               />
             ))}
+          </div>
+        )}
+
+        {displayedHazards.length > 6 && !showAllHazards && (
+          <div className="text-center pt-2">
+            <button
+              onClick={() => setShowAllHazards(true)}
+              className="px-6 py-3 bg-white hover:bg-slate-50 text-blue-600 font-black text-xs rounded-2xl border-2 border-blue-200 hover:border-blue-400 shadow-sm transition-all"
+            >
+              View Remaining {displayedHazards.length - 6} Active Hazards
+            </button>
           </div>
         )}
       </section>

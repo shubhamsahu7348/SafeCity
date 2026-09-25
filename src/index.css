@@ -7,6 +7,73 @@
   }
 }
 
+/* =========================================================================
+   Leaflet GIS Map Fixes for Tailwind CSS Compatibility
+   ========================================================================= */
+
+/* Prevent Tailwind's img reset (max-width: 100%) from distorting and warping map tiles */
+.leaflet-container {
+  width: 100%;
+  font-family: inherit;
+  z-index: 0;
+  outline: none;
+}
+
+.leaflet-container img.leaflet-tile {
+  max-width: none !important;
+  max-height: none !important;
+  width: 256px !important;
+  height: 256px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.leaflet-pane img {
+  max-width: none !important;
+}
+
+/* Ensure Leaflet marker divIcons are transparent and borderless */
+.leaflet-div-icon,
+.custom-hazard-pin,
+.user-pin,
+.user-pin-heatmap {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Leaflet Tile Container and Panes */
+.leaflet-tile-container {
+  pointer-events: none;
+}
+
+.leaflet-tile-loaded {
+  opacity: 1;
+}
+
+/* Modern Rounded Leaflet Popup Styling */
+.leaflet-popup-content-wrapper {
+  border-radius: 1rem !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: inherit !important;
+}
+
+.leaflet-popup-tip-container {
+  overflow: visible;
+}
+
+.leaflet-popup-tip {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+}
+
 /* Vibrant Palette Custom Utilities */
 .vibrant-glass {
   background: rgba(255, 255, 255, 0.88);

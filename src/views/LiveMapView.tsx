@@ -4,12 +4,14 @@ import { Complaint, HazardCategory, ComplaintStatus } from '../types';
 import { HazardMap } from '../components/HazardMap';
 import { ComplaintDetailModal } from '../components/ComplaintDetailModal';
 import { useLanguage } from '../context/LanguageContext';
-import { getCachedUserLocation, saveCachedUserLocation } from '../utils/locationUtils';
+import { getCachedUserLocation, saveCachedUserLocation, getNetworkLocation, DEFAULT_CIVIC_LOCATION } from '../utils/locationUtils';
 
 interface LiveMapViewProps {
   complaints: Complaint[];
   setActiveTab: (tab: string) => void;
   onUpvoteComplaint: (id: string) => void;
+  selectedComplaintId?: string;
+  onSelectComplaint?: (complaint: Complaint) => void;
 }
 
 // Calculate Haversine distance in km
@@ -31,25 +33,45 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
   complaints,
   setActiveTab,
   onUpvoteComplaint,
+  selectedComplaintId,
+  onSelectComplaint,
 }) => {
   const { t, translateCategory, translateStatus, translateSeverity, translateText } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [radiusKm, setRadiusKm] = useState<number>(5);
-  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
+  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(() => {
+    if (selectedComplaintId) {
+      return complaints.find((c) => c.id === selectedComplaintId) || null;
+    }
+    return null;
+  });
   const [modalComplaint, setModalComplaint] = useState<Complaint | null>(null);
 
-  // Live Location & Geolocation state - defaults to cached location if available
+  useEffect(() => {
+    if (selectedComplaintId) {
+      const match = complaints.find((c) => c.id === selectedComplaintId);
+      if (match) {
+        setSelectedComplaint(match);
+      }
+    }
+  }, [selectedComplaintId, complaints]);
+
+  // Live Location & Geolocation state - defaults to cached location or first complaint cluster
   const cachedLoc = getCachedUserLocation();
+  const defaultHazardCoord = complaints.length > 0 && typeof complaints[0].latitude === 'number'
+    ? { lat: complaints[0].latitude, lng: complaints[0].longitude, address: complaints[0].address }
+    : { lat: 19.028698, lng: 73.040177, address: 'Navi Mumbai Civic Jurisdiction' };
+
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>(
-    cachedLoc ? { lat: cachedLoc.lat, lng: cachedLoc.lng } : { lat: 37.774929, lng: -122.419416 }
+    cachedLoc ? { lat: cachedLoc.lat, lng: cachedLoc.lng } : { lat: defaultHazardCoord.lat, lng: defaultHazardCoord.lng }
   );
   const [userAddress, setUserAddress] = useState<string>(
-    cachedLoc?.address || 'Detecting your live GPS location...'
+    cachedLoc?.address || defaultHazardCoord.address || 'Smart City Civic Jurisdiction'
   );
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [locationStatusMessage, setLocationStatusMessage] = useState<string>(
-    cachedLoc ? '📍 Centered at your last detected location' : ''
+    cachedLoc ? '📍 Centered at your last detected location' : '📍 Centered on active hazard zone'
   );
   const [locationDetected, setLocationDetected] = useState<boolean>(!!cachedLoc);
 
@@ -57,40 +79,34 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearching, setIsSearching] = useState<boolean>(false);
 
-  // Quick IP fallback if browser GPS permission is denied or unavailable
+  // Quick Network IP fallback if browser GPS permission is denied or unavailable
   const fallbackToIPLocation = async () => {
     try {
-      const res = await fetch('https://ipapi.co/json/');
-      if (res.ok) {
-        const data = await res.json();
-        if (typeof data.latitude === 'number' && typeof data.longitude === 'number') {
-          const lat = data.latitude;
-          const lng = data.longitude;
-          const cityRegion = `${data.city || ''}, ${data.region || ''} ${data.country_name || ''}`.trim();
-          const addr = cityRegion || 'Estimated City Location';
-          setUserCoords({ lat, lng });
-          setUserAddress(addr);
-          setLocationDetected(true);
-          setLocationStatusMessage(`📍 Located via Network: ${addr}`);
-          saveCachedUserLocation({ lat, lng, address: addr });
-        }
+      const netLoc = await getNetworkLocation();
+      if (netLoc) {
+        setUserCoords({ lat: netLoc.lat, lng: netLoc.lng });
+        if (netLoc.address) setUserAddress(netLoc.address);
+        setLocationDetected(true);
+        setLocationStatusMessage(`📍 Located via Network: ${netLoc.address || 'Detected Location'}`);
+        return true;
       }
     } catch {
-      // Ignore IP fallback error
+      // Ignore error
     }
+    return false;
   };
 
   // Detect live browser location
   const handleDetectLiveLocation = () => {
     setSelectedComplaint(null);
     if (!navigator.geolocation) {
-      setLocationStatusMessage('Geolocation is not supported by your browser.');
+      setLocationStatusMessage('Geolocation not supported. Detecting network location...');
       fallbackToIPLocation();
       return;
     }
 
     setIsLocating(true);
-    setLocationStatusMessage('Acquiring high-accuracy live GPS coordinates...');
+    setLocationStatusMessage('Acquiring live GPS coordinates...');
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
@@ -125,7 +141,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
             setLocationStatusMessage(`✅ Live Location: ${fallback}`);
             saveCachedUserLocation({ lat, lng, address: fallback });
           }
-        } catch (e) {
+        } catch {
           const fallback = `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
           setUserAddress(fallback);
           setLocationStatusMessage(`✅ Live Location: ${fallback}`);
@@ -134,16 +150,17 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
           setIsLocating(false);
         }
       },
-      async (err) => {
-        console.warn('Live location error:', err);
+      async () => {
         setIsLocating(false);
-        let msg = 'Unable to fetch GPS. Trying network location...';
-        setLocationStatusMessage(`⚠️ ${msg}`);
-        await fallbackToIPLocation();
+        setLocationStatusMessage('GPS unavailable. Detecting via network IP...');
+        const success = await fallbackToIPLocation();
+        if (!success) {
+          setLocationStatusMessage('📍 Centered on active civic hazard zone');
+        }
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
+        timeout: 8000,
         maximumAge: 60000,
       }
     );
@@ -189,17 +206,25 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
   };
 
   // Filter complaints & calculate distance from live user position
-  const filteredComplaints = complaints
+  const allDistanceComplaints = complaints
     .filter((c) => {
+      if (typeof c.latitude !== 'number' || typeof c.longitude !== 'number' || isNaN(c.latitude) || isNaN(c.longitude)) {
+        return false;
+      }
       if (selectedCategory !== 'All' && c.category !== selectedCategory) return false;
       if (selectedStatus !== 'All' && c.status !== selectedStatus) return false;
       return true;
     })
     .map((c) => {
       const dist = getDistanceInKm(userCoords.lat, userCoords.lng, c.latitude, c.longitude);
-      return { ...c, distanceKm: dist };
+      return { ...c, distanceKm: isNaN(dist) ? 0 : dist };
     })
     .sort((a, b) => a.distanceKm - b.distanceKm); // Sort nearest first
+
+  // Apply radius filter if radiusKm > 0, otherwise show all
+  const filteredComplaints = radiusKm > 0
+    ? allDistanceComplaints.filter((c) => c.distanceKm <= radiusKm)
+    : allDistanceComplaints;
 
   return (
     <div className="space-y-6 pb-12">
@@ -300,6 +325,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
             <option value="Sanitation Hazard">{t('category.sanitation', 'Sanitation Hazards')}</option>
             <option value="Environmental Hazard">{t('category.environmental', 'Environmental Hazards')}</option>
             <option value="Public Safety Hazard">{t('category.safety', 'Public Safety')}</option>
+            <option value="Traffic Violation">{t('category.traffic', 'Traffic Violations')}</option>
           </select>
 
           {/* Status Filter */}
@@ -317,18 +343,26 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
           </select>
 
           {/* Radius Filter */}
-          <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
+          <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
             <span className="px-2 text-slate-500 text-[11px]">{t('map.radius', 'Radius:')}</span>
-            {[1, 5, 10, 25].map((r) => (
+            {[
+              { val: 1, label: '1 km' },
+              { val: 5, label: '5 km' },
+              { val: 10, label: '10 km' },
+              { val: 25, label: '25 km' },
+              { val: 50, label: '50 km' },
+              { val: 0, label: 'All Hazards' },
+            ].map((r) => (
               <button
-                key={r}
-                onClick={() => setRadiusKm(r)}
+                key={r.val}
+                type="button"
+                onClick={() => setRadiusKm(r.val)}
                 className={`px-2.5 py-1 rounded-lg transition-colors flex items-center space-x-1 ${
-                  radiusKm === r ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  radiusKm === r.val ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <Target className="w-3 h-3" />
-                <span>{r} km</span>
+                <span>{r.label}</span>
               </button>
             ))}
           </div>
@@ -362,16 +396,56 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
               <h3 className="font-extrabold text-slate-900 text-sm">
                 {t('map.nearby_hazards', 'Nearby Hazards')} ({filteredComplaints.length})
               </h3>
-              <p className="text-[11px] text-slate-400 font-medium">{t('map.sorted_distance', 'Sorted by distance from your live location')}</p>
+              <p className="text-[11px] text-slate-400 font-medium">
+                {radiusKm > 0
+                  ? `Showing active hazards within ${radiusKm} km radius`
+                  : t('map.sorted_distance', 'Sorted by distance from your live location')}
+              </p>
             </div>
-            <span className="text-[11px] font-semibold text-slate-400">{t('map.click_inspect', 'Click to Inspect')}</span>
+            {radiusKm > 0 && filteredComplaints.length < allDistanceComplaints.length && (
+              <button
+                onClick={() => setRadiusKm(0)}
+                className="text-[10px] font-black text-blue-600 hover:text-blue-700 bg-blue-50 px-2 py-1 rounded-lg border border-blue-200"
+              >
+                Show All ({allDistanceComplaints.length})
+              </button>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-3 pt-3 pr-1">
             {filteredComplaints.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 space-y-2">
-                <MapPin className="w-8 h-8 mx-auto opacity-50 text-slate-400" />
-                <p className="text-xs font-bold">{t('map.no_hazards', 'No hazards found matching current filters.')}</p>
+              <div className="text-center py-12 text-slate-400 space-y-3 px-4">
+                <MapPin className="w-10 h-10 mx-auto opacity-50 text-slate-400 animate-bounce" />
+                <div>
+                  <p className="text-xs font-bold text-slate-700">
+                    {radiusKm > 0
+                      ? `No hazards reported within ${radiusKm} km of your position.`
+                      : t('map.no_hazards', 'No hazards found matching current filters.')}
+                  </p>
+                  {allDistanceComplaints.length > 0 && radiusKm > 0 && (
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      There are {allDistanceComplaints.length} hazards reported further out in the city.
+                    </p>
+                  )}
+                </div>
+                {radiusKm > 0 && (
+                  <div className="flex flex-col items-center space-y-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setRadiusKm(25)}
+                      className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition-all"
+                    >
+                      Expand to 25 km
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRadiusKm(0)}
+                      className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-extrabold shadow-sm transition-all"
+                    >
+                      View All City Hazards ({allDistanceComplaints.length})
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               filteredComplaints.map((c) => (

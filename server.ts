@@ -20,7 +20,7 @@ import {
 } from "./src/server/supabase";
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json({ limit: "50mb" }));
 
@@ -1236,13 +1236,17 @@ async function startServer() {
         console.log(`🗄️ [Supabase] "complaints" table ready (${supabaseStatus.totalRecords} records found).`);
         const dbComplaints = await fetchComplaintsFromSupabase();
         if (dbComplaints && dbComplaints.length > 0) {
-          complaintsStore = [...dbComplaints];
-          console.log(`📥 [Supabase] Synced ${dbComplaints.length} citizen complaints into active store.`);
+          const existingIds = new Set(dbComplaints.map((c) => c.id));
+          const missingDefaults = INITIAL_COMPLAINTS.filter((c) => !existingIds.has(c.id));
+          complaintsStore = [...dbComplaints, ...missingDefaults];
+          console.log(`📥 [Supabase] Synced ${dbComplaints.length} citizen complaints from DB + ${missingDefaults.length} default departmental hazards into active store.`);
         } else {
-          complaintsStore = [];
+          complaintsStore = [...INITIAL_COMPLAINTS];
+          console.log(`📥 Loaded ${INITIAL_COMPLAINTS.length} default active municipal hazards.`);
         }
       } else {
-        console.log(`ℹ️ [Supabase] Note: "complaints" table not yet created in Supabase project ${supabaseStatus.projectId}.`);
+        complaintsStore = [...INITIAL_COMPLAINTS];
+        console.log(`ℹ️ [Supabase] Note: "complaints" table not yet created in Supabase project ${supabaseStatus.projectId}. Using initial store (${complaintsStore.length} hazards).`);
         console.log(`👉 Run the provided "supabase-schema.sql" in your Supabase SQL Editor to enable persistent storage.`);
       }
 
@@ -1285,7 +1289,10 @@ async function startServer() {
   // Vite middleware for dev mode
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: false,
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);

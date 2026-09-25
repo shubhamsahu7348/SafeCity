@@ -37,18 +37,32 @@ import {
   AIDuplicateCheckResponse,
 } from '../types';
 import { formatLicensePlate } from '../utils/plateUtils';
+import { LocationPickerMap } from '../components/LocationPickerMap';
+import { getCachedUserLocation } from '../utils/locationUtils';
 
 interface ReportHazardViewProps {
   onComplaintSubmitted: (complaint: Complaint) => void;
   onTrackComplaint: (complaintId: string) => void;
+  complaints?: Complaint[];
+  onViewOnMap?: (complaint: Complaint) => void;
 }
 
 export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
   onComplaintSubmitted,
   onTrackComplaint,
+  complaints = [],
+  onViewOnMap,
 }) => {
   const { t, language, translateDepartment, translateSeverity, translateText } = useLanguage();
   const [step, setStep] = useState<number>(1);
+
+  // Cached location fallback
+  const cachedLoc = getCachedUserLocation();
+  const defaultCoord = cachedLoc
+    ? { lat: cachedLoc.lat, lng: cachedLoc.lng, addr: cachedLoc.address }
+    : complaints.length > 0 && typeof complaints[0].latitude === 'number'
+    ? { lat: complaints[0].latitude, lng: complaints[0].longitude, addr: complaints[0].address }
+    : { lat: 19.028698, lng: 73.040177, addr: 'Navi Mumbai, Maharashtra, India' };
 
   // Form State - Multiple Photos and Videos
   const [photoUrl, setPhotoUrl] = useState<string>('');
@@ -56,9 +70,9 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
   const [videos, setVideos] = useState<string[]>([]);
   const [videoUrlInput, setVideoUrlInput] = useState<string>('');
   const [description, setDescription] = useState<string>('');
-  const [latitude, setLatitude] = useState<number>(37.774929);
-  const [longitude, setLongitude] = useState<number>(-122.419416);
-  const [address, setAddress] = useState<string>('San Francisco, CA');
+  const [latitude, setLatitude] = useState<number>(defaultCoord.lat);
+  const [longitude, setLongitude] = useState<number>(defaultCoord.lng);
+  const [address, setAddress] = useState<string>(defaultCoord.addr);
 
   // AI Classification State
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -753,6 +767,33 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                 )}
               </button>
             </div>
+
+            {/* Interactive Location Confirmation & Map Pin */}
+            <div className="pt-2">
+              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2 flex items-center justify-between">
+                <span className="flex items-center space-x-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Interactive Hazard Map Pin</span>
+                </span>
+                <span className="text-[11px] font-mono text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+                  {latitude.toFixed(5)}, {longitude.toFixed(5)}
+                </span>
+              </label>
+              <LocationPickerMap
+                latitude={latitude}
+                longitude={longitude}
+                address={address}
+                onChangeLocation={(newLat, newLng, newAddr) => {
+                  setLatitude(newLat);
+                  setLongitude(newLng);
+                  if (newAddr) setAddress(newAddr);
+                }}
+                nearbyComplaints={complaints}
+                height="280px"
+                isLocating={isLocating}
+                onLocateMe={handleDetectLocation}
+              />
+            </div>
           </div>
 
           {/* Description Textarea */}
@@ -1267,8 +1308,39 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
             )}
           </div>
 
+          {/* Registered Hazard Location Map Preview */}
+          <div className="max-w-md mx-auto rounded-2xl overflow-hidden border border-slate-200 shadow-sm text-left">
+            <div className="p-3 bg-slate-100 flex items-center justify-between text-xs font-bold text-slate-700">
+              <span className="flex items-center space-x-1.5">
+                <MapPin className="w-4 h-4 text-rose-600" />
+                <span>Registered Location on Map</span>
+              </span>
+              <span className="text-[10px] text-slate-500 font-mono">
+                {submittedComplaint.latitude.toFixed(4)}, {submittedComplaint.longitude.toFixed(4)}
+              </span>
+            </div>
+            <LocationPickerMap
+              latitude={submittedComplaint.latitude}
+              longitude={submittedComplaint.longitude}
+              address={submittedComplaint.address}
+              onChangeLocation={() => {}}
+              nearbyComplaints={complaints}
+              height="200px"
+            />
+          </div>
+
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            {onViewOnMap && (
+              <button
+                onClick={() => onViewOnMap(submittedComplaint)}
+                className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center space-x-2 transition-all hover:scale-105"
+              >
+                <MapPin className="w-4 h-4 text-emerald-200" />
+                <span>View This Hazard on Live City Map</span>
+              </button>
+            )}
+
             <button
               onClick={() => onTrackComplaint(submittedComplaint.id)}
               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md flex items-center space-x-2"

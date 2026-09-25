@@ -3,7 +3,7 @@ import { Layers, Flame, ShieldAlert, Navigation, RefreshCw, Search, MapPin } fro
 import { Complaint } from '../types';
 import { RiskHeatmap } from '../components/RiskHeatmap';
 import { useLanguage } from '../context/LanguageContext';
-import { getCachedUserLocation, saveCachedUserLocation } from '../utils/locationUtils';
+import { getCachedUserLocation, saveCachedUserLocation, getNetworkLocation, DEFAULT_CIVIC_LOCATION } from '../utils/locationUtils';
 
 interface PublicRiskMapViewProps {
   complaints: Complaint[];
@@ -15,47 +15,45 @@ export const PublicRiskMapView: React.FC<PublicRiskMapViewProps> = ({ complaints
 
   // Live Geolocation State
   const cached = getCachedUserLocation();
+  const defaultHazardCoord = complaints.length > 0 && typeof complaints[0].latitude === 'number'
+    ? { lat: complaints[0].latitude, lng: complaints[0].longitude, address: complaints[0].address }
+    : { lat: 19.028698, lng: 73.040177, address: 'Navi Mumbai Civic Jurisdiction' };
+
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>(
-    cached ? { lat: cached.lat, lng: cached.lng } : { lat: 37.774929, lng: -122.419416 }
+    cached ? { lat: cached.lat, lng: cached.lng } : { lat: defaultHazardCoord.lat, lng: defaultHazardCoord.lng }
   );
   const [userAddress, setUserAddress] = useState<string>(
-    cached?.address || 'Detecting your live GPS location...'
+    cached?.address || defaultHazardCoord.address || 'Smart City Civic Jurisdiction'
   );
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [locationStatusMessage, setLocationStatusMessage] = useState<string>(
-    cached ? '📍 Centered at your detected location' : ''
+    cached ? '📍 Centered at your detected location' : '📍 Centered on active hazard zone'
   );
 
   // Address search query state
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearching, setIsSearching] = useState<boolean>(false);
 
-  // Quick IP fallback
+  // Quick Network IP fallback
   const fallbackToIPLocation = async () => {
     try {
-      const res = await fetch('https://ipapi.co/json/');
-      if (res.ok) {
-        const data = await res.json();
-        if (typeof data.latitude === 'number' && typeof data.longitude === 'number') {
-          const lat = data.latitude;
-          const lng = data.longitude;
-          const cityRegion = `${data.city || ''}, ${data.region || ''} ${data.country_name || ''}`.trim();
-          const addr = cityRegion || 'Estimated City Location';
-          setUserCoords({ lat, lng });
-          setUserAddress(addr);
-          setLocationStatusMessage(`📍 Located via Network: ${addr}`);
-          saveCachedUserLocation({ lat, lng, address: addr });
-        }
+      const netLoc = await getNetworkLocation();
+      if (netLoc) {
+        setUserCoords({ lat: netLoc.lat, lng: netLoc.lng });
+        if (netLoc.address) setUserAddress(netLoc.address);
+        setLocationStatusMessage(`📍 Located via Network: ${netLoc.address || 'Detected Location'}`);
+        return true;
       }
     } catch {
-      // Ignore IP fallback error
+      // Ignore error
     }
+    return false;
   };
 
   // Detect live browser GPS location
   const handleDetectLiveLocation = () => {
     if (!navigator.geolocation) {
-      setLocationStatusMessage('Geolocation is not supported by your browser.');
+      setLocationStatusMessage('Geolocation not supported. Detecting network location...');
       fallbackToIPLocation();
       return;
     }
