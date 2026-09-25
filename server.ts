@@ -33,6 +33,10 @@ let usersStore: UserAccount[] = [...INITIAL_USERS];
 // Helper to format vehicle plate numbers strictly in AA 00 AA 0000 format
 function formatLicensePlate(raw?: string): string {
   if (!raw) return '';
+  const upper = raw.trim().toUpperCase();
+  if (upper.includes('CCTV') || upper.includes('VERIFY') || upper.includes('PENDING') || upper.includes('INVESTIGATE')) {
+    return upper;
+  }
   const clean = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
   if (clean.length === 0) return '';
   const p1 = clean.substring(0, 2);
@@ -422,60 +426,78 @@ app.post("/api/ai/analyze-hazard", async (req, res) => {
       const prompt = `You are AapdaSetu AI, an expert Public Hazard Intelligence, Municipal Triage & Traffic Violation Classifier for Smart Cities.
 Analyze the given hazard report (description and/or photo or video evidence).
 
-CRITICAL RELEVANCE & CIVIC HAZARD VERIFICATION RULE:
-1. You MUST first inspect whether the submitted photo/video or report depicts an ACTUAL, REAL civic infrastructure defect, public safety hazard, environmental municipal breakdown, or traffic violation governed by city departments:
-   - Road hazards (e.g. potholes, broken asphalt, sunken roads, cave-ins, broken footpaths)
-   - Electrical hazards (e.g. open high-voltage cables, hanging wires, sparking transformers, broken electric poles)
-   - Water & sewerage hazards (e.g. ruptured water mains, water leakage, overflowing open drains, raw sewage)
-   - Sanitation hazards (e.g. garbage dumps, uncollected trash heaps, decomposing waste, dead animal on road)
-   - Environmental hazards (e.g. fallen trees blocking roads, hazardous tree branches, oil/chemical spill on road, industrial smoke/pollution)
-   - Public safety hazards (e.g. open/missing manhole covers, collapsing retaining walls, dangerous structural debris)
-   - Traffic violations (e.g. riders without helmet, triple riding, jumping red signals, driving on the wrong side, obstructive illegal parking)
+CRITICAL DOMAIN RULES:
 
-2. REJECTION OF RANDOM / IRRELEVANT MEDIA:
-   If the image/video shows ANY of the following with NO genuine civic hazard or traffic violation:
-   - Brand logos, company emblems, trademarks, digital graphics, icons, software screenshots, or abstract art
-   - Clean, natural scenic rivers, lakes, oceans, mountains, forests, skies, or sunsets with NO visible garbage, pollution, or civic hazard
-   - Human portraits, personal selfies, faces, family pictures, fashion photos, group photos
-   - Indoor household photos, domestic furniture, beds, appliances, living rooms, food, personal belongings, toys, pets/animals (unless an active dangerous stray animal pack)
-   - Normal vehicles driving safely or parked legally with NO traffic violations
-   THEN you MUST set:
-   - "isValidHazard": false
-   - "rejectionReason": "Specific clear explanation of why this photo is unrelated (e.g. 'Uploaded photo depicts a corporate logo / scenic natural river / personal human selfie with no civic defect, hazard, or traffic violation')."
-   - "category": "Road Hazard"
-   - "suggestedDepartment": "Road Department"
-   - "confidenceScore": 15
-   - "aiSummary": "No municipal department problem or traffic violation detected. The uploaded media appears to be an unrelated image (e.g., logo, landscape, or portrait)."
-   - "safetyAdvice": "Please capture and upload media depicting an actual civic defect such as potholes, exposed wires, garbage, or traffic offenses to enable report submission."
+### 1. SPECIAL DETECTION RULE: WRONG-WAY & WRONG-SIDE DRIVING (CARS, SUVS, BIKES, TRUCKS)
+- You MUST actively inspect vehicle orientation, driving lanes, and street direction:
+  * When a vehicle (e.g., car, SUV, hatchback, auto, or motorcycle) is driving, maneuvering, or facing AGAINST the designated flow of traffic, in the wrong lane, or entering a one-way passage / narrow driveway against oncoming traffic:
+    - THIS IS A SERIOUS TRAFFIC VIOLATION ("Wrong Way Driving").
+    - Visual indicators:
+      1. Head-to-head confrontation: A vehicle facing oncoming cars front-to-front or facing the opposite direction of moving/parked cars in a single-lane road.
+      2. Dangerous overtaking / cutting across into oncoming lane.
+      3. Overlaid warning pointers or text (e.g., Red/Yellow arrows pointing to an offending vehicle, captions like "❌ Jaldi Mat Karo!", "Wrong Side", "Driving Basics").
+  * When detected:
+    - "isValidHazard": true
+    - "rejectionReason": ""
+    - "category": "Traffic Violation"
+    - "subCategory": "Wrong Way Driving"
+    - "severity": "High"
+    - "isEmergency": false
+    - "confidenceScore": 96
+    - "suggestedDepartment": "Traffic Police Department"
+    - "violationType": "Driving on Wrong Side of Road / Head-On Collision Risk / Impatient Reckless Driving"
+    - "suggestedFineAmount": 2000
+    - "aiSummary": Provide a 2-sentence description explicitly highlighting the offending vehicle (e.g. "A white vehicle is identified driving on the wrong side of the road against oncoming traffic in a narrow lane (highlighted by warning arrow / 'Jaldi Mat Karo'), causing head-on collision danger and road blockage."). IMPORTANT: Write in ${targetLang}.
+    - "safetyAdvice": Provide clear safety instruction (e.g. "Do not drive against one-way traffic; reverse or pull over to yield to oncoming vehicles, and practice patient lane discipline."). IMPORTANT: Write in ${targetLang}.
+    - "estimatedFixHours": 1
+    - "detectedVehiclePlateNumber": If the vehicle's plate is clearly legible, extract it strictly in 'AA 00 AA 0000' format. If the photo is distant or blurred (as in CCTV/dashcam captures), return "CCTV-VERIFY" so traffic police can verify the vehicle via junction CCTV cameras.
 
-3. VALID CIVIC HAZARDS:
-   If and ONLY if the media/text shows an actual civic issue or traffic violation:
-   - "isValidHazard": true
-   - "rejectionReason": ""
+### 2. TRAFFIC SAFETY ANNOTATIONS, DASHCAM STILLS & SOCIAL MEDIA WARNING CARDS
+- Citizens and dashcams often upload photos with:
+  * Red/yellow graphic pointer arrows pointing directly to offending vehicles.
+  * Captions, stickers, or educational headers (e.g., '🚗 DRIVING BASICS', '❌ Jaldi Mat Karo!', 'CCTV Surveillance', 'Wrong Side').
+- RULE: DO NOT REJECT THESE AS 'DIGITAL GRAPHICS', 'SCREENSHOTS', OR 'MEMES'!
+- If the image depicts a real road, street, vehicles, or traffic conflict, IT IS A FULLY VALID CIVIC / TRAFFIC REPORT. Treat arrows and text as diagnostic clues identifying the offender.
 
-CRITICAL MULTI-VEHICLE & HELMET COMPLIANCE RULES:
-- When analyzing images containing multiple motorcycles, scooters, or bicycles:
+### 3. MULTI-VEHICLE & HELMET COMPLIANCE RULES:
+- When analyzing images containing multiple motorcycles or scooters:
   1. Inspect each rider and passenger individually for safety compliance (helmet usage).
-  2. Riders wearing helmets are compliant with the law and MUST NOT be penalized. Do NOT extract license plate numbers of law-abiding riders.
-  3. Identify ONLY the rider(s) or driver(s) committing a violation (e.g., NOT wearing a helmet, triple riding, red light jumping, wrong-way driving).
-  4. Extract ONLY the license plate number of the specific vehicle/motorcycle belonging to the non-compliant offender NOT wearing a helmet.
-  5. Format the extracted license plate strictly as 'AA 00 AA 0000' (2 letters, 2 digits, 2 letters, 4 digits separated by single spaces).
+  2. Helmet-wearing riders are law-abiding and MUST NOT be penalized or reported.
+  3. Identify ONLY non-compliant violators (no helmet, triple riding, wrong side).
+  4. If helmet violation, set "subCategory": "No Helmet", "violationType": "Riding Without Protective Helmet", "suggestedFineAmount": 1000.
+  5. Extract ONLY the license plate of the non-compliant offender in 'AA 00 AA 0000' format.
+
+### 4. OTHER CIVIC HAZARDS:
+- Road Hazards (potholes, cave-ins, sunken roads, broken pavements) -> "Road Department"
+- Electrical Hazards (open wires, hanging cables, sparking transformers) -> "Electricity Department"
+- Water Hazards (pipe bursts, major leaks, overflowing drains) -> "Water & Sewerage"
+- Sanitation Hazards (garbage heaps, illegal trash dumps, animal carcasses) -> "Sanitation & Waste"
+- Environmental Hazards (fallen trees, chemical/oil spills) -> "Environmental Protection"
+- Public Safety Hazards (open manholes, collapsing structures) -> "Public Safety & Infrastructure"
+
+### 5. REJECTION RULES (APPLY ONLY TO TOTALLY UNRELATED MEDIA):
+- Reject with "isValidHazard": false ONLY if:
+  * The image is purely a corporate logo or brand icon on a plain background (e.g., Nike or Apple logo with no street/road context).
+  * Pristine nature with NO road, NO vehicles, NO human structures, and NO trash (e.g., empty mountain peak, calm ocean sunset).
+  * Indoor domestic photos (e.g., bedroom, sofa, kitchen utensils) with no municipal problem.
+  * Human portrait selfies with no street/hazard context.
+- NEVER reject photos of roads, vehicles, traffic, streetscapes, or parking areas!
 
 Return a structured JSON object describing:
-1. "isValidHazard": boolean (true if genuine civic hazard or traffic violation; false if random, logo, river, selfie, human portrait, furniture, meme, etc.).
-2. "rejectionReason": string (empty string if valid; otherwise clear explanation why the photo is unrelated).
-3. "category": Must be strictly one of ['Road Hazard', 'Electrical Hazard', 'Water Hazard', 'Sanitation Hazard', 'Environmental Hazard', 'Public Safety Hazard', 'Traffic Violation'].
-4. "subCategory": Specific hazard name (e.g., 'Pothole', 'Open Wire', 'Pipe Burst', 'Garbage Accumulation', 'Fallen Tree', 'Open Manhole', 'Damaged Streetlight', 'Red Light Violation', 'No Helmet', 'Triple Riding', 'Wrong Way Driving', 'Illegal Parking', 'Speeding').
-5. "severity": Must be strictly one of ['Low', 'Medium', 'High', 'Critical']. (Set to 'Critical' if there is immediate threat to human life like exposed high-voltage cables, major pipe burst, deep open manhole, road collapse, or high-speed collision risk).
-6. "isEmergency": boolean (true if severity is Critical, false otherwise).
-7. "confidenceScore": integer 0-100 representing AI certainty.
-8. "suggestedDepartment": Must be strictly one of ['Road Department', 'Electricity Department', 'Water & Sewerage', 'Sanitation & Waste', 'Environmental Protection', 'Public Safety & Infrastructure', 'Traffic Police Department'].
-9. "aiSummary": Short concise 2-sentence summary of the safety risk or traffic violation. (If invalid hazard, explain that no problem was found). IMPORTANT: Write the summary text in ${targetLang}.
-10. "safetyAdvice": Short 1-sentence instruction for citizens or traffic police nearby. IMPORTANT: Write the safety advice text in ${targetLang}.
-11. "estimatedFixHours": Estimated repair or processing time in hours (integer, 0 if invalid).
-12. "detectedVehiclePlateNumber": License plate number of the OFFENDING vehicle (e.g., rider without helmet) strictly in 'AA 00 AA 0000' format. Otherwise return empty string.
-13. "violationType": Specific name of traffic offense if applicable (e.g., 'Riding Without Protective Helmet'), or empty string.
-14. "suggestedFineAmount": Suggested penalty fine amount in currency if traffic violation (e.g. 500, 1000, 1500), else 0.
+1. "isValidHazard": boolean
+2. "rejectionReason": string
+3. "category": Must be strictly one of ['Road Hazard', 'Electrical Hazard', 'Water Hazard', 'Sanitation Hazard', 'Environmental Hazard', 'Public Safety Hazard', 'Traffic Violation']
+4. "subCategory": Specific hazard name (e.g., 'Wrong Way Driving', 'Pothole', 'Open Wire', 'Pipe Burst', 'Garbage Accumulation', 'Fallen Tree', 'Open Manhole', 'Damaged Streetlight', 'Red Light Violation', 'No Helmet', 'Triple Riding', 'Illegal Parking', 'Speeding')
+5. "severity": Strictly one of ['Low', 'Medium', 'High', 'Critical']
+6. "isEmergency": boolean
+7. "confidenceScore": integer 0-100
+8. "suggestedDepartment": Strictly one of ['Road Department', 'Electricity Department', 'Water & Sewerage', 'Sanitation & Waste', 'Environmental Protection', 'Public Safety & Infrastructure', 'Traffic Police Department']
+9. "aiSummary": Short concise 2-sentence summary in ${targetLang}
+10. "safetyAdvice": Short 1-sentence instruction in ${targetLang}
+11. "estimatedFixHours": integer
+12. "detectedVehiclePlateNumber": License plate in 'AA 00 AA 0000' format or "CCTV-VERIFY" if distant/blurry
+13. "violationType": Specific name of traffic offense
+14. "suggestedFineAmount": integer fine amount
 
 Description: "${description || 'Public hazard or traffic violation photo attached for analysis'}"`;
 
@@ -541,11 +563,11 @@ Description: "${description || 'Public hazard or traffic violation photo attache
   const descLower = (description || "").toLowerCase();
 
   const irrelevantKeywords = [
-    'logo', 'brand', 'emblem', 'icon', 'graphic', 'diagram', 'screenshot',
+    'logo', 'brand', 'emblem', 'icon', 'graphic', 'diagram',
     'river', 'lake', 'mountain', 'nature', 'scenery', 'landscape', 'sunset', 'forest', 'beach', 'sky',
-    'human', 'portrait', 'selfie', 'face', 'person', 'people', 'friend', 'photo', 'profile',
-    'cat', 'dog', 'pet', 'animal', 'bird', 'food', 'cake', 'plate', 'car', 'room', 'bed', 'desk',
-    'test', 'random', 'sample', 'meme'
+    'human', 'portrait', 'selfie', 'face', 'person', 'people', 'friend', 'profile',
+    'cat', 'dog', 'pet', 'animal', 'bird', 'food', 'cake', 'room', 'bed', 'desk',
+    'meme'
   ];
 
   const hasIrrelevantWord = irrelevantKeywords.some(kw => {
@@ -560,7 +582,7 @@ Description: "${description || 'Public hazard or traffic violation photo attache
     'garbage', 'trash', 'waste', 'dump', 'smell', 'filth', 'debris', 'litter',
     'tree', 'branch', 'fallen', 'spill',
     'manhole', 'hole', 'shaft', 'collapse',
-    'traffic', 'signal', 'helmet', 'wrong way', 'parking', 'speed', 'challan', 'triple', 'police', 'violation', 'motorcycle', 'bike'
+    'traffic', 'signal', 'helmet', 'wrong way', 'wrong side', 'wrong-way', 'wrong-side', 'jaldi', 'parking', 'speed', 'challan', 'triple', 'police', 'violation', 'motorcycle', 'bike', 'car', 'vehicle', 'plate'
   ];
 
   const hasCivicHazardWord = civicHazardKeywords.some(kw => descLower.includes(kw));
@@ -570,8 +592,8 @@ Description: "${description || 'Public hazard or traffic violation photo attache
 
   if (hasIrrelevantWord && !hasCivicHazardWord) {
     isValidHazard = false;
-    rejectionReason = `The uploaded description or media appears to be unrelated to any municipal department (detected terms: ${descLower.slice(0, 40)}...). Please upload a photo/video showing a real civic defect or traffic violation.`;
-  } else if (!hasCivicHazardWord && !description) {
+    rejectionReason = `The uploaded description appears to be unrelated to any municipal department. Please upload a photo/video showing a real civic defect or traffic violation.`;
+  } else if (!hasCivicHazardWord && !description && !image) {
     isValidHazard = false;
     rejectionReason = 'No visible municipal hazard or civic infrastructure defect detected. Please upload media depicting a genuine public problem.';
   }
@@ -620,7 +642,9 @@ Description: "${description || 'Public hazard or traffic violation photo attache
     detectedVehiclePlateNumber = formatLicensePlate(plateMatch[0]);
   }
 
-  if (descLower.includes('traffic') || descLower.includes('signal') || descLower.includes('helmet') || descLower.includes('plate') || descLower.includes('wrong way') || descLower.includes('parking') || descLower.includes('speed') || descLower.includes('challan') || descLower.includes('triple') || descLower.includes('police')) {
+  const isTrafficMatch = descLower.includes('traffic') || descLower.includes('signal') || descLower.includes('helmet') || descLower.includes('plate') || descLower.includes('wrong way') || descLower.includes('wrong side') || descLower.includes('wrong-way') || descLower.includes('wrong-side') || descLower.includes('jaldi') || descLower.includes('parking') || descLower.includes('speed') || descLower.includes('challan') || descLower.includes('triple') || descLower.includes('police') || descLower.includes('car');
+
+  if (isTrafficMatch) {
     category = 'Traffic Violation';
     if (descLower.includes('signal') || descLower.includes('red light')) {
       subCategory = 'Red Light Violation';
@@ -634,10 +658,14 @@ Description: "${description || 'Public hazard or traffic violation photo attache
       subCategory = 'Triple Riding';
       violationType = 'Triple Riding on Two-Wheeler';
       suggestedFineAmount = 1000;
-    } else if (descLower.includes('wrong way') || descLower.includes('wrong side')) {
+    } else if (descLower.includes('wrong way') || descLower.includes('wrong side') || descLower.includes('wrong-way') || descLower.includes('wrong-side') || descLower.includes('jaldi')) {
       subCategory = 'Wrong Way Driving';
-      violationType = 'Driving Against One-Way Traffic';
+      violationType = 'Driving on Wrong Side of Road / Head-on Conflict / Dangerous Driving';
       suggestedFineAmount = 2000;
+      severity = 'High';
+      if (!detectedVehiclePlateNumber) {
+        detectedVehiclePlateNumber = 'CCTV-VERIFY';
+      }
     } else if (descLower.includes('parking')) {
       subCategory = 'Illegal Parking';
       violationType = 'Obstructive Illegal Parking';
@@ -647,10 +675,10 @@ Description: "${description || 'Public hazard or traffic violation photo attache
       violationType = 'Reckless Driving & Traffic Non-Compliance';
       suggestedFineAmount = 1000;
     }
-    severity = descLower.includes('wrong way') || descLower.includes('signal') ? 'High' : 'Medium';
+    severity = descLower.includes('wrong way') || descLower.includes('wrong side') || descLower.includes('signal') ? 'High' : 'Medium';
     suggestedDept = 'Traffic Police Department';
     if (!detectedVehiclePlateNumber) {
-      detectedVehiclePlateNumber = `MH 12 TP ${Math.floor(1000 + Math.random() * 9000)}`;
+      detectedVehiclePlateNumber = 'CCTV-VERIFY';
     }
   } else if (descLower.includes('wire') || descLower.includes('electric') || descLower.includes('shock') || descLower.includes('pole') || descLower.includes('transformer')) {
     category = 'Electrical Hazard';
@@ -682,24 +710,26 @@ Description: "${description || 'Public hazard or traffic violation photo attache
   }
 
   let aiSummary = `Detected ${subCategory} classified under ${category}. Recommended action by ${suggestedDept}.`;
-  if (category === 'Traffic Violation' && detectedVehiclePlateNumber) {
-    aiSummary = `Detected Traffic Violation (${violationType}). AI Vision identified Vehicle Plate Number ${detectedVehiclePlateNumber}. Routed to Traffic Police for fine & challan verification.`;
+  if (category === 'Traffic Violation') {
+    aiSummary = `Detected Traffic Violation (${violationType}). Vehicle flagged for Traffic Police investigation & fine review.`;
   }
   let safetyAdvice = isEmergency ? "⚠️ KEEP AWAY: High danger hazard. Emergency crew routed." : "Caution advised near affected zone.";
 
   if (language === 'hi') {
     aiSummary = category === 'Traffic Violation'
-      ? `यातायात उल्लंघन (${violationType}) का पता चला। एआई विज़न ने वाहन प्लेट नंबर ${detectedVehiclePlateNumber} की पहचान की। चालान के लिए ट्रैफिक पुलिस को भेजा गया।`
+      ? `यातायात उल्लंघन (${violationType}) का पता चला। वाहन की जांच और चालान के लिए ट्रैफिक पुलिस को भेजा गया।`
       : `${category} के अंतर्गत ${subCategory} का पता चला। ${suggestedDept} द्वारा त्वरित कार्रवाई की अनुशंसा की जाती है।`;
     safetyAdvice = isEmergency ? "⚠️ दूर रहें: उच्च खतरे की स्थिति। आपातकालीन दल भेजा गया है।" : "प्रभावित क्षेत्र के पास सावधानी बरतने की सलाह दी जाती है।";
   } else if (language === 'mr') {
     aiSummary = category === 'Traffic Violation'
-      ? `वाहतूक नियम उल्लंघन (${violationType}) आढळले. AI व्हिजनद्वारे वाहन नंबर प्लेट ${detectedVehiclePlateNumber} ओळखली गेली. ई-चलानसाठी वाहतूक पोलिसांकडे पाठवले.`
+      ? `वाहतूक नियम उल्लंघन (${violationType}) आढळले. ई-चलान व तपासणीसाठी वाहतूक पोलिसांकडे पाठवले.`
       : `${category} अंतर्गत ${subCategory} आढळले. ${suggestedDept} कडून त्वरित कारवाईची शिफारस केली आहे।`;
     safetyAdvice = isEmergency ? "⚠️ दूर राहा: उच्च धोक्याची परिस्थिती. आणीबाणीचे पथक पाठवले आहे." : "बाधित परिसराजवळ खबरदारी बाळगण्याचा सल्ला दिला जातो.";
   }
 
   res.json({
+    isValidHazard: true,
+    rejectionReason: '',
     category,
     subCategory,
     severity,

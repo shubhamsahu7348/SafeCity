@@ -7,6 +7,10 @@
  */
 export function formatLicensePlate(val: string): string {
   if (!val) return '';
+  const upper = val.trim().toUpperCase();
+  if (upper.includes('CCTV') || upper.includes('VERIFY') || upper.includes('PENDING') || upper.includes('INVESTIGATE')) {
+    return upper;
+  }
   // Convert to uppercase and strip invalid characters
   const clean = val.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
   if (clean.length === 0) return '';
