@@ -94,7 +94,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
     }
     if (submittedComplaint) {
       const cleanNumber = mobileTrimmed.replace(/[^\d+]/g, '');
-      const smsMessage = `SafeCity Portal: Registered Complaint ID #${submittedComplaint.id} (${submittedComplaint.title}). Track status: ${window.location.origin}/?id=${submittedComplaint.id}`;
+      const smsMessage = `AapdaSetu Portal: Registered Complaint ID #${submittedComplaint.id} (${submittedComplaint.title}). Track status: ${window.location.origin}/?id=${submittedComplaint.id}`;
       
       // Open native device SMS composer with prefilled message
       const smsUrl = `sms:${cleanNumber}?body=${encodeURIComponent(smsMessage)}`;
@@ -126,8 +126,8 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
     }
     if (submittedComplaint) {
       // Direct Gmail compose
-      const subject = `[SafeCity] Registered Complaint ID: ${submittedComplaint.id}`;
-      const body = `SafeCity Citizen Portal Complaint Receipt\n\nComplaint ID: ${submittedComplaint.id}\nTitle: ${submittedComplaint.title}\nDepartment: ${submittedComplaint.assignedDepartment}\nTrack link: ${window.location.origin}/?id=${submittedComplaint.id}`;
+      const subject = `[AapdaSetu] Registered Complaint ID: ${submittedComplaint.id}`;
+      const body = `AapdaSetu Citizen Portal Complaint Receipt\n\nComplaint ID: ${submittedComplaint.id}\nTitle: ${submittedComplaint.title}\nDepartment: ${submittedComplaint.assignedDepartment}\nTrack link: ${window.location.origin}/?id=${submittedComplaint.id}`;
       const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${encodeURIComponent(emailTrimmed)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.open(gmailUrl, '_blank');
 
@@ -851,7 +851,7 @@ export const ReportHazardView: React.FC<ReportHazardViewProps> = ({
                 <div className="space-y-0.5">
                   <strong className="text-amber-300">Why was report submission disabled?</strong>
                   <p className="text-[11px] text-amber-100/90 leading-relaxed">
-                    SafeCity AI ensures municipal field teams (Roads, Electricity, Water, Waste, Traffic Police) only receive actionable public hazard reports. Images depicting company logos, clean rivers or nature, human portraits, selfies, or domestic items without civic damage cannot be routed to any department.
+                    AapdaSetu AI ensures municipal field teams (Roads, Electricity, Water, Waste, Traffic Police) only receive actionable public hazard reports. Images depicting company logos, clean rivers or nature, human portraits, selfies, or domestic items without civic damage cannot be routed to any department.
                   </p>
                 </div>
               </div>

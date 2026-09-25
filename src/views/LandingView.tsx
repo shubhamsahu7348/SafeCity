@@ -69,7 +69,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
           </h1>
 
           <p className="text-base sm:text-lg text-indigo-100/90 max-w-3xl leading-relaxed font-medium">
-            {t('landing.hero_description', 'SafeCity empowers citizens to report potholes, electrical hazards, pipe bursts, and safety risks in seconds with AI location detection, automated department routing, and live resolution verification.')}
+            {t('landing.hero_description', 'AapdaSetu empowers citizens to report potholes, electrical hazards, pipe bursts, and safety risks in seconds with AI location detection, automated department routing, and live resolution verification.')}
           </p>
 
           {/* Hero Quick Action Buttons */}
@@ -224,13 +224,13 @@ export const LandingView: React.FC<LandingViewProps> = ({
         )}
       </section>
 
-      {/* How SafeCity AI Workflow Works */}
+      {/* How AapdaSetu AI Workflow Works */}
       <section className="bg-gradient-to-br from-indigo-50/80 via-slate-100 to-cyan-50/50 p-8 rounded-3xl border border-indigo-100 space-y-6 shadow-sm">
         <div className="text-center max-w-2xl mx-auto space-y-2">
           <span className="text-xs font-black uppercase tracking-widest text-indigo-700 bg-indigo-100/90 px-3.5 py-1 rounded-full border border-indigo-200">
             {t('landing.how_badge', 'Autonomous Pipeline')}
           </span>
-          <h2 className="text-2xl font-black text-slate-900">{t('landing.how_title', 'How SafeCity Solves Public Hazards')}</h2>
+          <h2 className="text-2xl font-black text-slate-900">{t('landing.how_title', 'How AapdaSetu Solves Public Hazards')}</h2>
           <p className="text-xs font-medium text-slate-600">
             {t('landing.how_subtitle', 'End-to-end transparent hazard intelligence workflow powered by advanced AI vision models')}
           </p>

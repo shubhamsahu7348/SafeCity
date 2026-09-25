@@ -4,12 +4,13 @@ export interface UserLocation {
   address?: string;
 }
 
-const STORAGE_KEY = 'safecity_user_location_cache';
+const STORAGE_KEY = 'aapdasetu_user_location_cache';
+const LEGACY_STORAGE_KEY = 'safecity_user_location_cache';
 
 // Return cached user location if available from earlier detection in this session
 export function getCachedUserLocation(): UserLocation | null {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_KEY);
+    const raw = sessionStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(LEGACY_STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {

@@ -394,8 +394,8 @@ app.post("/api/complaints/email-receipt", (req, res) => {
     note: `Tracking receipt dispatched to email (${email}).`,
   });
 
-  const subject = `[SafeCity Portal] Complaint Receipt ID: ${complaint.id}`;
-  const body = `Dear Citizen,\n\nYour SafeCity Hazard/Violation Report has been registered.\n\nComplaint ID: ${complaint.id}\nTitle: ${complaint.title}\nCategory: ${complaint.category}\nStatus: ${complaint.status}\nAssigned Department: ${complaint.assignedDepartment}\nLocation: ${complaint.address}\nReported At: ${new Date(complaint.reportedAt).toLocaleString()}\n\nTrack real-time resolution evidence directly at the SafeCity Citizen Portal.\n\nThank you for keeping our city safe!\nSafeCity Citizen Transparency Portal`;
+  const subject = `[AapdaSetu Portal] Complaint Receipt ID: ${complaint.id}`;
+  const body = `Dear Citizen,\n\nYour AapdaSetu Hazard/Violation Report has been registered.\n\nComplaint ID: ${complaint.id}\nTitle: ${complaint.title}\nCategory: ${complaint.category}\nStatus: ${complaint.status}\nAssigned Department: ${complaint.assignedDepartment}\nLocation: ${complaint.address}\nReported At: ${new Date(complaint.reportedAt).toLocaleString()}\n\nTrack real-time resolution evidence directly at the AapdaSetu Citizen Portal.\n\nThank you for keeping our city safe!\nAapdaSetu Citizen Transparency Portal`;
 
   const mailtoUrl = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
@@ -419,7 +419,7 @@ app.post("/api/ai/analyze-hazard", async (req, res) => {
   const ai = getAiClient();
   if (ai) {
     try {
-      const prompt = `You are SafeCity AI, an expert Public Hazard Intelligence, Municipal Triage & Traffic Violation Classifier for Smart Cities.
+      const prompt = `You are AapdaSetu AI, an expert Public Hazard Intelligence, Municipal Triage & Traffic Violation Classifier for Smart Cities.
 Analyze the given hazard report (description and/or photo or video evidence).
 
 CRITICAL RELEVANCE & CIVIC HAZARD VERIFICATION RULE:
@@ -802,7 +802,7 @@ app.post("/api/ai/verify-completion", async (req, res) => {
   const ai = getAiClient();
   if (ai) {
     try {
-      const prompt = `You are SafeCity AI Quality Verification Inspector.
+      const prompt = `You are AapdaSetu AI Quality Verification Inspector.
 Analyze the hazard before/after evidence:
 Hazard Type: ${hazardType}
 Worker Remarks: "${workRemarks || 'Maintenance repair completed'}"
@@ -980,7 +980,7 @@ app.post("/api/users", async (req, res) => {
       name,
       department: department || 'Road Department',
       phone: phone || '+1 (555) 000-1122',
-      email: email || `${username.trim().toLowerCase()}@safecity.gov`,
+      email: email || `${username.trim().toLowerCase()}@aapdasetu.gov`,
       username: username.trim(),
       password,
       avatarUrl: avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
@@ -1000,7 +1000,7 @@ app.post("/api/users", async (req, res) => {
     role,
     department: department || 'Road Department',
     phone: phone || '+1 (555) 000-1122',
-    email: email || `${username.trim().toLowerCase()}@safecity.gov`,
+    email: email || `${username.trim().toLowerCase()}@aapdasetu.gov`,
     avatarUrl: avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
     workerId,
     createdAt: new Date().toISOString(),
@@ -1110,7 +1110,7 @@ app.post("/api/workers", async (req, res) => {
     name: workerData.name || 'New Field Worker',
     department: workerData.department || 'Road Department',
     phone: workerData.phone || '+1 (555) 000-0000',
-    email: workerData.email || `${username}@safecity.gov`,
+    email: workerData.email || `${username}@aapdasetu.gov`,
     username,
     password,
     avatarUrl: workerData.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
@@ -1268,7 +1268,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`⚡ SafeCity Server running on http://0.0.0.0:${PORT}`);
+    console.log(`⚡ AapdaSetu Server running on http://0.0.0.0:${PORT}`);
   });
 }
 

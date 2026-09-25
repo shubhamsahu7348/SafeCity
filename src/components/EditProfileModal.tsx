@@ -312,7 +312,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="user@safecity.gov"
+                placeholder="user@aapdasetu.gov"
                 className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 text-xs"
               />
             </div>

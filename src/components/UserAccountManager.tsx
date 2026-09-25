@@ -736,7 +736,7 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="user@safecity.gov"
+                    placeholder="user@aapdasetu.gov"
                     className="w-full p-2.5 border border-slate-300 rounded-xl font-medium"
                   />
                 </div>

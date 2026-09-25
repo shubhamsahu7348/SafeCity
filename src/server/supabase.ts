@@ -170,7 +170,7 @@ export async function checkSupabaseHealth(): Promise<SupabaseHealthStatus> {
 }
 
 /**
- * Convert a SafeCity Complaint to a Supabase DB row format (supporting snake_case columns)
+ * Convert a AapdaSetu Complaint to a Supabase DB row format (supporting snake_case columns)
  */
 export function mapComplaintToDbRow(complaint: Complaint) {
   return {
@@ -208,7 +208,7 @@ export function mapComplaintToDbRow(complaint: Complaint) {
 }
 
 /**
- * Convert a Supabase DB row back to SafeCity Complaint interface
+ * Convert a Supabase DB row back to AapdaSetu Complaint interface
  */
 export function mapDbRowToComplaint(row: any): Complaint {
   return {
@@ -340,7 +340,7 @@ export async function fetchComplaintsFromSupabase(): Promise<Complaint[]> {
 // ============================================================================
 
 /**
- * Maps a SafeCity UserAccount to the Supabase `users` database schema.
+ * Maps a AapdaSetu UserAccount to the Supabase `users` database schema.
  */
 export function mapUserToDbRow(user: UserAccount): Record<string, any> {
   return {
@@ -360,7 +360,7 @@ export function mapUserToDbRow(user: UserAccount): Record<string, any> {
 }
 
 /**
- * Converts a Supabase `users` DB row back to the SafeCity UserAccount interface.
+ * Converts a Supabase `users` DB row back to the AapdaSetu UserAccount interface.
  */
 export function mapDbRowToUser(row: any): UserAccount {
   return {

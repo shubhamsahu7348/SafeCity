@@ -257,7 +257,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <span className="text-xl font-black tracking-tight bg-gradient-to-r from-white via-indigo-100 to-cyan-200 bg-clip-text text-transparent">
-                  SafeCity
+                  AapdaSetu
                 </span>
                 <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-extrabold bg-indigo-500/20 text-cyan-300 border border-indigo-500/40 rounded-full shadow-sm">
                   AI Platform

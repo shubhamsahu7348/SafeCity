@@ -25,7 +25,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ workers, onGoHome }) => {
               System Administrator Console
             </span>
           </div>
-          <h1 className="text-3xl font-extrabold text-white">SafeCity Platform Control</h1>
+          <h1 className="text-3xl font-extrabold text-white">AapdaSetu Platform Control</h1>
           <p className="text-xs sm:text-sm text-purple-200">
             Manage officer & field worker accounts, credentials & access control, AI classification thresholds, and system integration parameters.
           </p>

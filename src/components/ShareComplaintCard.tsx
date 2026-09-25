@@ -14,7 +14,7 @@ export const ShareComplaintCard: React.FC<ShareComplaintCardProps> = ({ complain
 
   // WhatsApp Share
   const handleShareWhatsApp = () => {
-    const text = `🚨 SafeCity Hazard Report Details\n\n• Complaint ID: ${complaint.id}\n• Title: ${translateText(complaint.title)}\n• Department: ${translateDepartment(complaint.assignedDepartment)}\n• Status: ${complaint.status}\n\nTrack progress on SafeCity Portal: ${window.location.origin}/?id=${complaint.id}`;
+    const text = `🚨 AapdaSetu Hazard Report Details\n\n• Complaint ID: ${complaint.id}\n• Title: ${translateText(complaint.title)}\n• Department: ${translateDepartment(complaint.assignedDepartment)}\n• Status: ${complaint.status}\n\nTrack progress on AapdaSetu Portal: ${window.location.origin}/?id=${complaint.id}`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
@@ -22,8 +22,8 @@ export const ShareComplaintCard: React.FC<ShareComplaintCardProps> = ({ complain
   // Native System Share
   const handleNativeShare = async () => {
     const shareData = {
-      title: `SafeCity Complaint ID: ${complaint.id}`,
-      text: `Track SafeCity Hazard Report (${complaint.id}): ${translateText(complaint.title)}`,
+      title: `AapdaSetu Complaint ID: ${complaint.id}`,
+      text: `Track AapdaSetu Hazard Report (${complaint.id}): ${translateText(complaint.title)}`,
       url: `${window.location.origin}/?id=${complaint.id}`,
     };
 

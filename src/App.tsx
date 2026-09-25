@@ -390,10 +390,10 @@ export default function App() {
       <footer className="bg-slate-900 border-t border-slate-800 text-slate-400 py-8 mt-12 text-xs">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
-            <span className="font-extrabold text-white text-sm">SafeCity</span>
+            <span className="font-extrabold text-white text-sm">AapdaSetu</span>
             <span>– AI Powered Public Hazard Intelligence Platform</span>
           </div>
-          <p>© 2026 SafeCity Platform. Smart City Operations & Governance.</p>
+          <p>© 2026 AapdaSetu Platform. Smart City Operations & Governance.</p>
         </div>
       </footer>
     </div>

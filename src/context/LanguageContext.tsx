@@ -141,7 +141,7 @@ const translations: Record<Language, Record<string, string>> = {
     'landing.ai_accuracy_badge': '98.4% AI Verification Accuracy',
     'landing.hero_title_p1': 'Report Hazards Privately.',
     'landing.hero_title_p2': 'Make Your City Safer.',
-    'landing.hero_description': 'SafeCity empowers citizens to report potholes, electrical hazards, pipe bursts, and safety risks in seconds with AI location detection, automated department routing, and live resolution verification.',
+    'landing.hero_description': 'AapdaSetu empowers citizens to report potholes, electrical hazards, pipe bursts, and safety risks in seconds with AI location detection, automated department routing, and live resolution verification.',
     'landing.report_now': 'Report Public Hazard Now',
     'landing.explore_map': 'Explore Live Hazard Map',
     'landing.active_hazards': 'Active Hazards',
@@ -160,7 +160,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Landing How It Works Section
     'landing.how_badge': 'Autonomous Pipeline',
-    'landing.how_title': 'How SafeCity Solves Public Hazards',
+    'landing.how_title': 'How AapdaSetu Solves Public Hazards',
     'landing.how_subtitle': 'End-to-end transparent hazard intelligence workflow powered by advanced AI vision models',
     'landing.step1_title': 'Anonymous Reporting',
     'landing.step1_desc': 'Upload photos/videos with automated browser GPS capture. No account registration needed.',
@@ -414,7 +414,7 @@ const translations: Record<Language, Record<string, string>> = {
     'landing.ai_accuracy_badge': '98.4% एआई सत्यापन सटीकता',
     'landing.hero_title_p1': 'गोपनीय रूप से खतरों की रिपोर्ट करें।',
     'landing.hero_title_p2': 'अपने शहर को अधिक सुरक्षित बनाएं।',
-    'landing.hero_description': 'सेफसिटी नागरिकों को एआई स्थान पहचान, स्वचालित विभाग आवंटन और लाइव सत्यापन के साथ सेकंडों में गड्ढों, बिजली के खतरों और पाइप टूटने की रिपोर्ट करने में सक्षम बनाती है।',
+    'landing.hero_description': 'आपदासेतु नागरिकों को एआई स्थान पहचान, स्वचालित विभाग आवंटन और लाइव सत्यापन के साथ सेकंडों में गड्ढों, बिजली के खतरों और पाइप टूटने की रिपोर्ट करने में सक्षम बनाती है।',
     'landing.report_now': 'अभी सार्वजनिक खतरे की रिपोर्ट करें',
     'landing.explore_map': 'लाइव खतरा मैप देखें',
     'landing.active_hazards': 'सक्रिय खतरे',
@@ -433,7 +433,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Landing How It Works Section
     'landing.how_badge': 'स्वचालित प्रक्रिया',
-    'landing.how_title': 'सेफसिटी सार्वजनिक खतरों को कैसे हल करती है',
+    'landing.how_title': 'आपदासेतु सार्वजनिक खतरों को कैसे हल करती है',
     'landing.how_subtitle': 'उन्नत एआई विजन मॉडल द्वारा संचालित एंड-टू-एंड पारदर्शी खतरा समाधान कार्यप्रवाह',
     'landing.step1_title': 'अनाम रिपोर्टिंग',
     'landing.step1_desc': 'ऑटोमेटेड जीपीएस कैप्चर के साथ फोटो/वीडियो अपलोड करें। किसी खाते की आवश्यकता नहीं।',
@@ -693,7 +693,7 @@ const translations: Record<Language, Record<string, string>> = {
     'landing.ai_accuracy_badge': '98.4% एआय पडताळणी अचूकता',
     'landing.hero_title_p1': 'खासगीरीत्या धोक्यांची नोंद करा.',
     'landing.hero_title_p2': 'तुमचे शहर अधिक सुरक्षित करा.',
-    'landing.hero_description': 'सेफसिटी नागरिकांना एआय लोकेशन डिटेक्शन, स्वयंचलित विभाग मार्ग आणि थेट निराकरण पडताळणीसह काही सेकंदात खड्डे, विजेचे धोके आणि पाईप फुटल्याची नोंद करण्यास सक्षम करते.',
+    'landing.hero_description': 'आपदासेतु नागरिकांना एआय लोकेशन डिटेक्शन, स्वयंचलित विभाग मार्ग आणि थेट निराकरण पडताळणीसह काही सेकंदात खड्डे, विजेचे धोके आणि पाईप फुटल्याची नोंद करण्यास सक्षम करते.',
     'landing.report_now': 'आत्ताच सार्वजनिक धोक्याची नोंद करा',
     'landing.explore_map': 'लाईव्ह धोका नकाशा पहा',
     'landing.active_hazards': 'सक्रिय धोके',
@@ -712,7 +712,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Landing How It Works Section
     'landing.how_badge': 'स्वयंचलित प्रक्रिया',
-    'landing.how_title': 'सेफसिटी सार्वजनिक धोके कसे सोडवते',
+    'landing.how_title': 'आपदासेतु सार्वजनिक धोके कसे सोडवते',
     'landing.how_subtitle': 'प्रगत एआय व्हिजन मॉडेलद्वारे संचलित पारदर्शक धोका निवारण कार्यप्रवाह',
     'landing.step1_title': 'अनामित नोंदणी',
     'landing.step1_desc': 'ऑटोमेटेड जीपीएस सह फोटो/व्हिडिओ अपलोड करा. कोणत्याही खात्याची गरज नाही.',
@@ -1071,7 +1071,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem('safecity_language');
+    const saved = localStorage.getItem('aapdasetu_language') || localStorage.getItem('safecity_language');
     if (saved === 'hi' || saved === 'mr' || saved === 'en') {
       return saved;
     }
@@ -1080,7 +1080,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('safecity_language', lang);
+    localStorage.setItem('aapdasetu_language', lang);
   };
 
   const t = (key: string, fallback?: string): string => {
