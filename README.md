@@ -1,11 +1,14 @@
 # 🏙️ AapdaSetu — AI-Powered Smart City Public Hazard Intelligence & Municipal Governance Platform
 
+[![Live App](https://img.shields.io/badge/Live%20Demo-aapdasetuu.ai.studio-2563eb.svg?logo=google&logoColor=white)](https://aapdasetuu.ai.studio)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg?logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19.0-61dafb.svg?logo=react)](https://react.dev/)
 [![Express](https://img.shields.io/badge/Express-4.21-lightgrey.svg?logo=express)](https://expressjs.com/)
 [![Google Gemini](https://img.shields.io/badge/AI-Google%20Gemini%202.5-orange.svg?logo=google)](https://ai.google.dev/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38bdf8.svg?logo=tailwindcss)](https://tailwindcss.com/)
 [![Leaflet](https://img.shields.io/badge/GIS-Leaflet%201.9-green.svg?logo=leaflet)](https://leafletjs.com/)
+
+> 🌐 **Live Platform**: [https://aapdasetuu.ai.studio](https://aapdasetuu.ai.studio)
 
 AapdaSetu is an end-to-end municipal intelligence and civic grievance platform designed for smart cities. It bridges citizens, municipal departments, field ground crews, and city leadership through multimodal AI vision analysis, automated geospatial triage, automatic license plate recognition (ANPR), and real-time resolution tracking.
 
@@ -332,6 +335,7 @@ Open your browser and navigate to:
 ```
 http://localhost:3000
 ```
+Or access the live deployment directly at: **[https://aapdasetuu.ai.studio](https://aapdasetuu.ai.studio)**.
 
 ---
 
@@ -400,5 +404,6 @@ This project is licensed under the [MIT License](LICENSE).
 ---
 
 <div align="center">
-  <sub>Built with ❤️ for Smarter, Safer, and Cleaner Cities powered by Google Gemini AI.</sub>
+  <sub>Built with ❤️ for Smarter, Safer, and Cleaner Cities powered by Google Gemini AI.</sub><br>
+  <sub>🌐 Live Application: <a href="https://aapdasetuu.ai.studio">https://aapdasetuu.ai.studio</a></sub>
 </div>
