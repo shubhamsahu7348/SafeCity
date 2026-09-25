@@ -1,5 +1,10 @@
 {
-  "name": "react-example",
+  "name": "aapdasetu",
+  "description": "AI-Powered Public Hazard Intelligence Platform for Smart Cities",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/aapdasetu.git"
+  },
   "private": true,
   "version": "0.0.0",
   "type": "module",
