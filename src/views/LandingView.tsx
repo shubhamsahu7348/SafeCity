@@ -21,7 +21,6 @@ import {
 } from 'lucide-react';
 import { Complaint } from '../types';
 import { ComplaintCard } from '../components/ComplaintCard';
-import { HazardMap } from '../components/HazardMap';
 
 interface LandingViewProps {
   complaints: Complaint[];
@@ -234,43 +233,42 @@ export const LandingView: React.FC<LandingViewProps> = ({
         </section>
       )}
 
-      {/* Live Geospatial Hazard Map on Landing Page */}
-      <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
+      {/* Live Map Radar CTA Banner (Map opens when clicking Live Map) */}
+      <section className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-indigo-900/50 shadow-xl">
+        <div className="absolute -top-12 -right-12 w-64 h-64 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-2xl">
             <div className="flex items-center space-x-2">
-              <div className="p-1.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
-                <MapPin className="w-5 h-5 text-blue-600" />
-              </div>
-              <h2 className="text-xl font-extrabold text-slate-900">
-                {t('landing.map_title', 'Live Geospatial Public Hazard Map')}
-              </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-100 text-blue-800 border border-blue-200">
-                {activeComplaints.length} Live Pins
+              <span className="p-2 rounded-xl bg-indigo-500/20 text-cyan-300 border border-indigo-500/30">
+                <MapPin className="w-5 h-5 text-cyan-300" />
+              </span>
+              <span className="text-xs font-black uppercase tracking-wider text-cyan-400 bg-cyan-950/60 px-2.5 py-0.5 rounded-full border border-cyan-800/60">
+                Live Geospatial Radar
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Interactive smart city GIS map. Click any pin to inspect citizen photo evidence, AI analysis, and dispatch status.
+            <h3 className="text-xl sm:text-2xl font-black text-white">
+              {t('landing.map_title', 'Live Geospatial Public Hazard Map')}
+            </h3>
+            <p className="text-xs sm:text-sm text-indigo-200/80 leading-relaxed font-medium">
+              Explore real-time hazard markers, dynamic neighborhood radius radar (1–50 km), street cartography, and satellite imagery in the dedicated Live Map tab.
             </p>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+            <div className="flex items-center space-x-2 px-4 py-2.5 rounded-2xl bg-slate-950/60 border border-indigo-900/50 text-xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+              <span className="font-bold text-slate-200">{activeComplaints.length} Live Pins Active</span>
+            </div>
             <button
               onClick={() => setActiveTab('live-map')}
-              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-sm transition-all flex items-center space-x-1.5"
+              className="px-6 py-3 bg-gradient-to-r from-indigo-600 via-violet-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center space-x-2"
             >
-              <span>Explore Live Map Tab</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <MapPin className="w-4 h-4 text-cyan-200" />
+              <span>{t('landing.explore_map', 'Open Live Hazard Map')}</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
-
-        <HazardMap
-          complaints={activeComplaints}
-          onSelectComplaint={onSelectComplaint}
-          radiusKm={0}
-          height="450px"
-        />
       </section>
 
       {/* Comprehensive Active Public Hazards Intelligence Hub */}
