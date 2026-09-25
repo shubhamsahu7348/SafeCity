@@ -1,4 +1,4 @@
-# 🏙️ SafeCity — AI-Powered Smart City Public Hazard Intelligence & Municipal Governance Platform
+# 🏙️ AapdaSetu — AI-Powered Smart City Public Hazard Intelligence & Municipal Governance Platform
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg?logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19.0-61dafb.svg?logo=react)](https://react.dev/)
@@ -7,7 +7,7 @@
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38bdf8.svg?logo=tailwindcss)](https://tailwindcss.com/)
 [![Leaflet](https://img.shields.io/badge/GIS-Leaflet%201.9-green.svg?logo=leaflet)](https://leafletjs.com/)
 
-SafeCity is an end-to-end municipal intelligence and civic grievance platform designed for smart cities. It bridges citizens, municipal departments, field ground crews, and city leadership through multimodal AI vision analysis, automated geospatial triage, automatic license plate recognition (ANPR), and real-time resolution tracking.
+AapdaSetu is an end-to-end municipal intelligence and civic grievance platform designed for smart cities. It bridges citizens, municipal departments, field ground crews, and city leadership through multimodal AI vision analysis, automated geospatial triage, automatic license plate recognition (ANPR), and real-time resolution tracking.
 
 ---
 
@@ -42,7 +42,7 @@ Traditional civic complaint platforms face three massive hurdles:
 2. **Spam & Non-Hazard Media**: Citizens inadvertently or maliciously upload selfies, company logos, scenic rivers, memes, or household items, overwhelming city staff.
 3. **Traffic Enforcement Bottlenecks**: In dense traffic with dozens of two-wheelers, isolating the single rider without a helmet and extracting their registration number accurately is labor-intensive.
 
-**SafeCity solves this completely using Google Gemini Multimodal Vision AI.** The system inspects citizen-uploaded photos and videos, verifies whether a genuine municipal hazard or traffic violation exists, extracts offender license plates (in standard `AA 00 AA 0000` format), flags emergency risks, calculates estimated fix times, and automatically dispatches tasks to the right department.
+**AapdaSetu solves this completely using Google Gemini Multimodal Vision AI.** The system inspects citizen-uploaded photos and videos, verifies whether a genuine municipal hazard or traffic violation exists, extracts offender license plates (in standard `AA 00 AA 0000` format), flags emergency risks, calculates estimated fix times, and automatically dispatches tasks to the right department.
 
 ---
 
@@ -55,7 +55,7 @@ In a city of millions, thousands of civic issues emerge daily:
 - **Garbage Dumps & Blocked Drains** creating public health hazards and dengue outbreaks.
 - **Traffic Offenses (No Helmet, Red Light Jumping, Wrong-Way Driving)** leading to traffic gridlock and fatalities.
 
-SafeCity serves as the single digital command center connecting:
+AapdaSetu serves as the single digital command center connecting:
 - **Citizens** (instant reporting with GPS, voice notes, photo/video, and live SMS/WhatsApp-style status tracking).
 - **Municipal Departments** (dedicated control rooms for Roads, Electricity, Water, Waste, Safety, Traffic Police).
 - **Field Ground Crews** (mobile task manager with GPS directions and before/after photo resolution upload).
@@ -66,7 +66,7 @@ SafeCity serves as the single digital command center connecting:
 ## 🚀 Key Features: Basic to Advanced
 
 ### 1. Multimodal AI Hazard Vision Assessment
-- **Zero-Guesswork Classification**: Citizen snaps a photo or records a video clip of a hazard. SafeCity feeds the visual evidence into Google Gemini Vision (`gemini-2.5-flash` with automatic failover to `gemini-3.1-flash-lite`).
+- **Zero-Guesswork Classification**: Citizen snaps a photo or records a video clip of a hazard. AapdaSetu feeds the visual evidence into Google Gemini Vision (`gemini-2.5-flash` with automatic failover to `gemini-3.1-flash-lite`).
 - **Severity Scoring**: Categorizes risks as `Low`, `Medium`, `High`, or `Critical`.
 - **Emergency Priority Escalation**: Hazards with imminent risk to human life (e.g., live dangling electrical wires, flooded open manholes) automatically trigger the `isEmergency` flag and alert emergency dispatch squads.
 - **Estimated SLA Fix Hours**: Predicts estimated repair time (e.g., 2 hours for critical power line, 24 hours for minor pothole).
@@ -308,8 +308,8 @@ sequenceDiagram
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/safecity.git
-cd safecity
+git clone https://github.com/your-username/aapdasetu.git
+cd aapdasetu
 ```
 
 ### 2. Install Dependencies
@@ -350,7 +350,7 @@ http://localhost:3000
 
 ## 🗄️ Supabase PostgreSQL Database Setup
 
-SafeCity automatically synchronizes citizen public hazard reports directly with a cloud-hosted Supabase PostgreSQL database.
+AapdaSetu automatically synchronizes citizen public hazard reports directly with a cloud-hosted Supabase PostgreSQL database.
 
 - **Supabase Project ID**: `hflpnvixueffwbjbmnzh`
 - **Database Endpoint**: `https://hflpnvixueffwbjbmnzh.supabase.co`
@@ -379,7 +379,7 @@ npm start
 ```
 
 ### Container / Docker Deployment
-SafeCity binds to `0.0.0.0:3000`, making it directly compatible with container platforms such as **Google Cloud Run**, **AWS ECS**, or standard Docker containers.
+AapdaSetu binds to `0.0.0.0:3000`, making it directly compatible with container platforms such as **Google Cloud Run**, **AWS ECS**, or standard Docker containers.
 
 ```dockerfile
 FROM node:20-alpine
