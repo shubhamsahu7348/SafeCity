@@ -335,6 +335,27 @@ export async function fetchComplaintsFromSupabase(): Promise<Complaint[]> {
   }
 }
 
+/**
+ * Delete a complaint directly from Supabase.
+ */
+export async function deleteComplaintFromSupabase(id: string): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseClient();
+  try {
+    const { error } = await client
+      .from('complaints')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.warn(`[Supabase] Complaint deletion failed for ${id}:`, error.message);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || String(err) };
+  }
+}
+
 // ============================================================================
 // Officer, Field Worker & Administrator User Accounts Supabase Integration
 // ============================================================================

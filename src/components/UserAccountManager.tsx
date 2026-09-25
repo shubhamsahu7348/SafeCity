@@ -26,7 +26,6 @@ import {
   Filter,
 } from 'lucide-react';
 import { UserAccount, Worker, Department, UserRole } from '../types';
-import { INITIAL_USERS } from '../server/mockData';
 
 interface UserAccountManagerProps {
   currentRole: UserRole; // 'officer' or 'admin'
@@ -66,21 +65,20 @@ export const UserAccountManager: React.FC<UserAccountManagerProps> = ({
   const [filterDepartment, setFilterDepartment] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Fetch accounts from API
+  // Fetch accounts from API (Exclusively from Supabase)
   const fetchUsers = async () => {
     try {
       const res = await fetch('/api/users');
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setUsers(data);
           return;
         }
       }
     } catch (err) {
-      console.warn('Failed to fetch users from backend, using default accounts list:', err);
+      console.warn('Failed to fetch users from backend Supabase store:', err);
     }
-    setUsers(INITIAL_USERS);
   };
 
   useEffect(() => {

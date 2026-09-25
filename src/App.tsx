@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Lock } from 'lucide-react';
 import { Complaint, Worker, DepartmentMetric, UserRole, UserAccount } from './types';
-import { INITIAL_COMPLAINTS, INITIAL_WORKERS, INITIAL_DEPARTMENT_METRICS } from './server/mockData';
 import { Navbar } from './components/Navbar';
 import { LoginModal } from './components/LoginModal';
 import { EditProfileModal } from './components/EditProfileModal';
@@ -23,28 +22,27 @@ export default function App() {
   const [loginModalTargetRole, setLoginModalTargetRole] = useState<UserRole | null>(null);
   const [showEditProfileModal, setShowEditProfileModal] = useState<boolean>(false);
 
-  // State loaded from API - initialized with active hazard seed so hazards display immediately
-  const [complaints, setComplaints] = useState<Complaint[]>(INITIAL_COMPLAINTS);
+  // State loaded strictly from Supabase DB
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [departmentMetrics, setDepartmentMetrics] = useState<DepartmentMetric[]>([]);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [trackedId, setTrackedId] = useState<string>('');
 
-  // Fetch citizen-reported hazards from server / database
+  // Fetch citizen-reported hazards from Supabase DB via backend
   const fetchComplaints = async () => {
     try {
       const res = await fetch('/api/complaints');
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setComplaints(data);
           return;
         }
       }
     } catch (err) {
-      console.warn('Error fetching citizen complaints:', err);
+      console.warn('Error fetching citizen complaints from Supabase:', err);
     }
-    setComplaints((prev) => (prev.length > 0 ? prev : INITIAL_COMPLAINTS));
   };
 
   const fetchWorkers = async () => {
@@ -52,15 +50,14 @@ export default function App() {
       const res = await fetch('/api/workers');
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setWorkers(data);
           return;
         }
       }
     } catch (err) {
-      console.warn('Error fetching workers, using fallback:', err);
+      console.warn('Error fetching workers from Supabase:', err);
     }
-    setWorkers((prev) => (prev.length > 0 ? prev : INITIAL_WORKERS));
   };
 
   const fetchAnalytics = async () => {
@@ -68,15 +65,14 @@ export default function App() {
       const res = await fetch('/api/analytics');
       if (res.ok) {
         const data = await res.json();
-        if (data.departments && Array.isArray(data.departments) && data.departments.length > 0) {
+        if (data.departments && Array.isArray(data.departments)) {
           setDepartmentMetrics(data.departments);
           return;
         }
       }
     } catch (err) {
-      console.warn('Error fetching analytics, using fallback:', err);
+      console.warn('Error fetching analytics from Supabase:', err);
     }
-    setDepartmentMetrics((prev) => (prev.length > 0 ? prev : INITIAL_DEPARTMENT_METRICS));
   };
 
   useEffect(() => {
